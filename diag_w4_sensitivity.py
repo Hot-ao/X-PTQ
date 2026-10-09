@@ -1,0 +1,277 @@
+"""
+보호(P)와 scale 이전 채택 검사(A)에 쓰는 누수 없는 진단. run_comparison.py와 scripts/make_protect_cache.py가 부른다.
+
+  rank_convs_leakfree : conv 단위 민감도. naive W8A8(head 포함)에서 conv 하나씩 weight만 저비트로 내려
+                        FP 대비 변화량을 잰다. 이미지는 train2017 앞쪽(calibration 부분집합), 어휘는 COCO만.
+  select_protected    : 예산(양자화 weight 파라미터 대비 비율) 안에서 변화량이 큰 conv를 greedy로 고른다.
+  mcheck_flip         : calibration에 쓰지 않은 train2017 이미지 + COCO 어휘에서 양자화 모델의
+                        FP 대비 top-1 flip(%). +A가 M을 켤지 정할 때 쓴다.
+
+val2017과 LVIS는 어디에서도 쓰지 않는다(평가 데이터·어휘 누수 없음).
+
+지표(measure가 내는 값, FP 대비):
+  emb  : cv4 입력(region 임베딩) 오차, FP 확신도 가중 평균
+  coco : FP 확신도 > conf 인 anchor에서 top-1 COCO 클래스가 바뀐 비율(%). 보호 선택의 기준
+  lvis : 같은 방식. 위 함수들은 LVIS 슬롯에도 COCO 임베딩을 넣어 부르므로 coco와 같은 값이다
+  cls  : COCO logit 상대 L2 오차 (HAWQ식 대조군 +H의 기준)
+  box  : cv2 출력(박스 분포 logit) 상대 L2 오차 ||q - fp||^2 / ||fp||^2
+
+파일 이름은 처음 만든 용도(W4 손상이 어느 블록에 몰려 있는지 보는 0단계 진단, 09-29)에서 왔다.
+그 탐색용 CLI는 제거했다(결과는 PROMPTCAL_HISTORY, runs/128).
+"""
+import glob, os, sys
+
+import torch
+import torch.nn.functional as F
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import run_comparison as rc
+from quant.fake_quant import QuantConv2d
+from quant.pdquant import _find_head, _CV4Capture
+from quant.vocab_metric import VocabMetric, encode_text_bank
+
+
+def first_last_ids(det_model):
+    """set_first_last_bits와 같은 규칙으로 항상 8bit인 conv의 id 집합."""
+    ids = set()
+    for mod in det_model.model[0].modules():
+        if isinstance(mod, QuantConv2d):
+            ids.add(id(mod))
+            break
+    head = det_model.model[-1]
+    for branch in ("cv2", "cv3"):
+        for lvl in getattr(head, branch, []):
+            if isinstance(lvl[-1], QuantConv2d):
+                ids.add(id(lvl[-1]))
+    return ids
+
+
+def groups_of(det_model, expand=()):
+    """[(이름, [QuantConv2d...])] -- 첫/마지막 레이어 제외, 빈 그룹 제외.
+    expand: 이 인덱스의 모듈은 블록 대신 conv 하나하나를 그룹으로 쪼갠다."""
+    fixed = first_last_ids(det_model)
+    seq = det_model.model
+    out = []
+    for i, blk in enumerate(seq[:-1]):
+        if i in expand:
+            for n, m in blk.named_modules():
+                if isinstance(m, QuantConv2d) and id(m) not in fixed:
+                    out.append((f"{i}.{n}", [m]))
+            continue
+        convs = [m for m in blk.modules() if isinstance(m, QuantConv2d) and id(m) not in fixed]
+        if convs:
+            out.append((f"{i}:{type(blk).__name__}", convs))
+    head = seq[-1]
+    hi = len(seq) - 1
+    for branch in ("cv2", "cv3"):
+        for li, lvl in enumerate(getattr(head, branch, [])):
+            if hi in expand:                              # head도 conv 단위("23.cv3.0.1" 형식)
+                for n, m in lvl.named_modules():
+                    if isinstance(m, QuantConv2d) and id(m) not in fixed:
+                        out.append((f"{hi}.{branch}.{li}.{n}" if n else f"{hi}.{branch}.{li}", [m]))
+                continue
+            convs = [m for m in lvl.modules() if isinstance(m, QuantConv2d) and id(m) not in fixed]
+            if convs:
+                out.append((f"head.{branch}.{li}", convs))
+    return out
+
+
+def set_wbits(convs, bits):
+    for c in convs:
+        c.w_bits = bits
+        c.freeze_weight_quant()
+
+
+class HeadTap:
+    """cv4 입력(region 임베딩)과 cv2 출력(박스 logit)을 레벨별로 잡는다."""
+    def __init__(self, head):
+        self.cv4 = _CV4Capture(head, capture_input=True)
+        self.box = {}
+        self.handles = [lvl.register_forward_hook(self._mk(i)) for i, lvl in enumerate(head.cv2)]
+
+    def _mk(self, i):
+        def hook(_m, _inp, out):
+            self.box[i] = out.detach()
+        return hook
+
+    def emb(self):
+        return [self.cv4.inbuf[i].detach() for i in sorted(self.cv4.inbuf)]
+
+    def boxes(self):
+        return [self.box[i] for i in sorted(self.box)]
+
+    def close(self):
+        self.cv4.close()
+        for h in self.handles:
+            h.remove()
+
+
+@torch.no_grad()
+def run_tap(model, t, device):
+    tap = HeadTap(_find_head(model.model))
+    model.model(t.to(device))
+    e, b = tap.emb(), tap.boxes()
+    tap.close()
+    return e, b
+
+
+class HeadSim:
+    """09-29: head 종류별 임베딩/유사도. ContrastiveHead(v1) = L2 정규화 후 tau*cos+b,
+    BNContrastiveHead(v2) = BN(FP, eval) 후 exp(logit_scale)*<e, w_hat>+b. emb_err는 v1은 단위벡터 차이
+    ||e_q - e_fp||^2(기존과 동일), v2는 상대 오차 ||e_q - e_fp||^2 / ||e_fp||^2 (logit이 크기에도 선형이라)."""
+    def __init__(self, fp_head):
+        self.subs = list(fp_head.cv4)
+        self.kind = type(self.subs[0]).__name__
+        assert self.kind in ("ContrastiveHead", "BNContrastiveHead"), self.kind
+
+    @torch.no_grad()
+    def embed(self, x, lvl):
+        if self.kind == "ContrastiveHead":
+            return F.normalize(VocabMetric.flat(x).float(), dim=-1)
+        return VocabMetric.flat(self.subs[lvl].norm(x.float())).float()
+
+    def emb_err(self, eq, ef):
+        d = (eq - ef).pow(2).sum(-1)
+        return d if self.kind == "ContrastiveHead" else d / ef.pow(2).sum(-1).clamp(min=1e-12)
+
+    def sims(self, e, bank, lvl):
+        sub = self.subs[lvl]
+        return float(sub.logit_scale.exp()) * (e @ bank.T) + float(sub.bias)
+
+
+HS = None                                                 # rank_convs_leakfree/mcheck_flip이 FP head로 초기화
+
+
+def sims(e, vm, lvl):
+    return HS.sims(e, vm.bank, lvl)
+
+
+@torch.no_grad()
+def reference(fp, evals, device, vm_lvis, vm_coco, conf, weight_vocab="lvis"):
+    """FP 쪽 기준값을 이미지별로 1회 계산해 CPU에 보관. weight_vocab: emb_err의 anchor 가중치를 어느
+    vocabulary 확신도로 줄지('lvis' = 기존, 평가 vocabulary라 선택 용도로는 누수 / 'coco' = calibration
+    vocabulary / 'uniform')."""
+    refs = []
+    for t in evals:
+        e, b = run_tap(fp, t, device)
+        per = []
+        for lvl, x in enumerate(e):
+            xn = HS.embed(x, lvl)
+            sl, sc = sims(xn, vm_lvis, lvl), sims(xn, vm_coco, lvl)
+            pl, cl = sl.sigmoid().max(-1)
+            pc, cc = sc.sigmoid().max(-1)
+            w = {"lvis": pl + 0.05, "coco": pc + 0.05, "uniform": torch.ones_like(pl)}[weight_vocab]
+            per.append(dict(xn=xn.half().cpu(), w=w.cpu(), cls=sc.half().cpu(),
+                            lvis_m=(pl > conf).cpu(), lvis_c=cl.cpu(),
+                            coco_m=(pc > conf).cpu(), coco_c=cc.cpu(),
+                            box=b[lvl].float().cpu()))
+        refs.append(per)
+    return refs
+
+
+@torch.no_grad()
+def measure(q, evals, refs, device, vm_lvis, vm_coco):
+    a = dict(w=0.0, emb=0.0, lf=0, ln=0, cf=0, cn=0, bnum=0.0, bden=0.0, cnum=0.0, cden=0.0)
+    for t, per in zip(evals, refs):
+        e, b = run_tap(q, t, device)
+        for lvl, x in enumerate(e):
+            r = per[lvl]
+            xn = HS.embed(x, lvl)
+            f = r["xn"].to(device).float()
+            w = r["w"].to(device)
+            a["w"] += float(w.sum())
+            a["emb"] += float((w * HS.emb_err(xn, f)).sum())
+            lm, cm = r["lvis_m"].to(device), r["coco_m"].to(device)
+            if lm.any():
+                ql = sims(xn[lm], vm_lvis, lvl).argmax(-1)
+                a["lf"] += int((ql != r["lvis_c"].to(device)[lm]).sum()); a["ln"] += int(lm.sum())
+            if cm.any():
+                qc = sims(xn[cm], vm_coco, lvl).argmax(-1)
+                a["cf"] += int((qc != r["coco_c"].to(device)[cm]).sum()); a["cn"] += int(cm.sum())
+            # 출력 MSE 기준(09-29): 검출기 최종 출력 중 COCO(=calibration vocabulary) 클래스 logit의 상대 오차.
+            # Hessian 기반 배분(HAWQ류)이 근사하려는 "출력 변화"를 직접 잰 값 -- 순위 비교 기준으로 쓴다.
+            fc = r["cls"].to(device).float()
+            a["cnum"] += float((sims(xn, vm_coco, lvl) - fc).pow(2).sum()); a["cden"] += float(fc.pow(2).sum())
+            fb = r["box"].to(device)
+            a["bnum"] += float((b[lvl].float() - fb).pow(2).sum()); a["bden"] += float(fb.pow(2).sum())
+    return dict(emb=a["emb"] / max(a["w"], 1e-12), lvis=100 * a["lf"] / max(a["ln"], 1),
+                cls=a["cnum"] / max(a["cden"], 1e-12),
+                coco=100 * a["cf"] / max(a["cn"], 1), box=a["bnum"] / max(a["bden"], 1e-12),
+                n_lvis=a["ln"], n_coco=a["cn"])
+
+
+def rank_convs_leakfree(model_path, coco_root, device, n_eval=200, n_calib=256, imgsz=640, conf=0.25,
+                        low_bits=4, first_last_bits=8, seed=0, last_abits=0, attn_quant="none"):
+    """09-29 (P0): 보호할 conv를 고르기 위한 누수 없는 conv 단위 drop 진단.
+    - 이미지: train2017 앞 n_eval장(calibration 부분집합). 평가셋(val2017) 미사용.
+    - 어휘: COCO(= calibration vocabulary)만 로드. LVIS는 로드조차 하지 않는다(내부 LVIS 슬롯에도 COCO를 넣음).
+    - 기준 모델: naive W8A8(head 포함, 첫/마지막 first_last_bits). conv 하나씩 weight만 low_bits로 내려 변화량을 잰다.
+    - 전역 torch RNG 상태를 저장·복원한다(호출 뒤 BRECQ 등의 RNG 스트림이 이 진단 때문에 밀리지 않도록).
+    반환: [{name, mparam, emb, coco, box, cls}] (변화량, 기준 대비)."""
+    global HS
+    from model_zoo import model_factory
+    YOLOWorld = model_factory(model_path)
+    cpu_state = torch.get_rng_state()
+    cuda_state = torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None
+    try:
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        coco = rc.load_names("coco")
+        paths = sorted(glob.glob(os.path.join(coco_root, "train2017", "*.jpg")))
+        calib = [rc.preprocess(p, imgsz) for p in paths[:n_calib]]
+        evals = [rc.preprocess(p, imgsz) for p in paths[:n_eval]]
+        fp = rc.build(YOLOWorld, model_path, coco, device, calib, "fp")
+        HS = HeadSim(_find_head(fp.model))
+        vm_coco = VocabMetric(encode_text_bank(YOLOWorld, model_path, coco, device))
+        refs = reference(fp, evals, device, vm_coco, vm_coco, conf, "coco")
+        q = rc.build(YOLOWorld, model_path, coco, device, calib, "naive", fp=fp, w_bits=8, a_bits=8,
+                     skip_head=False, first_last_bits=first_last_bits, last_abits=last_abits,
+                     attn_quant=attn_quant)
+        groups = groups_of(q.model, set(range(len(q.model.model))))
+        base = measure(q, evals, refs, device, vm_coco, vm_coco)
+        rows = []
+        for name, convs in groups:
+            set_wbits(convs, low_bits)
+            m = measure(q, evals, refs, device, vm_coco, vm_coco)
+            set_wbits(convs, 8)
+            rows.append(dict(name=name, mparam=sum(c.conv.weight.numel() for c in convs) / 1e6,
+                             **{k: m[k] - base[k] for k in ("emb", "coco", "box", "cls")}))
+        del q, fp
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        return rows
+    finally:
+        torch.set_rng_state(cpu_state)
+        if cuda_state is not None:
+            torch.cuda.set_rng_state_all(cuda_state)
+
+
+@torch.no_grad()
+def mcheck_flip(qmodels, fp, model_path, coco, coco_root, n_calib, imgsz, device, n_eval=200, conf=0.25):
+    """10-02 (+A): 이전(M) 채택 사전 검사. calibration에 쓰지 않은 train2017 이미지(정렬 순서로 앞 n_calib장 다음
+    n_eval장)와 COCO(= calibration) 어휘만 써서, 각 양자화 모델의 FP 대비 top-1 flip(%)을 돌려준다.
+    val2017/LVIS는 쓰지 않는다(누수 없음). runs/155: m에서 M의 해(flip 2~5배)를 잡고 s 저비트에서는 M을 유지한다."""
+    global HS
+    from model_zoo import model_factory
+    YOLOWorld = model_factory(model_path)
+    paths = sorted(glob.glob(os.path.join(coco_root, "train2017", "*.jpg")))[n_calib:n_calib + n_eval]
+    evals = [rc.preprocess(p, imgsz) for p in paths]
+    HS = HeadSim(_find_head(fp.model))
+    vm = VocabMetric(encode_text_bank(YOLOWorld, model_path, coco, device))
+    refs = reference(fp, evals, device, vm, vm, conf, "coco")
+    return [measure(q, evals, refs, device, vm, vm)["coco"] for q in qmodels]
+
+
+def select_protected(rows, budget_frac, criterion="coco"):
+    """예산(전체 양자화 weight 파라미터 대비 비율) 안에서 criterion 변화량이 큰 순으로 greedy 선택.
+    runs/134 select.py와 같은 규칙: 예산의 110%를 넘지 않게 담고, 90% 이상 차면 멈춘다."""
+    total = sum(r["mparam"] for r in rows)
+    budget = budget_frac * total
+    sel, tot = [], 0.0
+    for r in sorted(rows, key=lambda r: r[criterion], reverse=True):
+        if tot + r["mparam"] <= budget * 1.1:
+            sel.append(r["name"]); tot += r["mparam"]
+        if tot >= budget * 0.9:
+            break
+    return sel, tot, total
+

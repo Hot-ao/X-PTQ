@@ -1,0 +1,4 @@
+s-W4A8-all-s0	--model yolov8s-world.pt --w-bits 4 --a-bits 8 --conditions naive,brecq,brecq+PM,brecq+GPM --seed 0
+s-W4A5-all-s0	--model yolov8s-world.pt --w-bits 4 --a-bits 5 --conditions naive,brecq,brecq+PM,brecq+GPM --seed 0
+s-W4A8-all-s1	--model yolov8s-world.pt --w-bits 4 --a-bits 8 --conditions naive,brecq,brecq+PM,brecq+GPM --seed 1
+s-W4A5-all-s1	--model yolov8s-world.pt --w-bits 4 --a-bits 5 --conditions naive,brecq,brecq+PM,brecq+GPM --seed 1
