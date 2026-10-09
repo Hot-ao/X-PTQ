@@ -1,7 +1,7 @@
 # Baseline 확정 상태 및 재현 절차
 
 > **2026-10-08 — 이 문서는 10-02 확정 프로토콜 이전(head 제외, W8A8)의 기록이다.** 지금 프로토콜과 표는
-> [`README.md`](README.md)와 [`docs/PROMPTCAL_RESULTS_2026-10-03.md`](../docs/PROMPTCAL_RESULTS_2026-10-03.md)를 볼 것.
+> [`README.md`](README.md)와 [`docs/RESULTS.md`](docs/RESULTS.md)를 볼 것.
 > 아래에 나오는 `run_comparison.py` 인자 가운데 `--neck-layerwise`, `--brecq-batch`, `--brecq-two-stage`,
 > `--act-observer`, `--recon-iters-*`, `--scale-reg-weight` 등 확정 대기열이 쓰지 않는 것은 10-08 정리에서 제거했다
 > (값은 `run_comparison.py` 상단 상수와 `build()`에 고정). 그 인자로 재현하려면 커밋 `282854d`의 코드를 쓴다.
@@ -10,8 +10,8 @@
 baseline을 기준으로 제안 방법을 설계하는 사람.
 
 이 문서는 **"지금 baseline이 어떤 상태이고, 어떻게 재현하며, 무엇이 남았는가"** 를 다룬다.
-각 방법이 원 논문/공식 코드와 항목별로 어떻게 대응되는지는 저장소 루트의
-[`PROMPTCAL_BASELINE_FIDELITY_2026-09-23.md`](../PROMPTCAL_BASELINE_FIDELITY_2026-09-23.md)
+각 방법이 원 논문/공식 코드와 항목별로 어떻게 대응되는지는 원 저장소(promptcal-ptq) 루트의
+`PROMPTCAL_BASELINE_FIDELITY_2026-09-23.md`
 (특히 09-24에 추가된 **§7 6-seed 확정 재측정**)를 볼 것. 여기서는 그 결론만 요약한다.
 
 ---
@@ -35,7 +35,7 @@ baseline을 기준으로 제안 방법을 설계하는 사람.
 
 > ⚠️ **09-28 — 위 '(참고) Combined' 행과 마지막 bullet은 stage1=none(naive 기반) 시절 값이라 stale이다.**
 > 현재 설계는 `--combined-stage1 brecq`이고 그 위에서 LVIS 3지표가 6/6 개선된다(`runs/112`).
-> 현재 설계·결과는 루트 [`PROMPTCAL_PAPER_DESIGN_2026-09-28.md`](../PROMPTCAL_PAPER_DESIGN_2026-09-28.md)를 볼 것.
+> 현재 설계·결과는 원 저장소의 `promptcal-ptq/PROMPTCAL_PAPER_DESIGN_2026-09-28.md`를 볼 것.
 > 위 baseline 4행 자체는 유효하다(head 제외 프로토콜).
 
 ### 1.1 head 포함 프로토콜 (09-28, claim23)
@@ -86,7 +86,7 @@ GPU를 덮칠 수 있는 사고**이므로 두 곳에서 막아뒀다:
   모든 프로세스에 `CUDA_DEVICE_ORDER=PCI_BUS_ID`를 강제(`scripts/` 아래
   entry point가 59개라 파일마다 고치지 않고 한 곳에서 막음). venv를 새로
   만들면 **이 파일도 다시 만들어야 한다.**
-- `pipeline/run_comparison.py` 상단에 같은 `setdefault` + 시작 시
+- `run_comparison.py` 상단에 같은 `setdefault` + 시작 시
   `[gpu] --device N -> ... uuid=...` 로그. 로그의 인덱스가 nvidia-smi와
   다르면 환경이 바뀐 것이니 멈추고 확인할 것.
 
@@ -97,7 +97,7 @@ GPU를 덮칠 수 있는 사고**이므로 두 곳에서 막아뒀다:
 venv를 새로 만들어야 한다면:
 
 ```bash
-cd /home/taeho/promptcal-ptq
+cd /home/taeho/CVPR2027
 python -m venv --system-site-packages .venv          # torch/numpy/opencv는 ~/.local 것을 물려받는다
 .venv/bin/pip install --no-deps ultralytics==8.4.121 lvis pycocotools ftfy regex "filelock>=3.18"
 .venv/bin/python -c "import torch,torchvision,numpy; print(torch.__version__, torchvision.__version__, numpy.__version__)"
@@ -113,7 +113,7 @@ python -m venv --system-site-packages .venv          # torch/numpy/opencv는 ~/.
 export YOLO_AUTOINSTALL=false     # 없으면 ultralytics가 numpy 2.5.3을 다시 덮어쓴다
 
 CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=<gpu> \
-.venv/bin/python pipeline/run_comparison.py \
+.venv/bin/python run_comparison.py \
   --model yolov8s-world.pt --coco-root /data/taeho/coco_datasets \
   --data configs/coco_local.yaml \
   --lvis-ann /data/taeho/lvis_datasets/labels_dl/extracted/lvis/annotations/lvis_v1_minival.json \
@@ -151,7 +151,7 @@ CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=<gpu> \
 
 | 파일 | 변경 | 결과 영향 |
 |---|---|---|
-| `quant/quant_model.py` (+ `src/quant/` 사본) | `ALWAYS_SKIP_NAMES = {"clip_model"}` — `wrap_convs`가 CLIP 인코더로 재귀하지 않게 | **정확도 무영향**(6-seed로 naive bit-identical 확인). 모델 크기 12.13 → **9.88 MiB** |
+| `quant/quant_model.py` (+ promptcal-ptq의 `src/quant/` 사본) | `ALWAYS_SKIP_NAMES = {"clip_model"}` — `wrap_convs`가 CLIP 인코더로 재귀하지 않게 | **정확도 무영향**(6-seed로 naive bit-identical 확인). 모델 크기 12.13 → **9.88 MiB** |
 | `run_comparison.py` | `--adaround-act-observer {minmax,mse}` 추가 | 기본 `minmax` = 기존 동작과 bit-identical |
 | `run_comparison.py` | `--deterministic` 추가 | 기본 꺼짐, 무영향 |
 

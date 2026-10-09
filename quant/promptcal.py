@@ -12,7 +12,7 @@ run_comparison.py의 build(mode="combined")가 유일한 호출부이고, 거기
 (learn_alpha*, utility_stage2_frac, region_dir_weight, control_mse 등)은 모두 기본값(꺼짐)이다.
 그 옵션들은 기각된 탐색의 흔적이며, 표 1의 Combined 수치를 bit 단위로 보존하려고 함수 안의
 분기는 그대로 두었다. 이전 변형(optimize_promptcal, optimize_promptcal_scale 등)은 제거했다
-(옛 구현은 src/quant/promptcal.py).
+(옛 구현은 promptcal-ptq의 src/quant/promptcal.py).
 """
 
 from __future__ import annotations

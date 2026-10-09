@@ -8,7 +8,7 @@ Combined(PromptCal) 기준선(promptcal.py)이 쓰는 도우미.
                              꺼져 있다(optimize_promptcal_scale_neighbor의 utility_stage2_frac=0).
 
 원래 이 파일에 있던 Semantic Calibration 최적화(optimize_semantic_pcal)는 기각된 방향이라 제거했다
-(옛 구현은 src/quant/semantic_calib.py, 경위는 PROMPTCAL_HISTORY).
+(옛 구현은 promptcal-ptq의 src/quant/semantic_calib.py, 경위는 PROMPTCAL_HISTORY).
 """
 
 from __future__ import annotations

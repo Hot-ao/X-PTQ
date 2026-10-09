@@ -1,14 +1,14 @@
 # 논문 개요 (초안, 2026-10-01 작성, 10-02 갱신: 프로토콜 확정)
 
-> **pipeline/docs 판 (2026-10-09).** 원본은 `PAPER_OUTLINE_2026-10-01.md`이고, 여기서부터는 이 판을 갱신한다. 10-08~09의 pipeline 정리(인자 79→22개, 죽은 코드 제거, 리더보드·크기 표기, 재현성 점검)에 맞춰 코드·실행 관련 서술과 링크를 고쳤다. 실험 수치는 원본과 같다.
+> **CVPR2027/docs 판 (2026-10-09).** 원본은 promptcal-ptq 저장소의 `PAPER_OUTLINE_2026-10-01.md`이고, 여기서부터는 이 판을 갱신한다. 10-08~09의 pipeline 정리(인자 79→22개, 죽은 코드 제거, 리더보드·크기 표기, 재현성 점검)에 맞춰 코드·실행 관련 서술과 링크를 고쳤다. 실험 수치는 원본과 같다.
 
 **대상 독자:** 공저자. 논문의 이야기 흐름, 각 절에 들어갈 내용, 그리고 지금 근거가 있는 것과 없는 것을 한 번에 본다.
 
 **관련 문서**
 - 방법의 구조와 작동 원리: [`METHOD.md`](METHOD.md)
-- 6 seed 수치: [`docs/PROMPTCAL_LOWBIT_RESULTS_2026-09-30.md`](../../docs/PROMPTCAL_LOWBIT_RESULTS_2026-09-30.md)
+- 6 seed 수치: `promptcal-ptq/docs/PROMPTCAL_LOWBIT_RESULTS_2026-09-30.md`
 - 경위: [`HISTORY.md`](HISTORY.md)
-- 코드와 실행: [`pipeline/README.md`](../README.md)
+- 코드와 실행: [`README.md`](../README.md)
 
 **10-02 확정 사항**
 - **프로토콜:** head 포함, 첫·마지막 8bit, attention·contrastive matmul 8bit, head 마지막 conv 입력 A16. 모든 모델에 같게 적용한다.

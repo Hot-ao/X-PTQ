@@ -1,7 +1,7 @@
 """
 저비트 PTQ 비교 실험의 진입점. FP 모델과 조건별 양자화 모델을 빌드하고 COCO-80과
 LVIS-1203(vocabulary 이식)에서 AP와 판정 충실도(flip/lost)를 잰다. 설치·프로토콜·
-표 재현은 `pipeline/README.md`를 볼 것.
+표 재현은 `README.md`를 볼 것.
 
 조건(`--conditions`)은 `<기반>+<접미사>`로 쓴다.
   - 기반: naive / adaround / qdrop / brecq / combined
@@ -32,8 +32,8 @@ RAM이 터지므로(fp_sims 하나만 이론상 ~194GB) `compute_lvis_flip_gt_st
 누적한다. AP 자체는 lvis-api(`LVISEval`)로 별도 채점.
 
 실행(반드시 저장소 루트에서, 확정 프로토콜 인자는 scripts/protocol.sh의 $PROTOCOL):
-    source pipeline/scripts/protocol.sh
-    .venv/bin/python pipeline/run_comparison.py $PROTOCOL --model yolov8s-world.pt \
+    source scripts/protocol.sh
+    .venv/bin/python run_comparison.py $PROTOCOL --model yolov8s-world.pt \
         --w-bits 4 --a-bits 5 --conditions naive,brecq,brecq+GPM --seed 0 --device 4
 
 스모크 테스트(--eval-cap으로 probe 수 제한, calib도 줄임. COCO AP는 항상 전체 val로 잰다):
@@ -542,7 +542,7 @@ def build(model_cls, w, names, device, calib, mode, fp=None, pidx=None, h_eval=N
     elif mode == "qdrop":
         # QDrop(Wei et al., ICLR 2022)은 BRECQ 프레임워크를 물려받아 activation scale 학습(LSQ)을 포함한다.
         # brecq와 재구성 단위/iters를 맞추고 drop 유무만 단일 변수로 비교한다. 공식 COCO 설정(batch 2,
-        # neck layer-wise)과 달리 batch 1, 전부 block-wise다(pipeline/BASELINE_STATUS.md).
+        # neck layer-wise)과 달리 batch 1, 전부 block-wise다(BASELINE_STATUS.md).
         convert_to_adaround(m.model, channelwise_smult=False)
         optimize_brecq(m.model, _fpref.model, calib, device, iters=RECON_ITERS,
                        qdrop_prob=QDROP_PROB, verbose=False, learn_act_scale=True,
@@ -966,18 +966,18 @@ def main():
 
 def update_leaderboard():
     """환경변수 PTQ_LEADERBOARD=1이면 실험이 끝날 때 LEADERBOARD.html과 leaderboard.csv를 다시 만든다
-    (pipeline/scripts/make_leaderboard.py). 두 파일은 git에 들어 있고 runs/의 로그 전체로 다시 쓰이므로
+    (scripts/make_leaderboard.py). 두 파일은 git에 들어 있고 runs/의 로그 전체로 다시 쓰이므로
     기본은 꺼 둔다. 여러 실험이 동시에 끝나도 겹치지 않게 파일 잠금을 쓰고, 실패해도 실험 결과에는 영향이 없다."""
     if os.environ.get("PTQ_LEADERBOARD") != "1":
         return
     sys.stdout.flush()                                    # 이 실험의 결과 표가 로그에 다 써진 뒤 읽게 한다
     try:
         import fcntl, importlib.util
-        root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        root = os.path.dirname(os.path.abspath(__file__))
         with open(os.path.join(root, "runs", ".leaderboard.lock"), "w") as lk:
             fcntl.flock(lk, fcntl.LOCK_EX)
             spec = importlib.util.spec_from_file_location(
-                "make_leaderboard", os.path.join(root, "pipeline", "scripts", "make_leaderboard.py"))
+                "make_leaderboard", os.path.join(root, "scripts", "make_leaderboard.py"))
             mod = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(mod)
             mod.main()

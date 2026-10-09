@@ -1,6 +1,6 @@
 # PromptCal-PTQ 연구 경위 — 처음부터 프로토콜 확정과 일반화까지 (2026-08-18 ~ 10-09)
 
-> **pipeline/docs 판 (2026-10-09).** 원본은 `PROMPTCAL_HISTORY_2026-09-30.md`이고, 여기서부터는 이 판을 갱신한다. 10-08~09의 pipeline 정리(인자 79→22개, 죽은 코드 제거, 리더보드·크기 표기, 재현성 점검)에 맞춰 코드·실행 관련 서술과 링크를 고쳤다. 실험 수치는 원본과 같다.
+> **CVPR2027/docs 판 (2026-10-09).** 원본은 promptcal-ptq 저장소의 `PROMPTCAL_HISTORY_2026-09-30.md`이고, 여기서부터는 이 판을 갱신한다. 10-08~09의 pipeline 정리(인자 79→22개, 죽은 코드 제거, 리더보드·크기 표기, 재현성 점검)에 맞춰 코드·실행 관련 서술과 링크를 고쳤다. 실험 수치는 원본과 같다.
 
 **대상 독자:** 이 연구를 이어받거나 논문을 쓰는 공저자.
 
@@ -13,9 +13,9 @@
 
 **현재 상태 요약 문서**
 - 방법: [`METHOD.md`](METHOD.md)
-- 결과: **[`RESULTS.md`](RESULTS.md)(확정 프로토콜, 논문 기준)**. 이전 프로토콜 결과는 [`docs/PROMPTCAL_LOWBIT_RESULTS_2026-09-30.md`](../../docs/PROMPTCAL_LOWBIT_RESULTS_2026-09-30.md)
+- 결과: **[`RESULTS.md`](RESULTS.md)(확정 프로토콜, 논문 기준)**. 이전 프로토콜 결과는 `promptcal-ptq/docs/PROMPTCAL_LOWBIT_RESULTS_2026-09-30.md`
 - 논문 개요: [`PAPER_OUTLINE.md`](PAPER_OUTLINE.md)
-- 코드 구성과 실행: [`pipeline/README.md`](../README.md)
+- 코드 구성과 실행: [`README.md`](../README.md)
 
 ---
 
@@ -284,7 +284,7 @@
 - m: G(= GP) W4A8 +0.8 / +1.5점, W4A5 +3.2 / +2.3점.
 - **세 모델 모두 BRECQ보다 좋아졌다.** 일반화를 주장할 근거가 생겼다.
 
-**정리 (10-02):** 확정 프로토콜 인자는 `pipeline/scripts/protocol.sh`에 있다. 기각된 vocab-metric 스크립트는 `pipeline/legacy/`로 옮겼다.
+**정리 (10-02):** 확정 프로토콜 인자는 `scripts/protocol.sh`에 있다. 기각된 vocab-metric 스크립트는 `legacy/`로 옮겼다.
 
 
 ---
@@ -306,7 +306,7 @@
 - **도구:** 실험 리더보드(`LEADERBOARD.html`, run_comparison이 끝날 때마다 자동 갱신)를 만들었다.
 - **10-04 ~ 10-05: YOLOE (구조가 다른 OVOD, runs/164, 표 5)**
   - YOLOE는 neck에 텍스트 융합이 없고, 텍스트는 head의 contrastive에만 상수로 쓰인다. G를 적용할 수 없어서, "진단 기반 보호와 이전이 다른 구조에서도 통하는가"를 보는 실험이다.
-  - `pipeline/model_zoo.py`로 YOLOE를 연결했다. 공개된 분할 가중치를 검출 구성에 불러오고, 텍스트 임베딩으로 어휘를 바꾸고, visual prompt 모듈은 양자화에서 뺐다.
+  - `model_zoo.py`로 YOLOE를 연결했다. 공개된 분할 가중치를 검출 구성에 불러오고, 텍스트 임베딩으로 어휘를 바꾸고, visual prompt 모듈은 양자화에서 뺐다.
   - **평가 버그를 먼저 고쳤다.** FP 모델의 LVIS AP가 11%로 공식 수준(26~28%)의 절반도 안 됐다. 동의어 이름 형식을 의심했지만 원인이 아니었다. ultralytics `YOLOE.predict()`가 NMS를 클래스 구분 없이 강제로 돌려서, 비슷한 클래스가 많은 LVIS에서 recall이 무너진 것이었다. `agnostic_nms=False`를 명시해 25.9로 맞췄다(YOLO-World는 원래 False라 영향 없음). 방법이 아니라 "자"가 잘못돼 있었던 경우다.
   - 보호 진단은 초반 backbone 경계(1, 2.cv2, 4.cv1 등)를 골랐다. 텍스트 융합이 없는 모델에서는 분석의 "초반 backbone" 축만 남는 셈이다.
   - M 사전 검사는 켬이었다. 6 seed 결과 GPM(= PM)은 W4A8 +0.74, W4A5 +4.40점, W8A8은 flip −23%로, 세 설정 모두 BRECQ보다 좋았다.
@@ -350,11 +350,11 @@
 
 ## 14. 인수인계용 pipeline 정리와 재현성 점검 (10-08 ~ 10-09)
 
-**무엇을 왜 했나.** `pipeline/`을 동료에게 넘기기 전에, 확정 대기열이 실제로 쓰는 것만 남겼다. 탐색 과정의 인자와 분기가 그대로 쌓여 있어 처음 읽는 사람이 확정 경로를 가려내기 어려웠다.
+**무엇을 왜 했나.** `pipeline/`(지금의 이 저장소, 당시에는 promptcal-ptq의 하위 디렉터리)을 동료에게 넘기기 전에, 확정 대기열이 실제로 쓰는 것만 남겼다. 탐색 과정의 인자와 분기가 그대로 쌓여 있어 처음 읽는 사람이 확정 경로를 가려내기 어려웠다.
 
 **정리한 것**
 - `run_comparison.py`: 인자 79개 → 22개, 1551줄 → 989줄. 탐색용 인자, 조건 `combined_m`·`brecq_vm`·`qdrop_vm`, 전역 `--protect-budget` 경로를 제거했다. 고정값은 상단 상수(`PROTECT_BUDGET`, `MIG_ALPHAS`, `RECON_ITERS` 등)로 옮겼다. GT 앵커 매칭과 GT 지표 계산의 중복을 함수로 합쳤다.
-- `quant/`: 호출부가 없는 함수 약 1500줄을 제거했다(`optimize_promptcal` 등 이전 변형, PD-Quant, Semantic Calibration, 독립 scale 이전, 채널 단위 W8, BRECQ의 vocab-metric 경로). `src/quant/`는 이전 전체 구현으로 남기고 더는 맞추지 않는다.
+- `quant/`: 호출부가 없는 함수 약 1500줄을 제거했다(`optimize_promptcal` 등 이전 변형, PD-Quant, Semantic Calibration, 독립 scale 이전, 채널 단위 W8, BRECQ의 vocab-metric 경로). promptcal-ptq의 `src/quant/`는 이전 전체 구현으로 남기고 더는 맞추지 않는다.
 - `diag_w4_sensitivity.py`: 옛 탐색용 CLI를 제거하고 보호 진단·M 사전 검사만 남겼다.
 - 리더보드: 실행이 끝날 때 자동으로 다시 만들던 것을 기본 꺼짐으로 바꿨다(`PTQ_LEADERBOARD=1`로 켬). 10-03 14:25 이전에 시작한 실행의 로그는 모델 크기에 attention Linear가 빠져 있어, 리더보드가 모델별 상수를 더해 맞춘다.
 - 결과 로그 마지막 줄 "이론적 모델 크기"가 첫 조건의 값만 찍던 것을 조건별로 찍게 고쳤다.

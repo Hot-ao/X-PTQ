@@ -1,4 +1,4 @@
-"""표 1 (확정 프로토콜, s-World, 6 seed) 마크다운 생성. 사용: .venv/bin/python pipeline/scripts/tables/table1_main.py  (어디서 실행해도 된다)
+"""표 1 (확정 프로토콜, s-World, 6 seed) 마크다운 생성. 사용: .venv/bin/python scripts/tables/table1_main.py  (어디서 실행해도 된다)
 절대값: 6 seed 평균 ± 표준편차. 짝 Δ: BRECQ 대비 같은 seed 차이의 평균 ± 95% CI(t). 주 지표(LVIS AP, LVIS_flip)는
 표 1 비교 전체를 한 family로 Holm 보정. W4A5는 seed 0에서 BRECQ·QDrop이 붕괴해 seed 0 제외 짝 Δ를 함께 낸다."""
 import math, statistics as st

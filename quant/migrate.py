@@ -17,7 +17,7 @@ conv도 기존보다 나빠지지 않게 한다. 입력은 FP 모델 기준(앞 
 주의(배포): 한 텐서를 여러 conv가 소비하면(C2f split 등) 비용 0 배포에는 그 소비자들이 같은 s를
 공유해야 한다. 그 제약을 지키는 탐색·적용은 channel_graph.py(search_and_apply_tied)에 있고, 이 파일에는
 거기서 쓰는 도우미(_act_quant_mse, _conv)만 남아 있다. conv마다 독립 s를 쓰던 1차 구현(search_and_apply)과
-채널 단위 혼합 정밀도(select_hi_cols)는 확정 방법에 쓰이지 않아 제거했다(옛 구현은 src/quant/migrate.py).
+채널 단위 혼합 정밀도(select_hi_cols)는 확정 방법에 쓰이지 않아 제거했다(옛 구현은 promptcal-ptq의 src/quant/migrate.py).
 
 무작위성을 쓰지 않는다(표본 추출은 stride) -- 전역 RNG 스트림 불변.
 """

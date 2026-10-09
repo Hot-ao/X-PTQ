@@ -1,7 +1,7 @@
 """실험 리더보드 생성기.
 
-runs/*/*.log(run_comparison 출력)를 모두 읽어 promptcal-ptq/LEADERBOARD.html과 leaderboard.csv를 만든다.
-사용:  .venv/bin/python pipeline/scripts/make_leaderboard.py
+runs/*/*.log(run_comparison 출력)를 모두 읽어 저장소 루트의 LEADERBOARD.html과 leaderboard.csv를 만든다.
+사용:  .venv/bin/python scripts/make_leaderboard.py
       (환경변수 PTQ_LEADERBOARD=1이면 run_comparison.py가 끝날 때 자동으로 부른다. 기본은 꺼짐)
 
 - 각 로그의 `[args] {...}` 줄에서 모델, 비트, 프로토콜, seed를 읽고, 결과 표(COCO AP | ..., Heval_flip | ...)를 읽는다.
@@ -16,7 +16,7 @@ from __future__ import annotations
 import ast, csv, glob, json, math, os, re, statistics as st, time
 from collections import defaultdict
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 RUNS = os.path.join(ROOT, "runs")
 T95 = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447, 7: 2.365, 8: 2.306, 9: 2.262}
 

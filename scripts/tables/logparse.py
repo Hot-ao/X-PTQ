@@ -6,7 +6,7 @@ LVIS AP·APr은 로그에 0~1 값으로 적혀 있다(표 스크립트가 ×100 
 """
 import glob, os, re
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 RUNS = os.path.join(ROOT, "runs")
 
 

@@ -1,7 +1,7 @@
 """
 채널 계보 추적 + 공유 제약을 지키는 scale 이전 (09-29).
 
-배경: conv마다 독립 s를 쓰는 1차 구현(지금은 제거, src/quant/migrate.py::search_and_apply)은 배포 제약이 없는 상한이다. 배포에서 x/s는 생산 conv가
+배경: conv마다 독립 s를 쓰는 1차 구현(지금은 제거, promptcal-ptq의 src/quant/migrate.py::search_and_apply)은 배포 제약이 없는 상한이다. 배포에서 x/s는 생산 conv가
 SiLU 뒤 requant 단계에서 한 번 만들어 모든 소비자에게 보내므로, 같은 생산 채널을 받는 소비 conv들은
 같은 s를 써야 하고, residual add로 합쳐지는 생산 채널들도 같은 s여야 한다.
 

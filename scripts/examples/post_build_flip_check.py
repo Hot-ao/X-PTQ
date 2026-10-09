@@ -1,5 +1,5 @@
 # --post-build 예시: 빌드된 모델마다 calibration 밖 이미지에서 FP 대비 flip과 오차를 잰다(M 채택 검사를 손으로 볼 때).
-# 사용: run_comparison.py ... --conditions brecq+GP,brecq+GPM --post-build pipeline/scripts/examples/post_build_flip_check.py
+# 사용: run_comparison.py ... --conditions brecq+GP,brecq+GPM --post-build scripts/examples/post_build_flip_check.py
 #   이미지: train2017 중 calibration에 쓰지 않은 n장(정렬 순서로 calib 다음부터). 어휘: COCO만. val/LVIS 미사용.
 #   지표: COCO flip(FP가 확신하는 anchor에서 top-1 변경 %), 임베딩 방향 오차(emb), COCO logit 상대오차(cls), box 상대오차.
 import glob as _g, os as _o, diag_w4_sensitivity as dg

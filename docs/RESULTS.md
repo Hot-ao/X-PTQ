@@ -1,12 +1,12 @@
 # 확정 프로토콜 결과 (2026-10-03)
 
-> **pipeline/docs 판 (2026-10-09).** 원본은 `docs/PROMPTCAL_RESULTS_2026-10-03.md`이고, 여기서부터는 이 판을 갱신한다. 10-08~09의 pipeline 정리(인자 79→22개, 죽은 코드 제거, 리더보드·크기 표기, 재현성 점검)에 맞춰 코드·실행 관련 서술과 링크를 고쳤다. 실험 수치는 원본과 같다.
+> **CVPR2027/docs 판 (2026-10-09).** 원본은 promptcal-ptq 저장소의 `docs/PROMPTCAL_RESULTS_2026-10-03.md`이고, 여기서부터는 이 판을 갱신한다. 10-08~09의 pipeline 정리(인자 79→22개, 죽은 코드 제거, 리더보드·크기 표기, 재현성 점검)에 맞춰 코드·실행 관련 서술과 링크를 고쳤다. 실험 수치는 원본과 같다.
 
 **대상 독자:** 공저자. **확정 프로토콜(10-02)로 낸 결과만** 한곳에 모은 문서다. 논문 표에 쓰는 숫자는 이 문서를 기준으로 한다.
 
 **이전 결과와의 관계**
-- [`PROMPTCAL_LOWBIT_RESULTS_2026-09-30.md`](../../docs/PROMPTCAL_LOWBIT_RESULTS_2026-09-30.md)와 [`PROMPTCAL_LOWBIT_RESULTS_2026-09-29.md`](../../docs/PROMPTCAL_LOWBIT_RESULTS_2026-09-29.md)는 **이전 프로토콜**(attention·contrastive FP, head 마지막 conv 입력 A8)의 결과다. 경위와 원인 분석용으로만 남긴다.
-- 방법의 구조와 작동 원리는 [`METHOD.md`](METHOD.md)에, 실행 방법은 [`../pipeline/README.md`](../README.md)에 있다.
+- `promptcal-ptq/docs/PROMPTCAL_LOWBIT_RESULTS_2026-09-30.md`와 `promptcal-ptq/docs/PROMPTCAL_LOWBIT_RESULTS_2026-09-29.md`는 **이전 프로토콜**(attention·contrastive FP, head 마지막 conv 입력 A8)의 결과다. 경위와 원인 분석용으로만 남긴다.
+- 방법의 구조와 작동 원리는 [`METHOD.md`](METHOD.md)에, 실행 방법은 [`README.md`](../README.md)에 있다.
 
 ---
 
@@ -22,7 +22,7 @@
 | 판정 충실도 | LVIS_flip: FP가 확신(sigmoid > 0.25)하는 anchor에서 LVIS top-1 클래스가 바뀐 비율. LVIS_lost: FP는 맞았는데 양자화 후 틀린 수 |
 | 재구성 | BRECQ/QDrop 2000 iter, batch 1, LSQ(16bit 미만 activation만) |
 | 통계 | seed 0~5, 조건별 RNG 복원. BRECQ 대비 짝 Δ의 평균 ± 95% CI(t). 주 지표(LVIS AP, LVIS_flip)는 표마다 Holm 보정 |
-| 인자 | `pipeline/scripts/protocol.sh` |
+| 인자 | `scripts/protocol.sh` |
 
 **FP32 기준:** COCO AP 36.80, LVIS AP 25.89, APr 17.67, APc 24.54, APf 28.56.
 
@@ -31,8 +31,8 @@
 ## 1. 표 1 — 주 결과 (s-World, 6 seed) ✅
 
 - run: `runs/158_final` (T1-*). W4A8·W4A5의 seed 0·1 naive / BRECQ / PM / GPM은 `runs/154_protocol`에서 재사용했다(같은 프로토콜). 10-09에 `s-W4A8-all-s0`을 현재 코드로 다시 돌려 네 조건의 모든 지표가 로그와 같음을 확인했다.
-- 집계 스크립트: `runs/158_final/make_table1.py` (저장소에는 `pipeline/scripts/tables/table1_main.py`)
-- **재현할 때 주의 (10-09):** `brecq+GPM`은 한 run에 묶는 조건에 따라 값이 달라진다(seed 0 W4A8: 대기열 줄대로 묶으면 LVIS AP 23.47, 단독이면 23.71). 표의 값은 `pipeline/scripts/queues/`의 묶음으로 잰 것이다. 경위는 [`HISTORY.md`](HISTORY.md) §14.
+- 집계 스크립트: `runs/158_final/make_table1.py` (저장소에는 `scripts/tables/table1_main.py`)
+- **재현할 때 주의 (10-09):** `brecq+GPM`은 한 run에 묶는 조건에 따라 값이 달라진다(seed 0 W4A8: 대기열 줄대로 묶으면 LVIS AP 23.47, 단독이면 23.71). 표의 값은 `scripts/queues/`의 묶음으로 잰 것이다. 경위는 [`HISTORY.md`](HISTORY.md) §14.
 - 표기: 절대값은 6 seed 평균 ± 표준편차, LVIS AP·APr은 점(×100). Δ는 BRECQ 대비 짝 차이이고, flip은 음수가 개선이다.
 - W8A8 GPM은 `runs/159_gpm_all`(10-03 추가)에서 왔다.
 

@@ -1,4 +1,4 @@
-"""표 2 (W4A5 ablation)·표 3 (W4A8 선택 기준 대조, QDrop plug-in) 마크다운. 사용: .venv/bin/python pipeline/scripts/tables/table23_ablation_plugin.py  (어디서 실행해도 된다)
+"""표 2 (W4A5 ablation)·표 3 (W4A8 선택 기준 대조, QDrop plug-in) 마크다운. 사용: .venv/bin/python scripts/tables/table23_ablation_plugin.py  (어디서 실행해도 된다)
 절대값: 6 seed 평균 ± 표준편차. 짝 Δ: 기준 대비 같은 seed 차이 평균 ± 95% CI. 표마다 주 지표(LVIS AP, LVIS_flip) Holm 보정.
 W4A5는 seed 0에서 BRECQ·QDrop이 붕괴해 BRECQ/QDrop 기준 비교는 seed 0 제외 값을 함께 낸다."""
 import math, statistics as st

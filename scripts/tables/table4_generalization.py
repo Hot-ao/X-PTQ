@@ -1,4 +1,4 @@
-"""표 4 — 일반화 (v2, m; 확정 프로토콜, 6 seed). 사용: .venv/bin/python pipeline/scripts/tables/table4_generalization.py  (어디서 실행해도 된다)
+"""표 4 — 일반화 (v2, m; 확정 프로토콜, 6 seed). 사용: .venv/bin/python scripts/tables/table4_generalization.py  (어디서 실행해도 된다)
 W4: runs/154_protocol(seed 0,1) + runs/160_gen6(seed 2~5). W8A8: runs/160_gen6만(154의 v2 W8A8은 L40S에서 돌려 제외).
 짝 Δ는 BRECQ 대비 같은 seed 차이의 평균 ± 95% CI(t), 주 지표 Holm 보정(이 표 전체)."""
 import glob, os, re, math, statistics as st

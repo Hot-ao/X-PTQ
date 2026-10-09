@@ -6,7 +6,7 @@ head 캡처 도우미.
                        입력(region feature)도 grad를 유지한 채 캡처한다.
 
 파일 이름은 원래 여기 있던 PD-Quant 기준선 구현에서 왔다(지금 파이프라인에서는 쓰지 않아 제거,
-옛 구현은 src/quant/pdquant.py). promptcal.py와 diag_w4_sensitivity.py가 위 두 도우미를 쓴다.
+옛 구현은 promptcal-ptq의 src/quant/pdquant.py). promptcal.py와 diag_w4_sensitivity.py가 위 두 도우미를 쓴다.
 """
 
 from __future__ import annotations

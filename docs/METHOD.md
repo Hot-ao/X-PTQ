@@ -1,6 +1,6 @@
 # 저비트 PTQ 방법 — 구조와 작동 원리 (2026-09-29, 09-30·10-01·10-02·10-03·10-05 갱신)
 
-> **pipeline/docs 판 (2026-10-09).** 원본은 `PROMPTCAL_METHOD_LOWBIT_2026-09-29.md`이고, 여기서부터는 이 판을 갱신한다. 10-08~09의 pipeline 정리(인자 79→22개, 죽은 코드 제거, 리더보드·크기 표기, 재현성 점검)에 맞춰 코드·실행 관련 서술과 링크를 고쳤다. 실험 수치는 원본과 같다.
+> **CVPR2027/docs 판 (2026-10-09).** 원본은 promptcal-ptq 저장소의 `PROMPTCAL_METHOD_LOWBIT_2026-09-29.md`이고, 여기서부터는 이 판을 갱신한다. 10-08~09의 pipeline 정리(인자 79→22개, 죽은 코드 제거, 리더보드·크기 표기, 재현성 점검)에 맞춰 코드·실행 관련 서술과 링크를 고쳤다. 실험 수치는 원본과 같다.
 
 **대상 독자:** 이 방법을 이어서 구현·실험하거나 논문을 쓰는 공저자.
 
@@ -8,14 +8,14 @@
 
 **관련 문서**
 - **논문에 쓰는 수치는 확정 프로토콜 결과 [`RESULTS.md`](RESULTS.md)가 기준이다.**
-- 이전 프로토콜의 수치와 원인 분석 경위는 [`docs/PROMPTCAL_LOWBIT_RESULTS_2026-09-30.md`](../../docs/PROMPTCAL_LOWBIT_RESULTS_2026-09-30.md)(6-seed, 게이트 교환)와 [`docs/PROMPTCAL_LOWBIT_RESULTS_2026-09-29.md`](../../docs/PROMPTCAL_LOWBIT_RESULTS_2026-09-29.md)(원인 분석)에 있다(run 번호로 추적).
-- 코드 구성과 실행은 [`pipeline/README.md`](../README.md)에 있다.
+- 이전 프로토콜의 수치와 원인 분석 경위는 `promptcal-ptq/docs/PROMPTCAL_LOWBIT_RESULTS_2026-09-30.md`(6-seed, 게이트 교환)와 `promptcal-ptq/docs/PROMPTCAL_LOWBIT_RESULTS_2026-09-29.md`(원인 분석)에 있다(run 번호로 추적).
+- 코드 구성과 실행은 [`README.md`](../README.md)에 있다.
 - **09-30 변경:** 텍스트 게이트 교환(⓪, §4.4)을 방법에 추가했다. 저비트(A6·A5)에서는 GPM이 최종 구성이다.
 - **10-01 변경:**
   - attention(Linear/matmul)과 head contrastive matmul도 8bit로 양자화하는 옵션을 추가했다(`--attn-quant`, §3.3). 2 seed에서 결론(GPM − BRECQ)이 그대로 유지된다.
   - 다른 모델로 일반화한 결과와 m 모델의 불안정 원인을 §9에 기록했다.
 - **10-02 변경 (프로토콜 확정):**
-  - **확정 프로토콜 = head 포함 + 첫·마지막 8bit + attention·contrastive 8bit(`attn_cls`) + head 마지막 conv 입력 A16.** 모든 모델에 같게 적용한다(§3.4). 공통 인자는 `pipeline/scripts/protocol.sh`에 있다.
+  - **확정 프로토콜 = head 포함 + 첫·마지막 8bit + attention·contrastive 8bit(`attn_cls`) + head 마지막 conv 입력 A16.** 모든 모델에 같게 적용한다(§3.4). 공통 인자는 `scripts/protocol.sh`에 있다.
   - A16 도입으로 생긴 BRECQ 버그(16bit activation에 LSQ를 걸면 step이 발산)를 고쳤다(§3.4).
   - **이전(M)은 모델별 누수 없는 사전 검사로 채택 여부를 정한다**(`+A`, §4.5). m에서는 꺼지고(최종 GP), s·v2에서는 켜진다.
   - 새 프로토콜에서 s, v2, m 세 모델 모두 BRECQ보다 좋아졌다(2 seed, §9).
@@ -27,10 +27,10 @@
   - **방법을 GPM 하나로 고정했다.** 비트마다 평가 결과를 보고 구성을 고르지 않는다. PM은 변형(ablation)으로 함께 싣는다.
   - W8A8 GPM과 QDrop + GPM을 6 seed로 추가했다(runs/159). W8A8 GPM은 LVIS_flip −24%로 M 단독보다 확실히 낫다. QDrop + GPM은 BRECQ + GPM과 같은 수준이다.
 - **10-05 변경 (구조가 다른 OVOD):**
-  - **YOLOE를 지원한다**(`pipeline/model_zoo.py`). 공개 분할 가중치를 검출 구성에 불러오고, 텍스트 임베딩(pe)으로 어휘를 바꾸며, visual prompt 모듈(SAVPE)은 양자화에서 뺀다.
+  - **YOLOE를 지원한다**(`model_zoo.py`). 공개 분할 가중치를 검출 구성에 불러오고, 텍스트 임베딩(pe)으로 어휘를 바꾸며, visual prompt 모듈(SAVPE)은 양자화에서 뺀다.
   - YOLOE-v8s 6 seed(표 5): G가 적용되지 않는 구조에서도 GPM(= PM)이 W4A8 +0.74, W4A5 +4.40점, W8A8 flip −23%로 개선된다. 보호 대상은 초반 backbone 경계다.
   - LVIS 평가에서 `agnostic_nms=False`를 명시했다(YOLOE.predict가 클래스 무관 NMS를 강제해 recall이 무너짐). YOLO-World 결과는 그대로다.
-- 이전 설계(Combined = BRECQ + s_mult margin 학습)는 [`PROMPTCAL_PAPER_DESIGN_2026-09-28.md`](../../PROMPTCAL_PAPER_DESIGN_2026-09-28.md)에 있다. 이 문서의 방법은 그 설계를 대체한다. 이유는 §7에 있다.
+- 이전 설계(Combined = BRECQ + s_mult margin 학습)는 `promptcal-ptq/PROMPTCAL_PAPER_DESIGN_2026-09-28.md`에 있다. 이 문서의 방법은 그 설계를 대체한다. 이유는 §7에 있다.
 
 ---
 
@@ -177,7 +177,7 @@
 ## 3. 양자화가 어떻게 시뮬레이션되는가
 
 ### 3.1 fake-quant 모듈
-`pipeline/quant/quant_model.py::wrap_convs`가 모든 `nn.Conv2d`를 `QuantConv2d`(`pipeline/quant/fake_quant.py`)로 감싼다. 70개이고, CLIP과 DFL은 제외한다. 양자화는 conv 입력과 weight에서 일어난다.
+`quant/quant_model.py::wrap_convs`가 모든 `nn.Conv2d`를 `QuantConv2d`(`quant/fake_quant.py`)로 감싼다. 70개이고, CLIP과 DFL은 제외한다. 양자화는 conv 입력과 weight에서 일어난다.
 
 ```
  QuantConv2d.forward(x):
@@ -193,7 +193,7 @@
 - 실제 정수 커널이 아니라 "양자화 → 곧바로 역양자화"로 정밀도 손실만 재현한다.
 
 ### 3.2 BRECQ (③)
-`pipeline/quant/brecq.py::optimize_brecq`, conv 모듈은 `AdaRoundQuantConv2d`(`pipeline/quant/adaround.py`)다.
+`quant/brecq.py::optimize_brecq`, conv 모듈은 `AdaRoundQuantConv2d`(`quant/adaround.py`)다.
 
 - **weight rounding 학습:** 원소마다 `W_int = floor(W/Δ) + h(α)`로 둔다. `h(α) = clamp(sigmoid(α)·1.2 − 0.1, 0, 1)`이고, 올림/내림을 연속 변수로 학습한다.
 - **재구성 단위:** 블록 출력 오차 `‖f_block(q) − f_block(fp)‖²`를 줄이도록 α와 activation step(LSQ)을 함께 2000 iter 학습한다.
@@ -206,7 +206,7 @@
   - ①·②와 BRECQ는 코드상 서로 간섭하지 않는다.
 
 ### 3.3 attention·contrastive 8bit 양자화 (10-01, `--attn-quant`, 확정 프로토콜은 `attn_cls`)
-10-01까지의 프로토콜은 conv만 양자화했다. 이 옵션은 남은 행렬 연산까지 8bit로 내린다. "FP로 둔 것이 결론에 영향을 주는가"를 확인하고, QATMA와 조건을 맞추는 데 쓴다. **10-02부터는 `attn_cls`가 확정 프로토콜이다.** 구현은 `pipeline/quant/attn_quant.py`에 있다.
+10-01까지의 프로토콜은 conv만 양자화했다. 이 옵션은 남은 행렬 연산까지 8bit로 내린다. "FP로 둔 것이 결론에 영향을 주는가"를 확인하고, QATMA와 조건을 맞추는 데 쓴다. **10-02부터는 `attn_cls`가 확정 프로토콜이다.** 구현은 `quant/attn_quant.py`에 있다.
 
 | 수준 | 양자화하는 연산 |
 |---|---|
@@ -301,7 +301,7 @@
 
 ## 4. 방법의 작동 원리
 
-### 4.0 빌드 순서 (`pipeline/run_comparison.py::build`)
+### 4.0 빌드 순서 (`run_comparison.py::build`)
 
 ```
  ⓪ gate_commute_all(m.model)                  (+G) C2fAttn cv2를 cv2_main + head별 cv2_side로 분리, 게이트를 뒤로
@@ -323,7 +323,7 @@
 
 ### 4.1 ① 보호: 어느 conv를 8bit로 둘 것인가
 
-**진단** (`pipeline/diag_w4_sensitivity.py::rank_convs_leakfree`)
+**진단** (`diag_w4_sensitivity.py::rank_convs_leakfree`)
 1. calibration 이미지(train2017 앞 200장)에서 FP 모델의 region 임베딩과 COCO 점수를 저장한다.
 2. naive W8A8 모델에서 **conv 하나만** weight를 4bit로 내리고, 나머지는 8bit로 둔 채 다시 흘린다. 기준 모델은 실험과 같은 프로토콜을 쓴다(확정 프로토콜이면 `attn_cls` + A16).
 3. **기준값 = COCO flip 증가량:** FP가 확신(sigmoid > 0.25)하는 anchor에서 COCO top-1 클래스가 바뀐 비율이 얼마나 늘었는지.
@@ -404,7 +404,7 @@ conv의 입력 채널 c마다 양수 s_c를 두면 FP 함수는 변하지 않는
 - concat, split, upsample, maxpool은 양수 채널 배율과 교환 가능해서 s가 그대로 통과한다.
 - attention처럼 x를 conv 없이 FP로 쓰는 곳은 그 앞에서 x·s로 역양자화한다.
 
-**채널 계보 추적** (`pipeline/quant/channel_graph.py::trace_channel_producers`)
+**채널 계보 추적** (`quant/channel_graph.py::trace_channel_producers`)
 어느 소비 입력 채널이 어느 생산 채널에서 왔는지를 모델 구조를 하드코딩하지 않고 **측정으로** 찾는다.
 
 ```
@@ -466,7 +466,7 @@ conv의 입력 채널 c마다 양수 s_c를 두면 FP 함수는 변하지 않는
  cv2(cat(y0, y1, y2, a)) = W_main · cat(y0, y1, y2) + b + Σ_h aw_h ⊙ (W_h · p_h)
 ```
 
-- **구현 (`pipeline/quant/fusion_quant.py::gate_commute`):**
+- **구현 (`quant/fusion_quant.py::gate_commute`):**
   - `cv2.conv`의 weight 열을 앞 세 분기(`cv2_main`, bias 포함)와 head별 텍스트 열(`cv2_side[h]`, bias 없음)로 쪼갠다.
   - forward를 교체한다: 게이트 aw는 원래 식 그대로 계산하고, p는 게이트 없이 `cv2_side`에 넣은 뒤 그 출력에 aw를 곱해 더한다. 마지막에 SiLU를 적용한다.
   - YOLOv8s-World는 C2fAttn 4곳(12, 15, 19, 22), head 4개다.
@@ -529,15 +529,15 @@ conv의 입력 채널 c마다 양수 s_c를 두면 FP 함수는 변하지 않는
 
 ## 5. 실행 방법
 
-실행 절차, 파일 구성, 대기열 작업자는 [`pipeline/README.md`](../README.md)에 정리했다. 확정 프로토콜의 공통 인자는 `pipeline/scripts/protocol.sh`다.
+실행 절차, 파일 구성, 대기열 작업자는 [`README.md`](../README.md)에 정리했다. 확정 프로토콜의 공통 인자는 `scripts/protocol.sh`다.
 
 ```bash
-cd promptcal-ptq                         # 저장소 루트
-source pipeline/scripts/protocol.sh      # PROTOCOL 변수 + CUDA_DEVICE_ORDER=PCI_BUS_ID
-.venv/bin/python pipeline/run_comparison.py $PROTOCOL --model yolov8s-world.pt \
+cd CVPR2027                         # 저장소 루트
+source scripts/protocol.sh      # PROTOCOL 변수 + CUDA_DEVICE_ORDER=PCI_BUS_ID
+.venv/bin/python run_comparison.py $PROTOCOL --model yolov8s-world.pt \
     --w-bits 4 --a-bits 5 --conditions naive,brecq,brecq+PM,brecq+GPM --seed 0 --device 4
 # m: 이전은 검사에서 꺼지므로 최종 구성은 brecq+GP
-.venv/bin/python pipeline/run_comparison.py $PROTOCOL --model yolov8m-world.pt \
+.venv/bin/python run_comparison.py $PROTOCOL --model yolov8m-world.pt \
     --w-bits 4 --a-bits 5 --conditions naive,brecq --seed 0 --device 5
 ```
 
@@ -574,19 +574,19 @@ source pipeline/scripts/protocol.sh      # PROTOCOL 변수 + CUDA_DEVICE_ORDER=P
 
 | 파일 | 역할 |
 |---|---|
-| `pipeline/run_comparison.py` | 빌드 순서(§4.0), CLI |
-| `pipeline/diag_w4_sensitivity.py` | ① 진단(`rank_convs_leakfree`), 선택(`select_protected`), M 사전 검사(`mcheck_flip`) |
-| `pipeline/quant/quant_model.py` | `set_conv_wbits`, `set_first_last_bits`, `set_last_abits` |
-| `pipeline/quant/channel_graph.py` | ② 채널 계보 추적, 공유 그룹, s 탐색, 배포형 등가성 검사 |
-| `pipeline/quant/migrate.py` | ② `channel_graph.py`가 쓰는 도우미. 독립 s 버전과 채널 단위 W8(ablation)은 10-08에 제거(`src/quant/migrate.py`에 남음) |
-| `pipeline/quant/fake_quant.py` | `QuantConv2d` (`mig`, `hi_cols`, 비트별 scale) |
-| `pipeline/quant/fusion_quant.py` | ⓪ 게이트 교환(`gate_commute`), 분기 인식 concat 양자화 프로토타입(기각) |
-| `pipeline/quant/attn_quant.py` | attention·contrastive 8bit 양자화(`quantize_attention`, `attn_gate`) |
-| `pipeline/quant/adaround.py`, `brecq.py` | ③ BRECQ (`LSQ_MAX_BITS`) |
-| `pipeline/model_zoo.py` | 모델 종류별 생성(YOLO-World / YOLOE), YOLOE 어휘 전환과 텍스트 bank |
-| `pipeline/scripts/protocol.sh`, `worker.sh` | 확정 프로토콜 인자, GPU별 대기열 작업자 |
+| `run_comparison.py` | 빌드 순서(§4.0), CLI |
+| `diag_w4_sensitivity.py` | ① 진단(`rank_convs_leakfree`), 선택(`select_protected`), M 사전 검사(`mcheck_flip`) |
+| `quant/quant_model.py` | `set_conv_wbits`, `set_first_last_bits`, `set_last_abits` |
+| `quant/channel_graph.py` | ② 채널 계보 추적, 공유 그룹, s 탐색, 배포형 등가성 검사 |
+| `quant/migrate.py` | ② `channel_graph.py`가 쓰는 도우미. 독립 s 버전과 채널 단위 W8(ablation)은 10-08에 제거(promptcal-ptq의 `src/quant/migrate.py`에 남음) |
+| `quant/fake_quant.py` | `QuantConv2d` (`mig`, `hi_cols`, 비트별 scale) |
+| `quant/fusion_quant.py` | ⓪ 게이트 교환(`gate_commute`), 분기 인식 concat 양자화 프로토타입(기각) |
+| `quant/attn_quant.py` | attention·contrastive 8bit 양자화(`quantize_attention`, `attn_gate`) |
+| `quant/adaround.py`, `brecq.py` | ③ BRECQ (`LSQ_MAX_BITS`) |
+| `model_zoo.py` | 모델 종류별 생성(YOLO-World / YOLOE), YOLOE 어휘 전환과 텍스트 bank |
+| `scripts/protocol.sh`, `worker.sh` | 확정 프로토콜 인자, GPU별 대기열 작업자 |
 
-`pipeline/quant/`에는 확정 파이프라인이 부르는 코드만 남겼다(10-08). `src/quant/`는 그 이전의 전체 구현으로 루트 `scripts/`의 옛 스크립트가 쓰며, 이제 서로 맞추지 않는다.
+`quant/`에는 확정 파이프라인이 부르는 코드만 남겼다(10-08). promptcal-ptq의 `src/quant/`는 그 이전의 전체 구현으로 그쪽 루트 `scripts/`의 옛 스크립트가 쓰며, 이제 서로 맞추지 않는다.
 
 **진단 훅:** `--post-build <스크립트>`(또는 환경변수 `PTQ_POST_BUILD`)를 주면 빌드 직후, 평가 전에 그 스크립트를 실행하고 끝난다. `models`, `fp`, `args`, `device`를 쓸 수 있다. 주 실험 경로에는 영향이 없다.
 

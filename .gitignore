@@ -1,0 +1,21 @@
+__pycache__/
+*.pyc
+
+.venv/
+venv/
+.env
+
+.ipynb_checkpoints/
+
+runs/
+wandb/
+logs/
+
+*.pt
+*.pth
+*.onnx
+
+.DS_Store
+
+# YOLOE 텍스트 인코더(자동 다운로드, 약 600MB)
+mobileclip_blt.ts

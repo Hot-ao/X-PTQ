@@ -1,8 +1,8 @@
-# pipeline/ — 저비트 PTQ(GPM) 실험 코드
+# CVPR2027 — 저비트 PTQ(GPM) 실험 코드
 
 **대상 독자:** 이 저장소를 넘겨받아 실험을 다시 돌리거나 코드를 고치는 사람. (2026-10-08 인수인계 기준으로 갱신)
 
-이 README는 "어떻게 설치하고, 어떻게 돌리고, 표를 어떻게 다시 만드는가"를 다룬다. 다른 내용은 아래 문서에 있다. `docs/`의 다섯 문서는 저장소 루트와 `docs/`에 있던 원본을 pipeline 기준으로 옮겨 갱신한 판이고(2026-10-09), 앞으로는 이쪽을 고친다.
+이 README는 "어떻게 설치하고, 어떻게 돌리고, 표를 어떻게 다시 만드는가"를 다룬다. 다른 내용은 아래 문서에 있다. `docs/`의 다섯 문서는 원 저장소(promptcal-ptq)의 루트와 `docs/`에 있던 원본을 이 저장소 기준으로 옮겨 갱신한 판이고(2026-10-09), 앞으로는 이쪽을 고친다.
 
 | 알고 싶은 것 | 문서 |
 |---|---|
@@ -20,7 +20,7 @@
 **① 설치.** 결과를 낸 환경은 python 3.12.4, torch 2.10.0+cu128, ultralytics 8.4.121이다. ultralytics 버전은 꼭 맞춘다(모델 구조와 평가 코드가 버전에 묶여 있다).
 
 ```bash
-cd promptcal-ptq
+cd [저장소 루트]
 python -m venv .venv && .venv/bin/pip install torch==2.10.0 torchvision==0.25.0 --index-url https://download.pytorch.org/whl/cu128
 .venv/bin/pip install -r requirements.txt
 ```
@@ -40,8 +40,8 @@ python -m venv .venv && .venv/bin/pip install torch==2.10.0 torchvision==0.25.0 
 **④ 동작 확인.** 아래 한 줄이 10~15분쯤 걸려 끝나고 FP 수치가 맞으면 설치와 데이터가 정상이다.
 
 ```bash
-source pipeline/scripts/protocol.sh
-.venv/bin/python pipeline/run_comparison.py $PROTOCOL --model yolov8s-world.pt --w-bits 8 --a-bits 8 --conditions naive --seed 0 --device 0
+source scripts/protocol.sh
+.venv/bin/python run_comparison.py $PROTOCOL --model yolov8s-world.pt --w-bits 8 --a-bits 8 --conditions naive --seed 0 --device 0
 ```
 
 | 모델 | FP COCO AP | FP LVIS AP |
@@ -78,7 +78,7 @@ source pipeline/scripts/protocol.sh
 | `quant/attn_quant.py` | attention·contrastive matmul 8bit 양자화(`--attn-quant`) |
 | `quant/promptcal.py`, `quant/semantic_calib.py`, `quant/pdquant.py`, `quant/vocab_metric.py` | Combined(PromptCal) 기준선, head 캡처, 어휘 임베딩 도우미 |
 
-`pipeline/quant/`에는 확정 파이프라인이 실제로 부르는 코드만 남겼다(2026-10-08 정리). `src/quant/`는 그 정리 이전의 전체 구현으로, 루트 `scripts/`의 옛 실험 스크립트가 쓴다. 이제 서로 맞추지 않으니 파이프라인을 고칠 때는 `pipeline/quant/`만 고친다. `legacy/`는 기각된 방향의 코드라 읽지 않아도 되고, 지금의 `run_comparison.py`로는 돌지 않는다.
+`quant/`에는 확정 파이프라인이 실제로 부르는 코드만 남겼다(2026-10-08 정리). promptcal-ptq의 `src/quant/`는 그 정리 이전의 전체 구현으로, 그쪽 루트 `scripts/`의 옛 실험 스크립트가 쓴다(이 저장소에는 없다). 이제 서로 맞추지 않으니 파이프라인을 고칠 때는 이 저장소의 `quant/`만 고친다. `legacy/`는 기각된 방향의 코드라 읽지 않아도 되고, 지금의 `run_comparison.py`로는 돌지 않는다.
 
 ---
 
@@ -132,23 +132,23 @@ source pipeline/scripts/protocol.sh
 ## 4. 실행
 
 ```bash
-cd promptcal-ptq          # 반드시 저장소 루트
-source pipeline/scripts/protocol.sh
+cd [저장소 루트]          # 반드시 저장소 루트
+source scripts/protocol.sh
 
 # 한 번 실행
-.venv/bin/python pipeline/run_comparison.py $PROTOCOL --model yolov8s-world.pt \
+.venv/bin/python run_comparison.py $PROTOCOL --model yolov8s-world.pt \
     --w-bits 4 --a-bits 5 --conditions naive,brecq,brecq+PM,brecq+GPM --seed 0 --device 4
 
 # 대기열: runs/<이름>/queue.tsv에 "태그<TAB>인자"를 한 줄씩 쓰고 GPU마다 작업자를 띄운다
-pipeline/scripts/worker.sh runs/<이름> 4 0-23 &
-pipeline/scripts/worker.sh runs/<이름> 5 24-47 &
+scripts/worker.sh runs/<이름> 4 0-23 &
+scripts/worker.sh runs/<이름> 5 24-47 &
 ```
 
 - **진단 훅:** `--post-build <스크립트>`를 주면 빌드 직후, 평가 전에 그 스크립트를 실행하고 끝난다. 스크립트에서 `models`, `fp`, `args`, `device`를 쓸 수 있다. 예: `scripts/examples/post_build_flip_check.py`.
 - **메모리:** m 모델은 한 run에 조건 2개까지만 묶는다. 20GB GPU에서 조건 3개는 메모리 한계에 걸린다.
-- **실행 위치:** 반드시 저장소 루트에서 실행한다. `pipeline/` 안에서 실행하면 ultralytics가 CLIP 가중치(338MB)를 `pipeline/weights/`에 다시 내려받는다.
-- **리더보드:** `.venv/bin/python pipeline/scripts/make_leaderboard.py`가 `runs/`의 모든 로그로 `LEADERBOARD.html`과 `leaderboard.csv`를 다시 만든다. 두 파일은 git에 들어 있으므로 기본으로는 자동 갱신하지 않는다. 실험이 끝날 때마다 갱신하려면 `export PTQ_LEADERBOARD=1`(잠금 + 원자적 교체, 실패해도 실험에는 영향 없음).
-- **모델 크기:** 로그의 "이론적 크기"는 양자화된 conv와 attention Linear weight의 합이다. 10-03 14:25 이전에 시작한 실행(`runs/158_final`, `159_gpm_all`, `154_protocol` 등)의 로그는 conv만이라 s는 0.44, m은 0.49 MiB 작게 찍혀 있다. 리더보드는 이 차이를 더해서 맞추고(`make_leaderboard.py`의 `fix_size`), `figures/make_pareto.py`는 로그 대신 상수를 쓴다.
+- **실행 위치:** 반드시 저장소 루트에서 실행한다. 하위 디렉터리(예: `scripts/`) 안에서 실행하면 `configs/`·가중치의 상대 경로가 어긋나고, ultralytics가 CLIP 가중치(338MB)를 그 디렉터리의 `weights/`에 다시 내려받는다.
+- **리더보드:** `.venv/bin/python scripts/make_leaderboard.py`가 `runs/`의 모든 로그로 `LEADERBOARD.html`과 `leaderboard.csv`를 다시 만든다. 두 파일은 git에 들어 있으므로 기본으로는 자동 갱신하지 않는다. 실험이 끝날 때마다 갱신하려면 `export PTQ_LEADERBOARD=1`(잠금 + 원자적 교체, 실패해도 실험에는 영향 없음).
+- **모델 크기:** 로그의 "이론적 크기"는 양자화된 conv와 attention Linear weight의 합이다. 10-03 14:25 이전에 시작한 실행(`runs/158_final`, `159_gpm_all`, `154_protocol` 등)의 로그는 conv만이라 s는 0.44, m은 0.49 MiB 작게 찍혀 있다. 리더보드는 이 차이를 더해서 맞추고(`make_leaderboard.py`의 `fix_size`), promptcal-ptq의 `figures/make_pareto.py`는 로그 대신 상수를 쓴다.
 - **소요 시간 (RTX 4000 Ada):** s 조건 하나 빌드에 약 20분, m은 약 23분이다. COCO와 LVIS 평가는 조건당 약 5분이다.
 
 ---
@@ -164,13 +164,13 @@ pipeline/scripts/worker.sh runs/<이름> 5 24-47 &
 | 4 | 일반화: YOLOv8s-WorldV2, YOLOv8m-World (6 seed) | `gen_v2_m.tsv` → seed 0·1의 28줄은 `runs/154_protocol`, 나머지 42줄은 `runs/160_gen6` | `table4_generalization.py` |
 | 4 보충 | V2 W8A8에서 M을 뺀 GP | `v2_w8a8_gp.tsv` → `runs/162_v2w8` | (리더보드에서 확인) |
 | 5 | YOLOE-v8s (W8A8/W4A8/W4A5, 6 seed) | `gen_yoloe.tsv` → `runs/164_yoloe` | `table5_yoloe.py` |
-| 그림 | 크기 대 정확도 | 표 1과 같은 run | `figures/make_pareto.py` |
+| 그림 | 크기 대 정확도 | 표 1과 같은 run | promptcal-ptq의 `figures/make_pareto.py` (이 저장소에는 없다) |
 
 ```bash
-mkdir -p runs/164_yoloe && cp pipeline/scripts/queues/gen_yoloe.tsv runs/164_yoloe/queue.tsv
-.venv/bin/python pipeline/scripts/make_protect_cache.py yoloe-v8s-seg.pt      # 캐시가 이미 있으면 바로 끝난다
-pipeline/scripts/worker.sh runs/164_yoloe 4 0-23 &                            # GPU마다 하나씩
-.venv/bin/python pipeline/scripts/tables/table5_yoloe.py                      # 다 끝난 뒤
+mkdir -p runs/164_yoloe && cp scripts/queues/gen_yoloe.tsv runs/164_yoloe/queue.tsv
+.venv/bin/python scripts/make_protect_cache.py yoloe-v8s-seg.pt      # 캐시가 이미 있으면 바로 끝난다
+scripts/worker.sh runs/164_yoloe 4 0-23 &                            # GPU마다 하나씩
+.venv/bin/python scripts/tables/table5_yoloe.py                      # 다 끝난 뒤
 ```
 
 - 전체 180줄은 RTX 4000 Ada 5장(일부 구간은 7장)으로 합계 약 44시간 걸렸다. 가장 큰 `runs/158_final`(58줄)이 약 18시간이다.

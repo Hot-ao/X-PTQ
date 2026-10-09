@@ -113,7 +113,7 @@ document.querySelectorAll('#theme button').forEach(b=>b.onclick=()=>theme(b.data
 try{ theme(localStorage.getItem('lb-theme')||'auto') }catch(e){}
 
 function header(){
-  $('#sub').textContent = `생성 ${DATA.generated} · 로그 ${DATA.n_logs}/${DATA.n_files}개 · 그룹 ${DATA.n_groups}개 · 갱신: .venv/bin/python pipeline/scripts/make_leaderboard.py`;
+  $('#sub').textContent = `생성 ${DATA.generated} · 로그 ${DATA.n_logs}/${DATA.n_files}개 · 그룹 ${DATA.n_groups}개 · 갱신: .venv/bin/python scripts/make_leaderboard.py`;
   const models = new Set(DATA.groups.map(g=>g.model)), protos = new Set(DATA.groups.map(g=>g.protocol));
   const runs = DATA.running.reduce((a,r)=>a+r.running.length,0);
   $('#cards').innerHTML = [

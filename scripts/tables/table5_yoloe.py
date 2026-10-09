@@ -1,4 +1,4 @@
-"""표 5 — YOLOE-v8s 일반화 (확정 프로토콜, 6 seed). 사용: .venv/bin/python pipeline/scripts/tables/table5_yoloe.py  (어디서 실행해도 된다)
+"""표 5 — YOLOE-v8s 일반화 (확정 프로토콜, 6 seed). 사용: .venv/bin/python scripts/tables/table5_yoloe.py  (어디서 실행해도 된다)
 YOLOE에는 텍스트 게이트가 없어 G가 아무것도 하지 않는다: GPM = PM, GP = P. M 사전 검사는 켬(runs/164 check)."""
 import glob, os, re, math, statistics as st
 from scipy import stats
