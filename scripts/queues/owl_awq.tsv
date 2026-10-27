@@ -1,0 +1,6 @@
+owl-W8A8-s0	--w-bits 8 --a-bits 8 --conditions brecq+W --seed 0
+owl-W8A8-s1	--w-bits 8 --a-bits 8 --conditions brecq+W --seed 1
+owl-W8A8-s2	--w-bits 8 --a-bits 8 --conditions brecq+W --seed 2
+owl-W4A8-s0	--w-bits 4 --a-bits 8 --conditions brecq+PW --seed 0
+owl-W4A8-s1	--w-bits 4 --a-bits 8 --conditions brecq+PW --seed 1
+owl-W4A8-s2	--w-bits 4 --a-bits 8 --conditions brecq+PW --seed 2

@@ -56,6 +56,7 @@ if not hasattr(np, "float"):
     np.float = float
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "core"))   # 10-27: 보조 모듈(model_zoo 등)은 core/
 from harness import SimilarityHarness
 from quant.quant_model import wrap_convs, calibrate, set_first_last_bits, set_last_abits, set_conv_wbits
 from quant.adaround import convert_to_adaround, optimize_adaround, AdaRoundQuantConv2d, free_cpu_mem
@@ -128,6 +129,14 @@ def measure_ap(model, data, imgsz, device):
     # fallback이던 all_ap[:, 0]은 AP50이라 map(AP@0.5:0.95)과 지표 자체가 달라서
     # 같이 제거 -- 현재 ultralytics(8.4.121)는 .maps를 항상 갖고 있어 불필요.)
     per_class = {int(c): float(metrics.box.maps[c]) for c in metrics.box.ap_class_index}
+    # 10-19: ultralytics는 COCO면 save_json을 강제로 켜서(models/yolo/detect/val.py) 평가마다 runs/detect/val-N에
+    # predictions.json(약 140MB)과 그래프를 남긴다. 공식 COCO AP 계산에 쓰인 뒤로는 읽지 않으므로 여기서 지운다
+    # (위 값은 이미 메모리에 있다). 평가 약 4000번 동안 517GB가 쌓였었다.
+    sd = getattr(metrics, "save_dir", None)
+    if sd is not None and os.path.basename(os.path.dirname(os.path.abspath(sd))) == "detect" \
+            and os.path.basename(str(sd)).startswith("val"):
+        import shutil
+        shutil.rmtree(sd, ignore_errors=True)
     return overall, per_class
 
 
@@ -516,8 +525,10 @@ def build(model_cls, w, names, device, calib, mode, fp=None, pidx=None, h_eval=N
         # 1단계가 brecq일 때만 허용(2단계의 s_mult는 conv당 스칼라라 이전과 독립).
         assert mode in ("naive", "brecq", "qdrop") or \
             (mode == "combined" and combined_stage1 == "brecq"), f"migration 미지원 조건: {mode}"
+        # migrate: True/"M" = 우리 M, "S" = SmoothQuant, "W" = AWQ(10-17 기준선, 같은 공유 제약·같은 이미지).
         from quant.channel_graph import search_and_apply_tied
-        search_and_apply_tied(m.model, calib[:MIG_IMAGES], device, MIG_ALPHAS)
+        search_and_apply_tied(m.model, calib[:MIG_IMAGES], device, MIG_ALPHAS,
+                              rule={"S": "smooth", "W": "awq"}.get(migrate, "tied"))
     _fpref = fp
     if gate_commute and mode in ("brecq", "qdrop"):
         # BRECQ가 quant/FP conv를 트리 순서로 짝짓고 FP 출력을 목표로 쓰므로, FP 기준 모델도 같은
@@ -542,7 +553,7 @@ def build(model_cls, w, names, device, calib, mode, fp=None, pidx=None, h_eval=N
     elif mode == "qdrop":
         # QDrop(Wei et al., ICLR 2022)은 BRECQ 프레임워크를 물려받아 activation scale 학습(LSQ)을 포함한다.
         # brecq와 재구성 단위/iters를 맞추고 drop 유무만 단일 변수로 비교한다. 공식 COCO 설정(batch 2,
-        # neck layer-wise)과 달리 batch 1, 전부 block-wise다(BASELINE_STATUS.md).
+        # neck layer-wise)과 달리 batch 1, 전부 block-wise다(docs/BASELINE_STATUS.md).
         convert_to_adaround(m.model, channelwise_smult=False)
         optimize_brecq(m.model, _fpref.model, calib, device, iters=RECON_ITERS,
                        qdrop_prob=QDROP_PROB, verbose=False, learn_act_scale=True,
@@ -711,7 +722,9 @@ def main():
     #   G = 텍스트 게이트 교환(09-30 설계 방향 1). G와 P/R/H를 함께 쓰면 C2fAttn cv2(교환으로 사라지는 conv)는
     #       보호 목록에서 빠진다(교환이 그 conv를 대신 다룸 -> 모델이 그만큼 작아짐).
     #   A = M을 사전 검사로 켤지 정한다(아래 빌드 루프 참고).
-    _flag_ok = set("PRHMGA")
+    #   S = SmoothQuant(a=0.5 고정), W = AWQ(mean|x|^a, weight 오차로 a 탐색) -- M 자리에 넣는 기준선(10-17).
+    #       M과 같은 공유 제약·같은 이미지로 적용한다. M/S/W 중 하나만 쓴다.
+    _flag_ok = set("PRHMGASW")
 
     def _split_cond(c):
         base, _, suf = c.partition("+")
@@ -719,6 +732,8 @@ def main():
 
     assert all(_split_cond(c)[0] in _valid and _split_cond(c)[1] <= _flag_ok for c in conditions), \
         f"--conditions에 알 수 없는 값: {[c for c in conditions if _split_cond(c)[0] not in _valid or not _split_cond(c)[1] <= _flag_ok]}"
+    assert all(len(_split_cond(c)[1] & set("MSW")) <= 1 and not ({"A"} <= _split_cond(c)[1] and _split_cond(c)[1] & set("SW"))
+               for c in conditions), "M/S/W는 한 조건에 하나만, A는 M하고만 쓴다"
     assert len(set(conditions)) == len(conditions), "--conditions에 중복이 있음"
     _all_flags = set().union(*(_split_cond(c)[1] for c in conditions))
     cond_lists = {"P": (), "R": (), "H": ()}
@@ -789,14 +804,14 @@ def main():
                 c_hi_wbit = tuple(n for n in c_hi_wbit
                                   if not (n.split(".")[0] in _attn_idx and n.split(".")[1:2] == ["cv2"]))
             print(f"[build] {cond}" + (f" -> 후보 {'+'.join(sorted(flags))}" if len(_variants) > 1 else "")
-                  + (f"  (W8 보호 {len(c_hi_wbit)}개 {list(c_hi_wbit)}, scale 이전={'켬' if 'M' in flags else '끔'}, "
+                  + (f"  (W8 보호 {len(c_hi_wbit)}개 {list(c_hi_wbit)}, scale 이전={next((k for f, k in (('M', '켬'), ('S', 'SmoothQuant'), ('W', 'AWQ')) if f in flags), '끔')}, "
                      f"게이트 교환={'G' in flags})" if flags else ""))
             _m = build(YOLOWorld, args.model, coco, device, calib, mode, fp=fp,
                        pidx=S, h_eval=H_eval, cal_idx=H_cal,
                        w_bits=args.w_bits, a_bits=args.a_bits, skip_head=args.skip_head,
                        first_last_bits=args.first_last_bits, last_abits=args.last_abits,
                        attn_quant=args.attn_quant, hi_wbit_convs=c_hi_wbit,
-                       migrate=("M" in flags), gate_commute=("G" in flags),
+                       migrate=next((f for f in "MSW" if f in flags), False), gate_commute=("G" in flags),
                        adaround_act_observer=args.adaround_act_observer,
                        combined_stage1=args.combined_stage1,
                        combined_recon_iters=args.combined_recon_iters)
@@ -966,7 +981,7 @@ def main():
 
 def update_leaderboard():
     """환경변수 PTQ_LEADERBOARD=1이면 실험이 끝날 때 LEADERBOARD.html과 leaderboard.csv를 다시 만든다
-    (scripts/make_leaderboard.py). 두 파일은 git에 들어 있고 runs/의 로그 전체로 다시 쓰이므로
+    (scripts/leaderboard/make_leaderboard.py). 두 파일은 git에 들어 있고 runs/의 로그 전체로 다시 쓰이므로
     기본은 꺼 둔다. 여러 실험이 동시에 끝나도 겹치지 않게 파일 잠금을 쓰고, 실패해도 실험 결과에는 영향이 없다."""
     if os.environ.get("PTQ_LEADERBOARD") != "1":
         return
@@ -977,7 +992,7 @@ def update_leaderboard():
         with open(os.path.join(root, "runs", ".leaderboard.lock"), "w") as lk:
             fcntl.flock(lk, fcntl.LOCK_EX)
             spec = importlib.util.spec_from_file_location(
-                "make_leaderboard", os.path.join(root, "scripts", "make_leaderboard.py"))
+                "make_leaderboard", os.path.join(root, "scripts", "leaderboard", "make_leaderboard.py"))
             mod = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(mod)
             mod.main()

@@ -1,0 +1,610 @@
+[
+ {
+  "name": "1.layer.self_attn.k_proj",
+  "mparam": 0.589824,
+  "coco": -1.7064846416382249,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "1.layer.self_attn.v_proj",
+  "mparam": 0.589824,
+  "coco": -1.0238907849829353,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "1.layer.self_attn.q_proj",
+  "mparam": 0.589824,
+  "coco": -0.8532423208191124,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "1.layer.self_attn.out_proj",
+  "mparam": 0.589824,
+  "coco": -1.0238907849829353,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "1.layer.mlp.fc1",
+  "mparam": 2.359296,
+  "coco": -0.5119453924914676,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "1.layer.mlp.fc2",
+  "mparam": 2.359296,
+  "coco": -0.6825938566552896,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "2.layer.self_attn.k_proj",
+  "mparam": 0.589824,
+  "coco": -0.6825938566552896,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "2.layer.self_attn.v_proj",
+  "mparam": 0.589824,
+  "coco": -1.36518771331058,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "2.layer.self_attn.q_proj",
+  "mparam": 0.589824,
+  "coco": -1.7064846416382249,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "2.layer.self_attn.out_proj",
+  "mparam": 0.589824,
+  "coco": -0.6825938566552896,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "2.layer.mlp.fc1",
+  "mparam": 2.359296,
+  "coco": 0.3412969283276448,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "2.layer.mlp.fc2",
+  "mparam": 2.359296,
+  "coco": 0.17064846416382284,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "3.layer.self_attn.k_proj",
+  "mparam": 0.589824,
+  "coco": 4.09556313993174,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "3.layer.self_attn.v_proj",
+  "mparam": 0.589824,
+  "coco": -0.3412969283276448,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "3.layer.self_attn.q_proj",
+  "mparam": 0.589824,
+  "coco": 0.17064846416382284,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "3.layer.self_attn.out_proj",
+  "mparam": 0.589824,
+  "coco": -0.17064846416382196,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "3.layer.mlp.fc1",
+  "mparam": 2.359296,
+  "coco": 0.5119453924914676,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "3.layer.mlp.fc2",
+  "mparam": 2.359296,
+  "coco": 0.17064846416382284,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "4.layer.self_attn.k_proj",
+  "mparam": 0.589824,
+  "coco": 0.3412969283276448,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "4.layer.self_attn.v_proj",
+  "mparam": 0.589824,
+  "coco": -0.8532423208191124,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "4.layer.self_attn.q_proj",
+  "mparam": 0.589824,
+  "coco": -1.0238907849829353,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "4.layer.self_attn.out_proj",
+  "mparam": 0.589824,
+  "coco": -1.0238907849829353,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "4.layer.mlp.fc1",
+  "mparam": 2.359296,
+  "coco": 0.8532423208191124,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "4.layer.mlp.fc2",
+  "mparam": 2.359296,
+  "coco": -0.5119453924914676,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "5.layer.self_attn.k_proj",
+  "mparam": 0.589824,
+  "coco": -0.6825938566552896,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "5.layer.self_attn.v_proj",
+  "mparam": 0.589824,
+  "coco": -0.8532423208191124,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "5.layer.self_attn.q_proj",
+  "mparam": 0.589824,
+  "coco": 0.3412969283276448,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "5.layer.self_attn.out_proj",
+  "mparam": 0.589824,
+  "coco": 0.5119453924914676,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "5.layer.mlp.fc1",
+  "mparam": 2.359296,
+  "coco": 1.0238907849829353,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "5.layer.mlp.fc2",
+  "mparam": 2.359296,
+  "coco": -0.6825938566552896,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "6.layer.self_attn.k_proj",
+  "mparam": 0.589824,
+  "coco": -0.6825938566552896,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "6.layer.self_attn.v_proj",
+  "mparam": 0.589824,
+  "coco": -0.5119453924914676,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "6.layer.self_attn.q_proj",
+  "mparam": 0.589824,
+  "coco": 0.17064846416382284,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "6.layer.self_attn.out_proj",
+  "mparam": 0.589824,
+  "coco": 0.3412969283276448,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "6.layer.mlp.fc1",
+  "mparam": 2.359296,
+  "coco": -0.8532423208191124,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "6.layer.mlp.fc2",
+  "mparam": 2.359296,
+  "coco": 0.3412969283276448,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "7.layer.self_attn.k_proj",
+  "mparam": 0.589824,
+  "coco": -0.5119453924914676,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "7.layer.self_attn.v_proj",
+  "mparam": 0.589824,
+  "coco": -0.5119453924914676,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "7.layer.self_attn.q_proj",
+  "mparam": 0.589824,
+  "coco": -0.5119453924914676,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "7.layer.self_attn.out_proj",
+  "mparam": 0.589824,
+  "coco": -0.6825938566552896,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "7.layer.mlp.fc1",
+  "mparam": 2.359296,
+  "coco": -0.17064846416382196,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "7.layer.mlp.fc2",
+  "mparam": 2.359296,
+  "coco": -1.0238907849829353,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "8.layer.self_attn.k_proj",
+  "mparam": 0.589824,
+  "coco": -0.8532423208191124,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "8.layer.self_attn.v_proj",
+  "mparam": 0.589824,
+  "coco": -0.3412969283276448,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "8.layer.self_attn.q_proj",
+  "mparam": 0.589824,
+  "coco": -1.36518771331058,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "8.layer.self_attn.out_proj",
+  "mparam": 0.589824,
+  "coco": -0.3412969283276448,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "8.layer.mlp.fc1",
+  "mparam": 2.359296,
+  "coco": -0.5119453924914676,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "8.layer.mlp.fc2",
+  "mparam": 2.359296,
+  "coco": 0.0,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "9.layer.self_attn.k_proj",
+  "mparam": 0.589824,
+  "coco": -0.3412969283276448,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "9.layer.self_attn.v_proj",
+  "mparam": 0.589824,
+  "coco": 0.5119453924914676,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "9.layer.self_attn.q_proj",
+  "mparam": 0.589824,
+  "coco": 0.17064846416382284,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "9.layer.self_attn.out_proj",
+  "mparam": 0.589824,
+  "coco": -0.17064846416382196,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "9.layer.mlp.fc1",
+  "mparam": 2.359296,
+  "coco": 0.6825938566552905,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "9.layer.mlp.fc2",
+  "mparam": 2.359296,
+  "coco": 0.0,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "10.layer.self_attn.k_proj",
+  "mparam": 0.589824,
+  "coco": 0.17064846416382284,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "10.layer.self_attn.v_proj",
+  "mparam": 0.589824,
+  "coco": 0.0,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "10.layer.self_attn.q_proj",
+  "mparam": 0.589824,
+  "coco": 0.0,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "10.layer.self_attn.out_proj",
+  "mparam": 0.589824,
+  "coco": 0.5119453924914676,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "10.layer.mlp.fc1",
+  "mparam": 2.359296,
+  "coco": 0.3412969283276448,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "10.layer.mlp.fc2",
+  "mparam": 2.359296,
+  "coco": 0.0,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "11.layer.self_attn.k_proj",
+  "mparam": 0.589824,
+  "coco": 0.0,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "11.layer.self_attn.v_proj",
+  "mparam": 0.589824,
+  "coco": 0.17064846416382284,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "11.layer.self_attn.q_proj",
+  "mparam": 0.589824,
+  "coco": 0.0,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "11.layer.self_attn.out_proj",
+  "mparam": 0.589824,
+  "coco": -0.17064846416382196,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "11.layer.mlp.fc1",
+  "mparam": 2.359296,
+  "coco": -0.17064846416382196,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "11.layer.mlp.fc2",
+  "mparam": 2.359296,
+  "coco": 0.17064846416382284,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "12.layer.self_attn.k_proj",
+  "mparam": 0.589824,
+  "coco": 0.17064846416382284,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "12.layer.self_attn.v_proj",
+  "mparam": 0.589824,
+  "coco": 0.0,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "12.layer.self_attn.q_proj",
+  "mparam": 0.589824,
+  "coco": 0.5119453924914676,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "12.layer.self_attn.out_proj",
+  "mparam": 0.589824,
+  "coco": 0.3412969283276448,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "12.layer.mlp.fc1",
+  "mparam": 2.359296,
+  "coco": 0.0,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "12.layer.mlp.fc2",
+  "mparam": 2.359296,
+  "coco": 0.0,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "13.box_head.dense0",
+  "mparam": 0.589824,
+  "coco": 0.0,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "13.box_head.dense1",
+  "mparam": 0.589824,
+  "coco": 0.0,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "13.objectness_head.dense0",
+  "mparam": 0.589824,
+  "coco": 0.0,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ },
+ {
+  "name": "13.objectness_head.dense1",
+  "mparam": 0.589824,
+  "coco": 0.0,
+  "emb": 0.0,
+  "box": 0.0,
+  "cls": 0.0
+ }
+]

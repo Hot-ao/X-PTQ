@@ -15,6 +15,13 @@
 - **방법:** G + P + M + BRECQ(= GPM). 모든 비트·모델에 같은 구성을 쓴다(10-03 결정). M은 모델별 누수 없는 사전 검사로 채택한다(m에서는 꺼짐). PM은 변형으로 함께 싣는다.
 - **일반화 (6 seed):** W4에서 YOLO-World s, v2, m과 구조가 다른 YOLOE-v8s 모두 개선. W8A8은 s와 YOLOE에서만 판정 개선(v2는 M이 해침, m은 차이 없음).
 
+**10-16 ~ 10-18 추가 결정**
+- **재현성:** ImagePoolingAttn의 `AdaptiveMaxPool2d` backward(atomicAdd)가 BRECQ를 실행마다 흔들던 원인이었다. 결정적 대체(`model_zoo.DetAdaptiveMaxPool2d`)로 고치고 표 1~5 전체(180줄)를 다시 돌렸다(`CVPR2027/runs/`). 448칸 중 440칸이 기존과 bit 단위로 같고, 나머지 8칸도 0.1점 안팎이라 결론은 그대로다. 이제 "결정적 실행, 재실행 시 bit 단위 재현"이라고 쓸 수 있다.
+- **M의 위치 (SmoothQuant/AWQ 비교, `runs/170_sw`, s 6 seed):** GPM의 M을 AWQ 규칙(GPW)이나 SmoothQuant 규칙(GPS, a=0.5 고정)으로 바꿔도 BRECQ 대비 이득은 비슷하다. GPW − GPM은 W8A8~W4A6에서 flip −0.09 ~ −0.61%p(GPW가 약간 낫다), W4A5에서 LVIS AP −0.45(GPM이 낫다). GPS는 flip이 모든 설정에서 GPM보다 나쁘다. 이전 단독(S, W)은 W4에서 BRECQ보다 나쁘다(W4A8 −0.8점).
+  → **novelty는 G와 손상 위치 분석(P)에 둔다.** M은 "배포 제약(생산자 공유, residual add)을 지키는 이전"으로 서술하고, 이전 규칙(M/S/W)은 바꿔 써도 된다는 비교를 ablation으로 싣는다. "G+P 위에 어떤 이전 규칙을 얹어도 BRECQ 대비 +1.0 ~ +3.5점"을 일반성의 근거로 쓴다. 방법 이름과 표의 "우리"는 GPM 그대로 둔다(결정을 바꾸지 않는다).
+  CLE(DFQ)는 활성화가 양의 배율과 교환돼야 하는데(ReLU) YOLO의 SiLU는 그렇지 않아 FP 등가가 아니므로 비교하지 않는다. 본문에 한 줄로 밝힌다.
+- **일반화 확장:** YOLOE-11s(YOLO11 백본, `runs/171_yoloe11`)와 OWLv2 B/16(ViT, late fusion, `run_owl.py`). OWLv2는 LVIS로 fine-tuning되지 않은 **self-training 체크포인트(`google/owlv2-base-patch16`, scenic 기준 LVIS AP 26.5)**를 쓴다. `-ensemble`/`-finetuned`는 LVIS base로 fine-tuning돼 LVIS가 held-out 어휘가 아니다. OWLv2에는 텍스트 게이트가 없어 G가 해당 없다(YOLOE와 같다).
+
 **상태 표시:** ✅ 근거 있음(6 seed) · 🟡 일부 있음(2 seed 또는 일부 설정) · ⏳ 진행 중 · ❌ 아직 없음
 
 ---

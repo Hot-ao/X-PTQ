@@ -1,7 +1,7 @@
 """실험 리더보드 생성기.
 
-runs/*/*.log(run_comparison 출력)를 모두 읽어 저장소 루트의 LEADERBOARD.html과 leaderboard.csv를 만든다.
-사용:  .venv/bin/python scripts/make_leaderboard.py
+runs/*/*.log(run_comparison 출력)를 모두 읽어 results/LEADERBOARD.html과 results/leaderboard.csv를 만든다.
+사용:  .venv/bin/python scripts/leaderboard/make_leaderboard.py
       (환경변수 PTQ_LEADERBOARD=1이면 run_comparison.py가 끝날 때 자동으로 부른다. 기본은 꺼짐)
 
 - 각 로그의 `[args] {...}` 줄에서 모델, 비트, 프로토콜, seed를 읽고, 결과 표(COCO AP | ..., Heval_flip | ...)를 읽는다.
@@ -16,13 +16,20 @@ from __future__ import annotations
 import ast, csv, glob, json, math, os, re, statistics as st, time
 from collections import defaultdict
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+OUT = os.path.join(ROOT, "results")   # 10-27: 결과물은 results/
 RUNS = os.path.join(ROOT, "runs")
+# 10-17: 기간별로 볼 수 있게 이전 저장소(promptcal-ptq)의 runs/도 함께 읽는다. 없으면 건너뛴다.
+# 환경변수 PTQ_EXTRA_RUNS(콜론 구분)로 바꿀 수 있고, 빈 문자열이면 이 저장소의 runs/만 읽는다.
+EXTRA_RUNS = [d for d in os.environ.get("PTQ_EXTRA_RUNS", os.path.join(ROOT, "..", "promptcal-ptq", "runs")).split(":")
+              if d and os.path.isdir(d) and os.path.realpath(d) != os.path.realpath(RUNS)]
+RUN_ROOTS = [RUNS] + [os.path.abspath(d) for d in EXTRA_RUNS]
 T95 = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447, 7: 2.365, 8: 2.306, 9: 2.262}
 
 COLS_A = ['coco', 's_ap', 'heval_ap', 'lvis', 'apr', 'apc', 'apf']
 COLS_B = ['heval_flip', 'top1', 'upir', 'lost', 'corr', 'lvis_flip', 'lvis_lost', 'lcorr', 't']
 SCALE100 = {'lvis', 'apr', 'apc', 'apf'}
+KEYS = ['coco', 'lvis', 'apr', 'apc', 'apf', 'lvis_flip', 'lvis_lost', 'heval_ap', 'heval_flip', 'top1', 'lost']
 
 
 def parse_tables(txt):
@@ -90,7 +97,7 @@ ATTN_LINEAR_MIB = {'yolov8s-world': 0.44, 'yolov8m-world': 0.49, 'yolov8s-worldv
 def start_times():
     """{로그 경로: 시작 시각} -- runs/*/chain.log의 "<태그> start gpuN mm-dd HH:MM:SS" 줄에서."""
     out = {}
-    for ch in glob.glob(os.path.join(RUNS, '*', 'chain.log')):
+    for ch in [c for r in RUN_ROOTS for c in glob.glob(os.path.join(r, '*', 'chain.log'))]:
         for m in re.finditer(r'^(\S+) start gpu\d+ (\d\d)-(\d\d) (\d\d):(\d\d):(\d\d)', open(ch, errors='ignore').read(), re.M):
             mo, d, h, mi, s = map(int, m.groups()[1:])
             out[os.path.join(os.path.dirname(ch), m.group(1) + '.log')] = time.mktime((2026, mo, d, h, mi, s, 0, 0, -1))
@@ -105,8 +112,9 @@ def fix_size(size, model, a, started):
 
 def collect():
     recs = {}
+    allrecs = []            # 10-17: 기간 필터용. 같은 칸이 여러 번 돌았으면 모두 남긴다(페이지가 기간 안의 최신을 고른다).
     starts = start_times()
-    files = [f for f in glob.glob(os.path.join(RUNS, '*', '*.log'))
+    files = [f for r in RUN_ROOTS for f in glob.glob(os.path.join(r, '*', '*.log'))
              if '/_archive' not in f and '/old_' not in f]
     n_ok = 0
     for f in files:
@@ -137,12 +145,15 @@ def collect():
                 key = (model, proto, setting, 'FP32', -1)
             else:
                 key = (model, proto, setting, cond_name(c, a), int(a.get('seed', 0)))
+            size = fix_size(float(sizes[c]) if c in sizes else None, model, a, starts.get(f, mtime))
+            build_s = float(builds[c]) if c in builds else None
+            allrecs.append(dict(m=model, p=proto, s=setting, c=key[3], seed=key[4], t=round(starts.get(f, mtime)),
+                                end=round(mtime), src=os.path.dirname(rel), size=size, build=build_s,
+                                v={k: met.get(k) for k in KEYS if met.get(k) is not None}))
             if key in recs and recs[key]['mtime'] >= mtime:
                 continue
-            recs[key] = dict(metrics=met, mtime=mtime, src=rel,
-                             size=fix_size(float(sizes[c]) if c in sizes else None, model, a, starts.get(f, mtime)),
-                             build_s=float(builds[c]) if c in builds else None)
-    return recs, n_ok, len(files)
+            recs[key] = dict(metrics=met, mtime=mtime, src=rel, size=size, build_s=build_s)
+    return recs, allrecs, n_ok, len(files)
 
 
 def mean_sd(v):
@@ -162,7 +173,6 @@ def paired(A, B, k):
     return dict(m=m, ci=ci, n=len(x))
 
 
-KEYS = ['coco', 'lvis', 'apr', 'apc', 'apf', 'lvis_flip', 'lvis_lost', 'heval_ap', 'heval_flip', 'top1', 'lost']
 
 
 def build_groups(recs):
@@ -213,31 +223,57 @@ def build_groups(recs):
     return groups
 
 
+def _elapsed(info):
+    """'gpu4 10-17 21:44:10' -> ('gpu4', '1.3h'). 형식이 다르면 (info, '')."""
+    m = re.match(r'(\S+)\s+(\d\d-\d\d \d\d:\d\d:\d\d)', info)
+    if not m:
+        return info, ''
+    t = time.mktime(time.strptime(f"{time.localtime().tm_year}-{m.group(2)}", '%Y-%m-%d %H:%M:%S'))
+    return m.group(1), f"{max(time.time() - t, 0) / 3600:.1f}h"
+
+
 def running_jobs():
+    """10-17: queue.tsv나 chain.log가 있는 run 디렉터리를 모두 본다. 아직 아무 작업도 시작하지 않은 대기열은
+    state='대기', 하나라도 돌고 있으면 '진행', 다 끝났으면 목록에서 뺀다. 대기열 밖 작업(scripts/track.sh로 띄운 것)도
+    chain.log에 같은 형식으로 남으므로 여기에 잡힌다(queue.tsv가 없으면 total은 None)."""
     out = []
-    for ch in glob.glob(os.path.join(RUNS, '*', 'chain.log')):
-        started, done = {}, set()
-        for ln in open(ch, errors='ignore'):
-            p = ln.split()
-            if len(p) >= 2 and p[1] == 'start':
-                started[p[0]] = ' '.join(p[2:])
-            elif len(p) >= 2 and p[1] == 'done':
-                done.add(p[0])
-        q = os.path.join(os.path.dirname(ch), 'queue.tsv')
-        total = sum(1 for _ in open(q)) if os.path.exists(q) else None
+    dirs = {os.path.dirname(p) for p in glob.glob(os.path.join(RUNS, '*', 'chain.log'))
+            + glob.glob(os.path.join(RUNS, '*', 'queue.tsv'))}
+    for d in dirs:
+        if os.path.basename(d).startswith(('_archive', 'old_')):
+            continue
+        started, done, failed = {}, set(), set()
+        ch = os.path.join(d, 'chain.log')
+        if os.path.exists(ch):
+            for ln in open(ch, errors='ignore'):
+                p = ln.split()
+                if len(p) >= 2 and p[1] == 'start':
+                    started[p[0]] = ' '.join(p[2:])
+                elif len(p) >= 2 and p[1] == 'done':
+                    done.add(p[0])
+                    if len(p) >= 3 and p[2].startswith('rc=') and p[2] != 'rc=0':
+                        failed.add(p[0])
+        q = os.path.join(d, 'queue.tsv')
+        total = sum(1 for ln in open(q) if ln.strip()) if os.path.exists(q) else None
         run = [(t, v) for t, v in started.items() if t not in done]
-        if run or (total and len(done) < total):
-            out.append(dict(dir=os.path.relpath(os.path.dirname(ch), ROOT), done=len(done), total=total,
-                            running=[dict(tag=t, info=v) for t, v in run]))
-    return sorted(out, key=lambda d: d['dir'])
+        if not run and not (total and len(done) < total):
+            continue
+        jobs = []
+        for t, v in run:
+            gpu, el = _elapsed(v)
+            jobs.append(dict(tag=t, info=v, gpu=gpu, elapsed=el))
+        out.append(dict(dir=os.path.relpath(d, ROOT), done=len(done), total=total, failed=len(failed),
+                        state='진행' if run else '대기', running=jobs))
+    return sorted(out, key=lambda r: (r['state'] != '진행', r['dir']))
 
 
 def main():
-    recs, n_ok, n_files = collect()
+    recs, allrecs, n_ok, n_files = collect()
     groups = build_groups(recs)
-    data = dict(generated=time.strftime('%Y-%m-%d %H:%M'), n_logs=n_ok, n_files=n_files,
-                n_groups=len(groups), groups=groups, running=running_jobs())
-    csv_tmp = os.path.join(ROOT, f'.leaderboard.csv.{os.getpid()}')
+    # 페이지는 records로 기간 안에서 다시 집계한다(groups는 CSV용, 전체 기간의 최신값).
+    data = dict(generated=time.strftime('%Y-%m-%d %H:%M'), now=round(time.time()), n_logs=n_ok, n_files=n_files,
+                roots=[os.path.relpath(r, ROOT) for r in RUN_ROOTS], records=allrecs, running=running_jobs())
+    csv_tmp = os.path.join(OUT, f'.leaderboard.csv.{os.getpid()}')
     with open(csv_tmp, 'w', newline='') as fh:
         w = csv.writer(fh)
         w.writerow(['model', 'protocol', 'setting', 'condition', 'n_seeds', 'seeds', 'size_MiB']
@@ -250,14 +286,14 @@ def main():
                            + [r['stats'].get(k, [None])[0] for k in KEYS] + [(r['stats'].get(k) or [None, None])[1] for k in KEYS]
                            + [dl and dl['m'], dl and dl['ci'], df and df['m'], df and df['ci'],
                               ' '.join(map(str, r['collapse'])), ' '.join(r['src'])])
-    os.replace(csv_tmp, os.path.join(ROOT, 'leaderboard.csv'))   # 통째로 바꿔 끼움(쓰다 만 파일이 보이지 않게)
+    os.replace(csv_tmp, os.path.join(OUT, 'leaderboard.csv'))   # 통째로 바꿔 끼움(쓰다 만 파일이 보이지 않게)
     tpl = open(os.path.join(os.path.dirname(__file__), 'leaderboard_template.html')).read()
     html = tpl.replace('/*__DATA__*/null', json.dumps(data, ensure_ascii=False, default=str))
-    html_tmp = os.path.join(ROOT, f'.LEADERBOARD.html.{os.getpid()}')
+    html_tmp = os.path.join(OUT, f'.LEADERBOARD.html.{os.getpid()}')
     with open(html_tmp, 'w') as fh:
         fh.write(html)
-    os.replace(html_tmp, os.path.join(ROOT, 'LEADERBOARD.html'))
-    print(f"로그 {n_ok}/{n_files}개, 그룹 {len(groups)}개 -> LEADERBOARD.html, leaderboard.csv")
+    os.replace(html_tmp, os.path.join(OUT, 'LEADERBOARD.html'))
+    print(f"로그 {n_ok}/{n_files}개, 그룹 {len(groups)}개 -> results/LEADERBOARD.html, results/leaderboard.csv")
 
 
 if __name__ == '__main__':

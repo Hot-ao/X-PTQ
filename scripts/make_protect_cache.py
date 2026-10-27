@@ -7,7 +7,7 @@ run_comparison.py는 캐시가 없으면 스스로 만든다. 하지만 같은 �
 """
 import sys, os, json
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-os.chdir(ROOT); sys.path.insert(0, ROOT)
+os.chdir(ROOT); sys.path.insert(0, ROOT); sys.path.insert(0, os.path.join(ROOT, "core"))
 from diag_w4_sensitivity import rank_convs_leakfree, select_protected
 
 model = sys.argv[1]; dev = sys.argv[2] if len(sys.argv) > 2 else "cuda:0"

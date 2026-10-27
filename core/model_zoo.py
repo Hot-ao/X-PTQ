@@ -14,6 +14,34 @@ def is_yoloe(path: str) -> bool:
     return os.path.basename(str(path)).lower().startswith("yoloe")
 
 
+class DetAdaptiveMaxPool2d(torch.nn.Module):
+    """nn.AdaptiveMaxPool2d와 forward 값·argmax가 같고 backward가 결정적인 대체.
+
+    10-16: ImagePoolingAttn의 AdaptiveMaxPool2d backward(adaptive_max_pool2d_backward_cuda)는 겹치는 창의 gradient를
+    atomicAdd로 더해서 --deterministic에서도 실행마다 값이 달라진다(경고만 뜬다). BRECQ/QDrop 재구성이 이 경로로
+    역전파하므로 같은 seed·같은 조건에서도 결과가 갈렸다(s W4A8 seed 0 brecq+GPM: 6회 중 3가지 결과, 10-09에
+    '조건 묶음 의존성'으로 보였던 현상). argmax는 원래 연산으로 구하고 값은 gather로 뽑는다 -- gather의 backward는
+    결정적 모드에서 결정적 scatter_add를 쓴다. 원래 연산과의 gradient 차이는 float 반올림 수준(<= 2.4e-7)."""
+
+    def __init__(self, output_size):
+        super().__init__()
+        self.output_size = output_size
+
+    def forward(self, x):
+        with torch.no_grad():
+            _, idx = torch.nn.functional.adaptive_max_pool2d(x, self.output_size, return_indices=True)
+        return x.flatten(2).gather(2, idx.flatten(2)).view(*x.shape[:2], *idx.shape[2:])
+
+
+def make_pools_deterministic(model):
+    """Model 래퍼 안의 nn.AdaptiveMaxPool2d를 모두 DetAdaptiveMaxPool2d로 바꾼다(없으면 아무것도 안 함)."""
+    for parent in model.model.modules():
+        for name, child in parent.named_children():
+            if type(child) is torch.nn.AdaptiveMaxPool2d:
+                setattr(parent, name, DetAdaptiveMaxPool2d(child.output_size))
+    return model
+
+
 def model_factory(path: str):
     """build()의 model_cls 자리에 넣는 생성자. 호출하면 ultralytics Model 래퍼를 돌려준다."""
     if is_yoloe(path):
@@ -22,11 +50,15 @@ def model_factory(path: str):
         def make(w):
             stem = os.path.splitext(os.path.basename(str(w)))[0]
             stem = stem[:-4] if stem.endswith("-seg") else stem          # yoloe-v8s-seg -> yoloe-v8s
-            return YOLOE(f"{stem}.yaml").load(w)
+            return make_pools_deterministic(YOLOE(f"{stem}.yaml").load(w))
         make.__name__ = "YOLOE"
         return make
     from ultralytics import YOLOWorld
-    return YOLOWorld
+
+    def make(w):
+        return make_pools_deterministic(YOLOWorld(w))
+    make.__name__ = "YOLOWorld"
+    return make
 
 
 def prompt_names(names):

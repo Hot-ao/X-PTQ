@@ -24,7 +24,8 @@ import glob, os, sys
 import torch
 import torch.nn.functional as F
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # 저장소 루트(run_comparison, quant)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))                    # core/
 import run_comparison as rc
 from quant.fake_quant import QuantConv2d
 from quant.pdquant import _find_head, _CV4Capture

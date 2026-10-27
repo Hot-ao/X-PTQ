@@ -127,9 +127,21 @@ def tie_groups(deps):
     return uf
 
 
+SMOOTH_ALPHA = 0.5                                  # rule="smooth": SmoothQuant 기본 이전 강도
+AWQ_GRID = tuple(i / 20 for i in range(20))         # rule="awq": AWQ 공식 구현(n_grid=20)의 a 후보, a=0이 s=1
+
+
 @torch.no_grad()
-def search_and_apply_tied(model_module, images, device, alphas, verbose=True):
-    """공유 제약을 지키는 scale 이전. calibrate() 전 호출. 반환: (deps, producers, consumers, s_of, uf)."""
+def search_and_apply_tied(model_module, images, device, alphas, verbose=True, rule="tied"):
+    """공유 제약을 지키는 scale 이전. calibrate() 전 호출. 반환: (deps, producers, consumers, s_of, uf).
+
+    rule (10-17, 기준선 비교용 -- 세 규칙 모두 같은 공유 제약·같은 이미지·같은 적용 방식을 쓴다):
+      "tied"   우리 M. s = max|x|^a / max|W|^(1-a), 단위마다 a ∈ alphas를 W·A 양자화 출력 오차로 고른다(s=1 포함).
+      "smooth" SmoothQuant(Xiao et al., ICML'23). 같은 식에 a = SMOOTH_ALPHA 고정, 탐색 없이 모든 단위에 적용.
+      "awq"    AWQ(Lin et al., MLSys'24). s = mean|x|^a(activation 통계만), a ∈ AWQ_GRID를 weight만 양자화한
+               출력 오차(activation은 FP)로 고른다. AWQ가 같은 입력을 받는 층들(q/k/v)에 s 하나를 쓰는 것이
+               여기의 공유 그룹과 같다. weight clipping 탐색은 기존 weight 양자화기(MSE)가 맡는다."""
+    assert rule in ("tied", "smooth", "awq"), rule
     deps, producers, consumers = trace_channel_producers(model_module, images[0], device)
     uf = tie_groups(deps)
     # 소비 conv별: 입력 채널 -> 그룹 대표(None = 계보 없음, s=1 고정)
@@ -165,6 +177,14 @@ def search_and_apply_tied(model_module, images, device, alphas, verbose=True):
                 continue
             gx[g] = max(gx.get(g, 0.0), float(xmax_c[ci][c]))
             gw[g] = max(gw.get(g, 0.0), float(wmax_c[ci][c]))
+    if rule == "awq":
+        # 그룹별 mean|x|: 같은 생산 채널을 받는 소비자들은 같은 값을 보고, add로 묶인 그룹은 그중 최댓값을 쓴다.
+        gm = {}
+        for ci, gs in cmap.items():
+            xmean = torch.stack([x.abs().float().mean(dim=(0, 2, 3)) for x in xs[ci]]).mean(0)
+            for c, g in enumerate(gs):
+                if g is not None:
+                    gm[g] = max(gm.get(g, 0.0), float(xmean[c]))
     s_of = {}                                                             # 그룹 -> 확정된 s
 
     def s_vec(ci, override):
@@ -185,11 +205,44 @@ def search_and_apply_tied(model_module, images, device, alphas, verbose=True):
             r += float(ref.pow(2).sum())
         return e / max(r, 1e-20)
 
+    def cons_err_wonly(ci, s):
+        # AWQ 목적함수: weight만 양자화(Q_w(W·s)), 입력 x/s는 FP 그대로.
+        qc = consumers[ci][1]
+        Wq = quantize_weight_per_channel(W[ci] * s.view(1, -1, 1, 1), qc.w_bits)
+        e = r = 0.0
+        for x in xs[ci]:
+            x = x.float()
+            ref = _conv(qc, x, W[ci])
+            e += float((_conv(qc, x / s.view(1, -1, 1, 1), Wq) - ref).pow(2).sum())
+            r += float(ref.pow(2).sum())
+        return e / max(r, 1e-20)
+
     for u, groups in units.items():
         groups = sorted(groups)
         affected = sorted({ci for ci, gs in cmap.items() if any(g in groups for g in gs)})
         gxt = torch.tensor([gx[g] for g in groups]).clamp(min=1e-5)
         gwt = torch.tensor([gw[g] for g in groups]).clamp(min=1e-8)
+        if rule != "tied":
+            if rule == "smooth":
+                s = gxt.pow(SMOOTH_ALPHA) / gwt.pow(1.0 - SMOOTH_ALPHA)
+                s = s / s.log().mean().exp()
+                best = (None, SMOOTH_ALPHA, {g: float(v) for g, v in zip(groups, s)})
+            else:
+                gmt = torch.tensor([gm[g] for g in groups]).clamp(min=1e-4)
+                best = (float("inf"), None, None)
+                for a in AWQ_GRID:
+                    s = gmt.pow(a)
+                    s = s / (s.max() * s.min()).sqrt()
+                    ov = {g: float(v) for g, v in zip(groups, s)}
+                    e = sum(cons_err_wonly(ci, s_vec(ci, ov)) for ci in affected)
+                    if e < best[0]:
+                        best = (e, a, ov)
+            s_of.update(best[2])
+            if verbose:
+                names = sorted({producers[g[0]][0] for g in groups})
+                print(f"  [{rule}] {','.join(names)[:60]:60s} ({len(groups)}그룹, 소비 {len(affected)}) "
+                      f"a={best[1]:.2f}", flush=True)
+            continue
         best = (sum(cons_err(ci, s_vec(ci, {})) for ci in affected), None, None)
         base_err = best[0]
         for a in alphas:

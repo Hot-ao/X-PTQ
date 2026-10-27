@@ -1,0 +1,8 @@
+m-W4A8-P-s2	--model yolov8m-world.pt --w-bits 4 --a-bits 8 --conditions brecq+P --seed 2
+m-W4A5-P-s2	--model yolov8m-world.pt --w-bits 4 --a-bits 5 --conditions brecq+P --seed 2
+m-W4A8-P-s3	--model yolov8m-world.pt --w-bits 4 --a-bits 8 --conditions brecq+P --seed 3
+m-W4A5-P-s3	--model yolov8m-world.pt --w-bits 4 --a-bits 5 --conditions brecq+P --seed 3
+m-W4A8-P-s4	--model yolov8m-world.pt --w-bits 4 --a-bits 8 --conditions brecq+P --seed 4
+m-W4A5-P-s4	--model yolov8m-world.pt --w-bits 4 --a-bits 5 --conditions brecq+P --seed 4
+m-W4A8-P-s5	--model yolov8m-world.pt --w-bits 4 --a-bits 8 --conditions brecq+P --seed 5
+m-W4A5-P-s5	--model yolov8m-world.pt --w-bits 4 --a-bits 5 --conditions brecq+P --seed 5

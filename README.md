@@ -10,8 +10,9 @@
 | 방법의 정의와 근거 실험 | [`docs/METHOD.md`](docs/METHOD.md) |
 | 확정 결과 (표 1~5) | [`docs/RESULTS.md`](docs/RESULTS.md) |
 | 왜 이렇게 됐는지 (시도와 기각 기록) | [`docs/HISTORY.md`](docs/HISTORY.md) |
-| 논문 구성과 남은 일 | [`docs/PAPER_OUTLINE.md`](docs/PAPER_OUTLINE.md) |
-| 실험 현황 한눈에 | 루트 `LEADERBOARD.html`, `leaderboard.csv` |
+| 논문 구성과 남은 일 | [`docs/PAPER_OUTLINE.md`](docs/PAPER_OUTLINE.md)(v1, 방법 중심), [`docs/PAPER_OUTLINE_v2_diagnosis.md`](docs/PAPER_OUTLINE_v2_diagnosis.md)(v2, 진단 중심) |
+| 실험 현황 한눈에 | `results/LEADERBOARD.html`, `results/leaderboard.csv` |
+| 쓰지 않게 된 파일 | [`archive/README.md`](archive/README.md) |
 
 ---
 
@@ -55,21 +56,42 @@ source scripts/protocol.sh
 
 ## 1. 파일 구성
 
+```
+CVPR2027/
+├── run_comparison.py   run_owl.py      진입점 (YOLO 계열 / OWLv2). 모든 대기열이 이 경로로 부른다
+├── core/               진입점이 쓰는 보조 모듈 (진입점이 sys.path에 넣는다)
+├── quant/              양자화기와 G·P·M, BRECQ/QDrop
+├── configs/            데이터 설정, 보호 진단 캐시(protect_cache/)
+├── scripts/            실행(작업자·프로토콜), 대기열(queues/), 표 생성기(tables/), 리더보드(leaderboard/)
+├── figures/            논문 그림(pdf/png)과 그 생성 코드(src/)
+├── docs/               입문서, 방법, 결과, 경위, 논문 개요
+├── results/            리더보드(LEADERBOARD.html, leaderboard.csv) — 생성물
+├── runs/               실험 로그(run마다 디렉터리). 표 생성기와 리더보드가 이름으로 읽으니 이름을 바꾸지 않는다
+├── archive/            쓰지 않게 된 코드·run·캐시 (archive/README.md)
+└── *.pt, mobileclip_blt.ts, weights/, .venv   promptcal-ptq로 가는 링크. 대기열이 `--model yolov8s-world.pt`처럼
+                        루트 기준 이름으로 넘기므로 옮기지 않는다(옮기면 ultralytics가 같은 이름으로 새로 내려받는다)
+```
+
 | 파일 | 역할 |
 |---|---|
-| `run_comparison.py` | **진입점.** FP·양자화 모델을 조건별로 빌드하고 COCO AP, LVIS AP, 판정 충실도(flip/lost)를 잰다 |
-| `diag_w4_sensitivity.py` | ① 보호용 누수 없는 conv 진단(`rank_convs_leakfree`), 선택(`select_protected`), M 채택 사전 검사(`mcheck_flip`) |
-| `harness.py` | 유사도/판정 측정 도우미 (`run_comparison`이 사용) |
-| `model_zoo.py` | 모델 종류별 생성. `yolov8*-world*.pt`는 YOLO-World, `yoloe-*.pt`는 YOLOE(분할 가중치를 검출 구성에 불러옴, 텍스트 임베딩으로 어휘 전환, SAVPE 제외) |
+| `run_comparison.py` | **진입점(YOLO 계열).** FP·양자화 모델을 조건별로 빌드하고 COCO AP, LVIS AP, 판정 충실도(flip/lost)를 잰다 |
+| `run_owl.py` | **진입점(OWLv2).** 같은 프로토콜 규칙을 ViT에 옮긴 판(softmax 출력 16bit). `--diag`는 보호 진단 캐시만 만든다 |
+| `core/diag_w4_sensitivity.py` | ① 보호용 누수 없는 conv 진단(`rank_convs_leakfree`), 선택(`select_protected`), M 채택 사전 검사(`mcheck_flip`) |
+| `core/harness.py` | 유사도/판정 측정 도우미 (`run_comparison`이 사용) |
+| `core/model_zoo.py` | 모델 종류별 생성. `yolov8*-world*.pt`는 YOLO-World, `yoloe-*.pt`는 YOLOE(분할 가중치를 검출 구성에 불러옴, 텍스트 임베딩으로 어휘 전환, SAVPE 제외). 결정적 pooling(`DetAdaptiveMaxPool2d`) |
+| `core/owl_zoo.py`, `core/owl_quant.py` | OWLv2를 블록 리스트로 펼친 래퍼(Linear → 1×1 conv), OWLv2 양자화 구성과 M |
 | `scripts/protocol.sh` | **확정 프로토콜 공통 인자**(아래 §2). 작업자가 이 파일을 읽는다 |
-| `scripts/worker.sh` | GPU 하나를 맡는 대기열 작업자(`<run_dir>/queue.tsv`) |
-| `scripts/queues/*.tsv` | 표 1~5를 만든 대기열 원본(§5) |
+| `scripts/worker.sh`, `scripts/worker_owl.sh` | GPU 하나를 맡는 대기열 작업자(`<run_dir>/queue.tsv`). 각각 `run_comparison.py` / `run_owl.py`를 부른다 |
+| `scripts/run_mixed.sh` | GPU 하나에서 여러 대기열(YOLO·OWL 섞어서)을 차례로 처리 |
+| `scripts/track.sh` | 대기열 밖에서 띄우는 작업을 `chain.log`에 남겨 리더보드 진행 현황에 보이게 한다 |
+| `scripts/queues/*.tsv` | 표 1~5와 확장 실험을 만든 대기열 원본(§5) |
 | `scripts/tables/*.py` | 로그에서 표 1~5를 다시 만드는 생성기(§5). `logparse.py`가 로그 파서 |
 | `scripts/make_protect_cache.py` | 보호 진단 캐시를 미리 만든다(새 모델을 대기열로 돌리기 전에 1회) |
-| `scripts/make_leaderboard.py` | `runs/`의 모든 로그로 `LEADERBOARD.html`, `leaderboard.csv`를 만든다 |
+| `scripts/leaderboard/` | `make_leaderboard.py`(`runs/`의 모든 로그 → `results/`), 템플릿, 10분 자동 갱신 루프(`leaderboard_loop.sh`) |
 | `scripts/examples/post_build_flip_check.py` | `--post-build` 훅 예시 |
-| `docs/*.md` | 입문서, 방법, 결과, 경위, 논문 개요 (위 표) |
-| `BASELINE_STATUS.md` | 기준선(BRECQ/QDrop/AdaRound/Combined) 충실도 기록. 10-02 프로토콜 이전 기준 |
+| `figures/src/diag_concentration.py` | 여섯 모델 민감도 지도(`figures/sensitivity_maps.pdf`)와 진단 집중도 표 |
+| `figures/src/make_method_overview.py` | 방법 개요 그림(`figures/method_overview.pdf`) |
+| `docs/*.md` | 입문서, 방법, 결과, 경위, 논문 개요 (위 표). `docs/BASELINE_STATUS.md`는 10-02 프로토콜 이전의 기준선 충실도 기록 |
 | `quant/fake_quant.py` | `QuantConv2d`: weight 출력 채널별 MSE, activation per-tensor MSE observer, 이전(`mig`), 채널별 비트 |
 | `quant/quant_model.py` | conv 래핑, calibrate, 비트 지정(`set_first_last_bits`, `set_last_abits`, `set_conv_wbits` 등) |
 | `quant/adaround.py`, `quant/brecq.py` | ③ AdaRound/BRECQ/QDrop 재구성. 16bit 이상 activation은 LSQ 학습 제외(`LSQ_MAX_BITS`) |
@@ -78,7 +100,7 @@ source scripts/protocol.sh
 | `quant/attn_quant.py` | attention·contrastive matmul 8bit 양자화(`--attn-quant`) |
 | `quant/promptcal.py`, `quant/semantic_calib.py`, `quant/pdquant.py`, `quant/vocab_metric.py` | Combined(PromptCal) 기준선, head 캡처, 어휘 임베딩 도우미 |
 
-`quant/`에는 확정 파이프라인이 실제로 부르는 코드만 남겼다(2026-10-08 정리). promptcal-ptq의 `src/quant/`는 그 정리 이전의 전체 구현으로, 그쪽 루트 `scripts/`의 옛 실험 스크립트가 쓴다(이 저장소에는 없다). 이제 서로 맞추지 않으니 파이프라인을 고칠 때는 이 저장소의 `quant/`만 고친다. `legacy/`는 기각된 방향의 코드라 읽지 않아도 되고, 지금의 `run_comparison.py`로는 돌지 않는다.
+`quant/`에는 확정 파이프라인이 실제로 부르는 코드만 남겼다(2026-10-08 정리). promptcal-ptq의 `src/quant/`는 그 정리 이전의 전체 구현으로, 그쪽 루트 `scripts/`의 옛 실험 스크립트가 쓴다(이 저장소에는 없다). 이제 서로 맞추지 않으니 파이프라인을 고칠 때는 이 저장소의 `quant/`만 고친다. 기각된 방향의 코드는 `archive/legacy/`에 있다. 읽지 않아도 되고, 지금의 `run_comparison.py`로는 돌지 않는다.
 
 ---
 
@@ -147,7 +169,7 @@ scripts/worker.sh runs/<이름> 5 24-47 &
 - **진단 훅:** `--post-build <스크립트>`를 주면 빌드 직후, 평가 전에 그 스크립트를 실행하고 끝난다. 스크립트에서 `models`, `fp`, `args`, `device`를 쓸 수 있다. 예: `scripts/examples/post_build_flip_check.py`.
 - **메모리:** m 모델은 한 run에 조건 2개까지만 묶는다. 20GB GPU에서 조건 3개는 메모리 한계에 걸린다.
 - **실행 위치:** 반드시 저장소 루트에서 실행한다. 하위 디렉터리(예: `scripts/`) 안에서 실행하면 `configs/`·가중치의 상대 경로가 어긋나고, ultralytics가 CLIP 가중치(338MB)를 그 디렉터리의 `weights/`에 다시 내려받는다.
-- **리더보드:** `.venv/bin/python scripts/make_leaderboard.py`가 `runs/`의 모든 로그로 `LEADERBOARD.html`과 `leaderboard.csv`를 다시 만든다. 두 파일은 git에 들어 있으므로 기본으로는 자동 갱신하지 않는다. 실험이 끝날 때마다 갱신하려면 `export PTQ_LEADERBOARD=1`(잠금 + 원자적 교체, 실패해도 실험에는 영향 없음).
+- **리더보드:** `.venv/bin/python scripts/leaderboard/make_leaderboard.py`가 `runs/`(와 promptcal-ptq의 `runs/`)의 모든 로그로 `results/LEADERBOARD.html`과 `results/leaderboard.csv`를 다시 만든다. 10분마다 자동으로 만들려면 `nohup scripts/leaderboard/leaderboard_loop.sh 600 > /dev/null 2>&1 &`. 실험이 끝날 때마다 갱신하려면 `export PTQ_LEADERBOARD=1`(잠금 + 원자적 교체, 실패해도 실험에는 영향 없음).
 - **모델 크기:** 로그의 "이론적 크기"는 양자화된 conv와 attention Linear weight의 합이다. 10-03 14:25 이전에 시작한 실행(`runs/158_final`, `159_gpm_all`, `154_protocol` 등)의 로그는 conv만이라 s는 0.44, m은 0.49 MiB 작게 찍혀 있다. 리더보드는 이 차이를 더해서 맞추고(`make_leaderboard.py`의 `fix_size`), promptcal-ptq의 `figures/make_pareto.py`는 로그 대신 상수를 쓴다.
 - **소요 시간 (RTX 4000 Ada):** s 조건 하나 빌드에 약 20분, m은 약 23분이다. COCO와 LVIS 평가는 조건당 약 5분이다.
 

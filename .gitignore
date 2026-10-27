@@ -1,21 +1,32 @@
+# Python
 __pycache__/
 *.pyc
+.ipynb_checkpoints/
 
-.venv/
+# 가상환경. 이 저장소의 .venv는 promptcal-ptq/.venv로 가는 심볼릭 링크라 "/" 없이 적는다
+# (".venv/"는 디렉터리에만 걸려서 링크가 커밋됐었다)
+.venv
 venv/
 .env
 
-.ipynb_checkpoints/
-
+# 실험 로그(수백 MB). 표 재현용 로그는 runs/logs_handoff_*.tar.gz로 따로 전달한다
 runs/
+# 리더보드(LEADERBOARD.html, leaderboard.csv). scripts/leaderboard/가 10분마다 다시 만든다
+results/
 wandb/
 logs/
 
+# 쓰지 않게 된 파일(archive/README.md 참고)
+archive/
+
+# 가중치와 모델 파일. 루트의 *.pt, weights, mobileclip_blt.ts는 promptcal-ptq로 가는 링크다
 *.pt
 *.pth
 *.onnx
-
-.DS_Store
-
-# YOLOE 텍스트 인코더(자동 다운로드, 약 600MB)
+weights
 mobileclip_blt.ts
+
+# 리더보드 생성 중 임시 파일
+.leaderboard.csv.*
+.LEADERBOARD.html.*
+.DS_Store
