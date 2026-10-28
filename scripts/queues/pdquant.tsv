@@ -1,0 +1,6 @@
+pd-W4A8-s0	--model yolov8s-world.pt --w-bits 4 --a-bits 8 --conditions pdquant,pdquant+GPM --seed 0 --save-model /data/taeho/cvpr2027_qmodels
+pd-W4A5-s0	--model yolov8s-world.pt --w-bits 4 --a-bits 5 --conditions pdquant,pdquant+GPM --seed 0 --save-model /data/taeho/cvpr2027_qmodels
+pd-W4A8-s1	--model yolov8s-world.pt --w-bits 4 --a-bits 8 --conditions pdquant,pdquant+GPM --seed 1 --save-model /data/taeho/cvpr2027_qmodels
+pd-W4A5-s1	--model yolov8s-world.pt --w-bits 4 --a-bits 5 --conditions pdquant,pdquant+GPM --seed 1 --save-model /data/taeho/cvpr2027_qmodels
+pd-W4A8-s2	--model yolov8s-world.pt --w-bits 4 --a-bits 8 --conditions pdquant,pdquant+GPM --seed 2 --save-model /data/taeho/cvpr2027_qmodels
+pd-W4A5-s2	--model yolov8s-world.pt --w-bits 4 --a-bits 5 --conditions pdquant,pdquant+GPM --seed 2 --save-model /data/taeho/cvpr2027_qmodels

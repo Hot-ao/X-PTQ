@@ -1,6 +1,6 @@
 # CVPR2027 — 저비트 PTQ(GPM) 실험 코드
 
-**대상 독자:** 이 저장소를 넘겨받아 실험을 다시 돌리거나 코드를 고치는 사람. (2026-10-08 인수인계 기준으로 갱신)
+**대상 독자:** 이 저장소를 넘겨받아 실험을 다시 돌리거나 코드를 고치는 사람. (2026-10-08 인수인계 기준, 2026-10-28 갱신: ODinW 평가, 모델 저장, M 결정 캐시, PD-Quant, W4A4. 바뀐 점만 보려면 [`docs/UPDATE_2026-10-28.md`](docs/UPDATE_2026-10-28.md))
 
 이 README는 "어떻게 설치하고, 어떻게 돌리고, 표를 어떻게 다시 만드는가"를 다룬다. 다른 내용은 아래 문서에 있다. `docs/`의 다섯 문서는 원 저장소(promptcal-ptq)의 루트와 `docs/`에 있던 원본을 이 저장소 기준으로 옮겨 갱신한 판이고(2026-10-09), 앞으로는 이쪽을 고친다.
 
@@ -8,7 +8,8 @@
 |---|---|
 | 방법을 처음부터 쉽게 (수식·코드 포함) | [`docs/PRIMER.md`](docs/PRIMER.md) |
 | 방법의 정의와 근거 실험 | [`docs/METHOD.md`](docs/METHOD.md) |
-| 확정 결과 (표 1~5) | [`docs/RESULTS.md`](docs/RESULTS.md) |
+| 확정 결과 (표 1~6, W4A4) | [`docs/RESULTS.md`](docs/RESULTS.md) |
+| 10-27~28 변경 사항 (코드·데이터·실험) | [`docs/UPDATE_2026-10-28.md`](docs/UPDATE_2026-10-28.md) |
 | 왜 이렇게 됐는지 (시도와 기각 기록) | [`docs/HISTORY.md`](docs/HISTORY.md) |
 | 논문 구성과 남은 일 | [`docs/PAPER_OUTLINE.md`](docs/PAPER_OUTLINE.md)(v1, 방법 중심), [`docs/PAPER_OUTLINE_v2_diagnosis.md`](docs/PAPER_OUTLINE_v2_diagnosis.md)(v2, 진단 중심) |
 | 실험 현황 한눈에 | `results/LEADERBOARD.html`, `results/leaderboard.csv` |
@@ -33,10 +34,11 @@ python -m venv .venv && .venv/bin/pip install torch==2.10.0 torchvision==0.25.0 
 | COCO 원본 (`train2017/`, `val2017/`, `annotations/`) | `/data/taeho/coco_datasets` | `--coco-root` |
 | COCO ultralytics 형식 (val 평가용) | `/data/taeho/coco_ultra` | `configs/coco_local.yaml`의 `path`, 또는 `--data` |
 | LVIS minival 주석 | `/data/taeho/lvis_datasets/.../lvis_v1_minival.json` | `--lvis-ann` |
+| ODinW-13 (GLIP 공식 배포본, 약 4GB) | `/data/taeho/odinw` | `--odinw-root`. 받기: `scripts/data/download_odinw13.sh [폴더]` |
 
 대기열로 돌릴 때는 `scripts/protocol.sh`의 `PROTOCOL` 끝에 위 인자를 덧붙이면 모든 작업에 적용된다.
 
-**③ 가중치.** `yolov8s-world.pt`, `yolov8s-worldv2.pt`, `yolov8m-world.pt`, `yoloe-v8s-seg.pt`는 저장소 루트에 둔다(없으면 ultralytics가 처음 실행 때 내려받는다). YOLOE는 텍스트 인코더 `mobileclip_blt.ts`(약 600MB)도 루트에 내려받는다.
+**③ 가중치.** `yolov8s-world.pt`, `yolov8s-worldv2.pt`, `yolov8m-world.pt`, `yoloe-v8s-seg.pt`, `yoloe-11s-seg.pt`는 저장소 루트에 둔다(없으면 ultralytics가 처음 실행 때 내려받는다). YOLOE는 텍스트 인코더 `mobileclip_blt.ts`(약 600MB)도 루트에 내려받는다.
 
 **④ 동작 확인.** 아래 한 줄이 10~15분쯤 걸려 끝나고 FP 수치가 맞으면 설치와 데이터가 정상이다.
 
@@ -50,7 +52,9 @@ source scripts/protocol.sh
 | YOLOv8s-World | 36.80 | 25.89 |
 | YOLOE-v8s | 31.29 | 25.94 |
 
-**⑤ 기존 로그.** `runs/`는 git에 없다(전체 410GB). 표를 만드는 데 필요한 로그와 대기열만 묶은 `runs/logs_handoff_2026-10-08.tar.gz`(3.4MB)를 따로 받아 `runs/` 안에서 푼다. 그러면 §5의 표 생성기가 바로 돈다.
+**⑤ 기존 로그.** `runs/`는 git에 없다(전체 410GB). 표를 만드는 데 필요한 로그와 대기열만 묶은 `runs/logs_handoff_2026-10-08.tar.gz`(3.4MB)를 따로 받아 `runs/` 안에서 푼다. 그러면 §5의 표 생성기가 바로 돈다. 10-27~28의 run(200~206: ODinW, W4A4, PD-Quant)은 `runs/logs_handoff_2026-10-28.tar.gz`(0.7MB)에 따로 묶었다.
+
+**⑥ 저장된 양자화 모델.** 10-27부터 빌드한 모델을 `/data/taeho/cvpr2027_qmodels/`(약 22GB)에 저장한다. `--load-model`로 빌드 없이 다른 평가를 돌릴 수 있다(§4). 같은 이름의 `.json`에 커밋·인자·COCO AP가 있다. 코드(특히 `quant/`)가 바뀌면 못 읽을 수 있으니 `.json`의 커밋을 확인한다.
 
 ---
 
@@ -61,8 +65,8 @@ CVPR2027/
 ├── run_comparison.py   run_owl.py      진입점 (YOLO 계열 / OWLv2). 모든 대기열이 이 경로로 부른다
 ├── core/               진입점이 쓰는 보조 모듈 (진입점이 sys.path에 넣는다)
 ├── quant/              양자화기와 G·P·M, BRECQ/QDrop
-├── configs/            데이터 설정, 보호 진단 캐시(protect_cache/)
-├── scripts/            실행(작업자·프로토콜), 대기열(queues/), 표 생성기(tables/), 리더보드(leaderboard/)
+├── configs/            데이터 설정, 보호 진단 캐시(protect_cache/), M 결정 캐시(mcheck_cache/), ODinW GLIP config(odinw13_glip/)
+├── scripts/            실행(작업자·프로토콜), 대기열(queues/), 표 생성기(tables/), 리더보드(leaderboard/), 데이터 받기(data/)
 ├── figures/            논문 그림(pdf/png)과 그 생성 코드(src/)
 ├── docs/               입문서, 방법, 결과, 경위, 논문 개요
 ├── results/            리더보드(LEADERBOARD.html, leaderboard.csv) — 생성물
@@ -78,6 +82,9 @@ CVPR2027/
 | `run_owl.py` | **진입점(OWLv2).** 같은 프로토콜 규칙을 ViT에 옮긴 판(softmax 출력 16bit). `--diag`는 보호 진단 캐시만 만든다 |
 | `core/diag_w4_sensitivity.py` | ① 보호용 누수 없는 conv 진단(`rank_convs_leakfree`), 선택(`select_protected`), M 채택 사전 검사(`mcheck_flip`) |
 | `core/harness.py` | 유사도/판정 측정 도우미 (`run_comparison`이 사용) |
+| `core/odinw.py` | ODinW-13 평가(GLIP 공식 split·프롬프트, 데이터셋별 COCO AP와 13개 평균). 어노테이션 id를 1부터 다시 매긴다(§6) |
+| `core/qmodel_io.py` | 양자화 모델 저장/불러오기. 인스턴스에 붙인 forward 메서드를 떼어 저장하고 불러올 때 다시 붙인다 |
+| `scripts/data/download_odinw13.sh` | ODinW-13 공식 배포본 다운로드 + GLIP config 복사 |
 | `core/model_zoo.py` | 모델 종류별 생성. `yolov8*-world*.pt`는 YOLO-World, `yoloe-*.pt`는 YOLOE(분할 가중치를 검출 구성에 불러옴, 텍스트 임베딩으로 어휘 전환, SAVPE 제외). 결정적 pooling(`DetAdaptiveMaxPool2d`) |
 | `core/owl_zoo.py`, `core/owl_quant.py` | OWLv2를 블록 리스트로 펼친 래퍼(Linear → 1×1 conv), OWLv2 양자화 구성과 M |
 | `scripts/protocol.sh` | **확정 프로토콜 공통 인자**(아래 §2). 작업자가 이 파일을 읽는다 |
@@ -98,7 +105,8 @@ CVPR2027/
 | `quant/fusion_quant.py` | ⓪ 텍스트 게이트 교환(`gate_commute_all`) |
 | `quant/channel_graph.py`, `quant/migrate.py` | ② 공유 제약 scale 이전(채널 계보 추적, 공유 그룹, α 탐색) |
 | `quant/attn_quant.py` | attention·contrastive matmul 8bit 양자화(`--attn-quant`) |
-| `quant/promptcal.py`, `quant/semantic_calib.py`, `quant/pdquant.py`, `quant/vocab_metric.py` | Combined(PromptCal) 기준선, head 캡처, 어휘 임베딩 도우미 |
+| `quant/pdquant.py` | PD-Quant(CVPR'23) 기준선의 PD 손실·DC(`optimize_brecq(pd=..., dc_bn_map=...)`가 사용)와 head 캡처 도우미. 검출기에 옮기며 정한 것은 파일 머리말 |
+| `quant/promptcal.py`, `quant/semantic_calib.py`, `quant/vocab_metric.py` | Combined(PromptCal) 기준선, 어휘 임베딩 도우미 |
 
 `quant/`에는 확정 파이프라인이 실제로 부르는 코드만 남겼다(2026-10-08 정리). promptcal-ptq의 `src/quant/`는 그 정리 이전의 전체 구현으로, 그쪽 루트 `scripts/`의 옛 실험 스크립트가 쓴다(이 저장소에는 없다). 이제 서로 맞추지 않으니 파이프라인을 고칠 때는 이 저장소의 `quant/`만 고친다. 기각된 방향의 코드는 `archive/legacy/`에 있다. 읽지 않아도 되고, 지금의 `run_comparison.py`로는 돌지 않는다.
 
@@ -128,17 +136,17 @@ CVPR2027/
 
 ## 3. 조건 이름
 
-`<기반>+<접미사>`로 쓴다. 예: `brecq+GPM`. 기반은 `naive`, `brecq`, `qdrop`, `adaround`, `combined` 중 하나다.
+`<기반>+<접미사>`로 쓴다. 예: `brecq+GPM`. 기반은 `naive`, `brecq`, `qdrop`, `pdquant`, `adaround`, `combined` 중 하나다. `pdquant`(10-28)는 `qdrop`과 같은 설정에 PD-Quant의 PD 손실과 DC만 더한 것이다.
 
 | 접미사 | 의미 |
 |---|---|
 | `G` | ⓪ 텍스트 게이트 교환. 보호 목록에서 C2fAttn cv2를 뺀다 |
 | `P` | ① 누수 없는 진단으로 고른 conv를 W8로 보호(예산 1.5%) |
 | `M` | ② 공유 제약 scale 이전 |
-| `A` | M을 사전 검사로 켤지 정한다. M 끔/켬 두 후보를 빌드하고 calibration 밖 COCO flip을 비교해, M 쪽이 1.5배를 넘으면 끈다. 빌드 시간은 약 2.2배 |
+| `A` | M을 사전 검사로 켤지 정한다. M 끔/켬 두 후보를 빌드하고 calibration 밖 COCO flip을 비교해, M 쪽이 1.5배를 넘으면 끈다. 결정은 `configs/mcheck_cache/`에 **모델·비트·프로토콜별로** 저장되고, 다음부터는 저장된 결정대로 한 후보만 빌드한다(처음 한 번만 빌드 시간 약 2.2배). `--mcheck-refresh`면 다시 검사 |
 | `R` / `H` | 같은 예산의 무작위 보호 / HAWQ식(출력 MSE) 보호 (대조군) |
 
-**우리 방법 = `brecq+GPM`**을 모든 비트 설정과 모델에 같게 쓴다. M 채택만 모델당 검사 1회로 정한다(runs/154·156). PM(`brecq+PM`)은 변형으로 함께 잰다.
+**우리 방법 = `brecq+GPMA`**(= 규칙대로 M을 정한 GPM)를 모든 모델에 같은 명령으로 쓴다. G는 구조(C2fAttn 유무), P는 진단 캐시, M은 결정 캐시가 자동으로 정한다. 표 1~5의 대기열은 결정된 구성(`brecq+GPM` 또는 `brecq+GP`)을 직접 적었다. PM(`brecq+PM`)은 변형으로 함께 잰다.
 
 | 모델 | 실제 구성 | M 결정 근거 |
 |---|---|---|
@@ -146,6 +154,8 @@ CVPR2027/
 | YOLOv8s-WorldV2 | `brecq+GPM` | 검사 통과(M 켬) |
 | YOLOv8m-World | `brecq+GP`. 보호 대상이 C2fAttn cv2뿐이라 `brecq+G`와 같다 | 검사 탈락(M을 켜면 flip 2~7배) |
 | YOLOE-v8s (`yoloe-v8s-seg.pt`) | `brecq+GPM`. 텍스트 게이트가 없어 G가 아무것도 하지 않으므로 실제로는 PM | 검사 통과(M 켬) |
+| YOLOE-11s (`yoloe-11s-seg.pt`) | `brecq+GPM` (실제로는 PM) | 검사 통과(M 켬) |
+| YOLOv8m-World **W4A4** | `brecq+GPM` | W4A4 검사에서는 M 켬(W4A5와 반대). 그래서 결정을 비트별로 저장한다 |
 
 조건마다 빌드 직전에 RNG를 복원한다. 그래서 대부분의 조건은 한 run에 여러 조건을 묶어도, 따로 돌려도 결과가 bit 단위로 같다(10-08 확인: s의 `naive`, `brecq+M`, `combined`). **예외: `brecq+GPM`은 묶음에 따라 달라진다.** s W4A8 seed 0에서 `naive,brecq,brecq+PM,brecq+GPM`으로 묶으면 LVIS AP 23.47, `brecq+GPM,combined`나 단독으로 돌리면 23.71이 나온다(COCO AP는 같고 APr이 1.08점 다르다). 원인은 미상이다. 로그를 재현할 때는 대기열 줄의 조건 묶음을 그대로 쓴다.
 
@@ -166,6 +176,8 @@ scripts/worker.sh runs/<이름> 4 0-23 &
 scripts/worker.sh runs/<이름> 5 24-47 &
 ```
 
+- **ODinW-13 평가:** `--odinw`면 COCO·LVIS 뒤에 ODinW-13도 잰다. `--odinw-only`면 LVIS를 건너뛰고 COCO AP(같은 모델인지 확인용)와 ODinW만 잰다. 결과는 `[ODinW-AP][<조건>] mean=... | <데이터셋>=...` 줄로 남는다. OWLv2(`run_owl.py`)도 `--odinw`를 받는다.
+- **모델 저장/불러오기:** `--save-model <폴더>`는 빌드한 조건 모델을 `<모델>_w<W>a<A>_s<seed>_<조건>.pt`로 저장한다. `--load-model <폴더>`는 빌드 대신 같은 이름의 파일을 불러온다(같은 인자로 실행해야 이름이 맞는다). 첫·마지막 비트처럼 이름에 없는 인자를 바꿀 때는 폴더를 따로 쓴다(예: `.../fl16/`).
 - **진단 훅:** `--post-build <스크립트>`를 주면 빌드 직후, 평가 전에 그 스크립트를 실행하고 끝난다. 스크립트에서 `models`, `fp`, `args`, `device`를 쓸 수 있다. 예: `scripts/examples/post_build_flip_check.py`.
 - **메모리:** m 모델은 한 run에 조건 2개까지만 묶는다. 20GB GPU에서 조건 3개는 메모리 한계에 걸린다.
 - **실행 위치:** 반드시 저장소 루트에서 실행한다. 하위 디렉터리(예: `scripts/`) 안에서 실행하면 `configs/`·가중치의 상대 경로가 어긋나고, ultralytics가 CLIP 가중치(338MB)를 그 디렉터리의 `weights/`에 다시 내려받는다.
@@ -186,6 +198,9 @@ scripts/worker.sh runs/<이름> 5 24-47 &
 | 4 | 일반화: YOLOv8s-WorldV2, YOLOv8m-World (6 seed) | `gen_v2_m.tsv` → seed 0·1의 28줄은 `runs/154_protocol`, 나머지 42줄은 `runs/160_gen6` | `table4_generalization.py` |
 | 4 보충 | V2 W8A8에서 M을 뺀 GP | `v2_w8a8_gp.tsv` → `runs/162_v2w8` | (리더보드에서 확인) |
 | 5 | YOLOE-v8s (W8A8/W4A8/W4A5, 6 seed) | `gen_yoloe.tsv` → `runs/164_yoloe` | `table5_yoloe.py` |
+| 6 | ODinW-13 (YOLO-World-S, YOLOE-v8s/11s, W4A8·W4A5, 6 seed) | `odinw_yw.tsv` → `runs/201_odinw_yw`(W4A8 s2는 `runs/200_odinw_check`), `odinw_yoloe.tsv` → `runs/202_odinw_yoloe` | (RESULTS §4c, 생성기 없음) |
+| W4A4 | s·m W4A4, s ablation (2 seed) | `w4a4.tsv` → `runs/203_w4a4`, `w4a4_m_abl.tsv` → `runs/205_w4a4_m_abl` | (RESULTS §4d) |
+| PD-Quant | s W4A8·W4A5, seed 0~2 (진행 중) | `pdquant.tsv` → `runs/206_pdquant` | – |
 | 그림 | 크기 대 정확도 | 표 1과 같은 run | promptcal-ptq의 `figures/make_pareto.py` (이 저장소에는 없다) |
 
 ```bash
@@ -210,6 +225,9 @@ scripts/worker.sh runs/164_yoloe 4 0-23 &                            # GPU마다
 - YOLOE의 LVIS 평가는 `agnostic_nms=False`여야 한다. ultralytics의 `YOLOE.predict`가 클래스 무관 NMS를 강제해서, 그대로 두면 FP LVIS AP가 25.94가 아니라 11.0으로 나온다(`predict_lvis_results`에서 처리).
 - YOLOE의 텍스트 프롬프트는 `a/b` 동의어 표기에서 첫 이름만 쓴다(`model_zoo.prompt_names`). YOLO-World는 전체 문자열을 쓴다.
 - 10-02 이전 로그(`runs/154_protocol/old_lsqbug/`, `runs/153` 이하)는 프로토콜이 달라 지금 표와 섞으면 안 된다.
+- ODinW 어노테이션 id는 0부터 시작하는데, pycocotools는 id 0인 GT를 "매칭 안 됨"으로 처리한다. GT를 그대로 예측으로 넣어도 AP가 100이 아니게 된다. `core/odinw.py`가 1부터 다시 매긴다.
+- 저장 모델을 다른 GPU로 불러올 때는 `map_location`을 그 GPU로 줘야 한다(일반 텐서 속성은 `.to()`로 안 옮겨진다). `load_qmodel`이 처리한다.
+- 앞 작업이 끝나기를 기다리는 스크립트에서 `pgrep -f "<경로>"`를 쓰면, 그 스크립트를 띄운 셸 명령에도 같은 문자열이 들어 있어 영원히 기다린다(10-27 사고). PID로 기다린다(`while kill -0 <pid>`).
 
 ---
 
@@ -223,6 +241,7 @@ scripts/worker.sh runs/164_yoloe 4 0-23 &                            # GPU마다
 | V2 W8A8에서 M이 flip을 늘림(+2.05%p) | COCO 어휘 검사로도, 일반 어휘 검사로도 사전에 못 잡는다. GP는 flip을 줄인다(−0.65%p) |
 | m에서 M이 해로운 이유 | 가설만 있음(m은 앞쪽 backbone 보호가 없음). 검증 실험 미실행 |
 | W8A8 이득 | s에서만 유의. v2·m에서는 일반화되지 않음 |
-| 빠진 기준선 | SmoothQuant, AWQ, QATMA 조건(YOLO-World-L) |
+| 기준선 | SmoothQuant·AWQ는 10-17에 추가(표 1). PD-Quant(CVPR'23)는 10-28 구현, 파일럿 진행 중. InlierQ(ICLR'26)·Reg-PTQ(CVPR'24)는 공식 코드가 없어 관련 연구로만 다룬다 |
 | 빠진 측정 | 실제 지연 시간(지금은 fake-quant 시뮬레이션과 이론 크기만), m의 FP LVIS AP |
-| 모델 범위 | 모두 YOLOv8 계열. YOLOE-11s 6 seed는 미실행 |
+| 모델 범위 | YOLO-World S/v2/M, YOLOE-v8s/11s, OWLv2. 다음 후보는 YOLOE-seg(instance segmentation), YOLO-World-L, calibration 데이터 교체 |
+| W4A4 | 9월에는 한계로 적었으나 GPM으로 동작함을 확인(RESULTS §4d, 2 seed) |

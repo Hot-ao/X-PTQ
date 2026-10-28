@@ -165,7 +165,7 @@ def optimize_brecq(quant_module, fp_module, calib_tensors, device,
                    learn_act_scale=False, act_lr=None, warmup=DEFAULT_WARMUP,
                    qdrop_prob=0.0, grad_clip=None,
                    two_stage=False, act_iters=5000, act_p=2.4, batch=1,
-                   neck_layerwise=True):
+                   neck_layerwise=True, pd=None, dc_bn_map=None):
     """
     09-06 수정: 순차/누적 오차 반영. 이전 버전은 block의 입력과 출력(target)을
     둘 다 fp_module에서만 캡처해서, 앞선 block들의 실제 양자화 오차가 뒤쪽 block
@@ -200,6 +200,11 @@ def optimize_brecq(quant_module, fp_module, calib_tensors, device,
     reconstruction to neck like BRECQ")과 동일하게, backbone(SPPF까지)은
     block-wise joint, neck(그 이후, head 제외)은 head와 같은 conv 단위(layer-wise)로
     재구성한다. False면 이전 동작(전부 block-wise) 유지.
+
+    pd, dc_bn_map (10-28): PD-Quant(Liu et al., CVPR 2023, quant/pdquant.py). QDrop(qdrop_prob>0) 위에서
+    pd(PDContext)는 대상 출력(양자화 입력, 입력 drop 없음)을 FP 네트워크 나머지에 흘린 예측과 FP 예측의 KL을
+    재구성 손실에 더하고, dc_bn_map({nn.Conv2d: (mean, std)})은 FP 입력을 BN 통계에 맞게 보정해(DC) 재구성 목표와
+    입력 drop의 FP 쪽 값을 바꾼다. 둘 다 None이면 기존 동작과 같다.
 
     learn_act_scale (09-17, adaround.py의 optimize_adaround와 동일 취지):
     원 BRECQ 논문은 alpha(rounding)와 activation step size(LSQ)를 block
@@ -266,7 +271,7 @@ def optimize_brecq(quant_module, fp_module, calib_tensors, device,
         # (1) target(FP 출력) 캐시 -- 이상적 목표, 순수 FP forward에서만 캡처.
         #     QDrop의 input_prob을 쓸 땐 같은 pass에서 FP 입력도 같이 캐시(추가 forward 불필요).
         out_buf = []
-        fp_in_buf = [] if qdrop_prob > 0 else None
+        fp_in_buf = [] if (qdrop_prob > 0 or dc_bn_map) else None
 
         def fp_hook(m, inp, out):
             if torch.is_tensor(out):
@@ -303,6 +308,15 @@ def optimize_brecq(quant_module, fp_module, calib_tensors, device,
             free_cpu_mem()
             continue
 
+        if dc_bn_map:
+            # PD-Quant DC: FP 입력을 BN 통계에 맞게 보정 -> 목표 출력과 drop용 FP 입력을 교체(BN이 없으면 그대로)
+            from .pdquant import dc_correct
+            _r = dc_correct(fm, fp_in_buf[:n], dc_bn_map, device)
+            if _r is not None:
+                fp_in_buf, out_buf = _r
+                if verbose:
+                    print(f"  [{ti+1}/{len(targets)}] {label} DC 보정 완료")
+
         for c in convs:
             c.soft = True
             c.ste = True                       # block 내부로 grad 흐르게
@@ -321,6 +335,7 @@ def optimize_brecq(quant_module, fp_module, calib_tensors, device,
             js = torch.randint(0, n, (batch,)).tolist()
             # 입력 복원: 텐서는 device로, 비텐서(있으면)는 그대로
             args = _to_dev(_collate([in_buf[j] for j in js]), device)
+            args_q = args
             if qdrop_prob > 0:                 # QDrop (b): block 입력 drop(input_prob)
                 args = _mix(args, _to_dev(_collate([fp_in_buf[j] for j in js]), device), qdrop_prob)
             tgt = torch.cat([out_buf[j] for j in js], dim=0).to(device).float()
@@ -329,6 +344,8 @@ def optimize_brecq(quant_module, fp_module, calib_tensors, device,
                 opt_a.zero_grad()
             out = qm(*args)                    # block/conv를 quant weight로 통과 (다중 입력 지원)
             loss = lp_rec_loss(out, tgt)
+            if pd is not None:                 # PD-Quant: 양자화 입력(drop 없음)의 출력 -> FP 나머지 네트워크 -> 예측 KL
+                loss = loss + pd.loss(fm, qm(*args_q), js)
             if it >= warmup * iters:           # 공식 warmup: 앞 구간은 round_loss=0
                 beta = temp_decay(it, iters, warmup)
                 loss = loss + reg_weight * sum(c.reg_loss(beta) for c in convs)
@@ -368,6 +385,6 @@ def optimize_brecq(quant_module, fp_module, calib_tensors, device,
               f"학습 없이 hard 확정됨(블록 출력이 텐서가 아닌 경우 등)")
     if flips:
         mean_flip = sum(flips) / len(flips)
-        name = "qdrop" if qdrop_prob > 0 else "brecq"
+        name = "pdquant" if pd is not None else ("qdrop" if qdrop_prob > 0 else "brecq")
         print(f"[{name}] 전체 재구성 완료 (hard 반올림). nearest 대비 평균 flip "
               f"{mean_flip:.3f}% (max {max(flips):.3f}%)")

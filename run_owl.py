@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "cor
 from owl_zoo import build_owl, preprocess, split_out
 from owl_quant import apply_protocol, migrate, owl_units, linear_groups, set_bits_now
 from quant.quant_model import calibrate, set_conv_wbits
-from run_comparison import load_names, run_lvis_eval, PROTECT_BUDGET
+from run_comparison import load_names, run_lvis_eval, PROTECT_BUDGET, save_qmodel, update_qmodel_meta
 from diag_w4_sensitivity import select_protected
 from model_zoo import prompt_names
 
@@ -122,6 +122,24 @@ def build_q(cond, w_bits, a_bits, calib, device, prot, attn_bits=8, p_bits=16, q
     return m.eval()
 
 
+def qmodel_path(d, args, cond):
+    """--save-model/--load-model 파일 이름(run_comparison.qmodel_path와 같은 형식, 모델 이름은 HF 체크포인트)."""
+    import owl_zoo
+    return os.path.join(d, f"{owl_zoo.OWL_NAME.split('/')[-1]}_w{args.w_bits}a{args.a_bits}_s{args.seed}_{cond.replace('+', '-')}.pt")
+
+
+def load_q(path, device):
+    """저장한 블록(OwlDet.model)을 새 FP OwlDet에 끼운다. OwlDet 자체는 텍스트 함수(클로저)를 들고 있어 저장하지 않는다."""
+    m = build_owl(device)
+    from qmodel_io import load_module
+    m.model = load_module(path, map_location=device).to(device)   # 일반 텐서 속성은 .to()로 안 옮겨진다
+    j = path[:-3] + ".json"
+    meta = json.load(open(j)) if os.path.exists(j) else {}
+    print(f"  [load] {path} (commit {meta.get('commit', '?')[:8]}{', dirty' if meta.get('dirty') else ''}, "
+          f"저장 당시 COCO AP {meta.get('coco_ap', '?')})", flush=True)
+    return m.eval()
+
+
 def weight_mib(m):
     # AdaRound로 바뀐 층(BRECQ/QDrop)까지 세는 run_comparison의 계산을 그대로 쓴다.
     from run_comparison import quantized_weight_mib
@@ -203,6 +221,10 @@ def main():
     ap.add_argument("--no-qkv-quant", action="store_true", help="q/k/v 양자화 지점을 끈다(진단용)")
     ap.add_argument("--swap-eval", action="store_true", help="COCO AP를 분류·위치 성분으로 나눠 잰다(진단용)")
     ap.add_argument("--skip-lvis", action="store_true")
+    ap.add_argument("--odinw", action="store_true", help="ODinW-13(GLIP 공식 split)도 평가한다(core/odinw.py)")
+    ap.add_argument("--odinw-root", default="/data/taeho/odinw")
+    ap.add_argument("--save-model", default="", help="빌드한 조건 모델을 이 폴더에 저장(+메타 .json)")
+    ap.add_argument("--load-model", default="", help="빌드 대신 이 폴더의 저장 모델을 불러온다")
     ap.add_argument("--owl-name", default=None, help="HF 체크포인트(기본 owl_zoo.OWL_NAME = ST)")
     args = ap.parse_args()
     print(f"[args] {vars(args)}", flush=True)
@@ -263,10 +285,18 @@ def main():
         torch.set_rng_state(snap[0]); torch.cuda.set_rng_state_all(snap[1])
         np.random.set_state(snap[2]); _r.setstate(snap[3])
         t0 = time.time()
+        if args.load_model:
+            models[cond] = load_q(qmodel_path(args.load_model, args, cond), device)
+            sizes[cond] = weight_mib(models[cond])
+            continue
         models[cond] = build_q(cond, args.w_bits, args.a_bits, calib, device, prot, args.attn_bits, args.p_bits or None,
                                  not args.no_qkv_quant)
         sizes[cond] = weight_mib(models[cond])
         print(f"  {cond} 빌드 {time.time() - t0:.0f}s  (이론적 크기 {sizes[cond]:.2f} MiB)", flush=True)
+        if args.save_model:
+            save_qmodel(models[cond], qmodel_path(args.save_model, args, cond),
+                        dict(cond=cond, args=vars(args), calib_time=time.time() - t0, model_mib=sizes[cond],
+                             protect=list(prot) if "P" in cond.partition("+")[2] else []))
 
     res = {}
     t0 = time.time()
@@ -274,6 +304,9 @@ def main():
         ev = evaluate(models, coco_names, probe, coco_ids, coco_cat_ids, device, topk=100, swap=args.swap_eval)
         for k, v in ev.items():
             res.setdefault(k, {})["coco"] = 100 * coco_ap(coco_gt, v["results"], coco_ids)
+            for d in (args.save_model, args.load_model):
+                if d and k in conditions and not args.eval_cap:
+                    update_qmodel_meta(qmodel_path(d, args, k), coco_ap=round(res[k]["coco"], 4))
             if args.swap_eval and "|" not in k:
                 res[k]["coco_flip"] = v["flip_pct"]; res[k]["box_l1"] = v["box_l1"]
         print(f"[eval] COCO {time.time() - t0:.0f}s", flush=True)
@@ -286,6 +319,21 @@ def main():
             res.setdefault(k, {}).update(lvis=100 * r["AP"], apr=100 * r["APr"], apc=100 * r["APc"], apf=100 * r["APf"],
                                          lvis_flip=v["flip_pct"], lvis_lost=v["lost"], n_conf=v["n_conf"])
         print(f"[eval] LVIS {time.time() - t0:.0f}s", flush=True)
+    if args.odinw:
+        from odinw import load_odinw13, coco_ap as odinw_ap, report as odinw_report
+        t0 = time.time()
+        odinw_sets = load_odinw13(args.odinw_root, args.eval_cap)
+        odinw_res = {k: {} for k in models}
+        for ds in odinw_sets:
+            ev = evaluate(models, ds["names"], ds["img_paths"], ds["img_ids"], ds["cat_ids"], device, topk=100)
+            for k, v in ev.items():
+                odinw_res[k][ds["name"]] = 100 * odinw_ap(ds["gt"], v["results"], ds["img_ids"])
+            print(f"  [ODinW] {ds['name']} ({len(ds['img_ids'])}장) " +
+                  " ".join(f"{k}={odinw_res[k][ds['name']]:.2f}" for k in odinw_res), flush=True)
+        odinw_report(odinw_res, odinw_sets)
+        for k, v in odinw_res.items():
+            res.setdefault(k, {})["odinw"] = v["mean"]
+        print(f"[eval] ODinW {time.time() - t0:.0f}s", flush=True)
     print("\n결과 | " + " | ".join(["COCO AP", "LVIS AP", "APr", "APc", "APf", "LVIS_flip", "LVIS_lost"]))
     for k, v in res.items():
         print(f"{k} | " + " | ".join(f"{v.get(c, float('nan')):.2f}" for c in ("coco", "lvis", "apr", "apc", "apf", "lvis_flip"))

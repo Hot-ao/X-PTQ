@@ -1,0 +1,7 @@
+{
+ "use_m": true,
+ "flip_off": 31.41,
+ "flip_on": 12.7,
+ "ratio": 1.5,
+ "source": "brecq+GPMA W4A5 seed 0, runs/171_yoloe11/yoloe11-mcheck-W4A5-s0.log (10-28 로그에서 옮김)"
+}

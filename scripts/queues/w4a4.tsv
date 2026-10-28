@@ -1,0 +1,4 @@
+w4a4-s0	--model yolov8s-world.pt --w-bits 4 --a-bits 4 --conditions brecq,brecq+GPM --save-model /data/taeho/cvpr2027_qmodels --seed 0
+w4a4fl16-s0	--model yolov8s-world.pt --w-bits 4 --a-bits 4 --conditions brecq,brecq+GPM --save-model /data/taeho/cvpr2027_qmodels/fl16 --seed 0 --first-last-bits 16
+w4a4-s1	--model yolov8s-world.pt --w-bits 4 --a-bits 4 --conditions brecq,brecq+GPM --save-model /data/taeho/cvpr2027_qmodels --seed 1
+w4a4fl16-s1	--model yolov8s-world.pt --w-bits 4 --a-bits 4 --conditions brecq,brecq+GPM --save-model /data/taeho/cvpr2027_qmodels/fl16 --seed 1 --first-last-bits 16

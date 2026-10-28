@@ -469,6 +469,16 @@ MCHECK_RATIO = 1.5   # 10-02 +A: M을 켠 쪽 calib-밖 COCO flip이 이 배수�
 PROTECT_BUDGET = 0.015                   # +P/+R/+H: W8로 보호할 양자화 weight 파라미터 비율
 PROTECT_IMAGES = 200                     # 보호 진단 이미지 수(train2017 앞쪽)
 PROTECT_CACHE = "configs/protect_cache"  # 진단 결과 캐시(모델·프로토콜별, seed·조건과 무관하게 한 번만 계산)
+MCHECK_CACHE = "configs/mcheck_cache"    # 10-28 +A 결정 캐시(모델·비트·프로토콜별 한 번). 있으면 두 번 빌드하지 않고 그 결정을 쓴다
+
+
+def mcheck_cache_path(args):
+    """M 사전 검사 결정 파일. 모델·비트 설정마다 한 번 정한다(METHOD §4.5). 10-28 처음에는 비트를 빼고 모델당 한 번으로
+    했으나, YOLO-World-M에서 W4A5 검사는 "끔", W4A4 검사는 "켬"으로 갈려(runs/205) 비트를 키에 넣었다. seed와 기반 PTQ는
+    넣지 않는다. 빌드 결과를 바꾸는 프로토콜 인자(calibration 수, 입력 크기, 첫/마지막 비트, head 입력 비트, attention 양자화)는 넣는다."""
+    stem = os.path.splitext(os.path.basename(args.model))[0]
+    return os.path.join(MCHECK_CACHE, f"{stem}_w{args.w_bits}a{args.a_bits}_c{args.calib}_img{args.imgsz}_fl{args.first_last_bits}"
+                                      f"_la{args.last_abits}_aq{args.attn_quant}.json")
 MIG_ALPHAS = (0.0, 0.25, 0.5, 0.75, 1.0)  # +M: scale 이전의 a 후보('이전 없음'도 항상 후보)
 MIG_IMAGES = 8                           # +M: a 탐색에 쓸 calibration 이미지 수
 RECON_ITERS_ADA = 1000                   # adaround 재구성 iters
@@ -481,7 +491,7 @@ def build(model_cls, w, names, device, calib, mode, fp=None, pidx=None, h_eval=N
           w_bits=8, a_bits=8, skip_head=True, first_last_bits=0, last_abits=0, attn_quant="none",
           hi_wbit_convs=(), migrate=False, gate_commute=False,
           adaround_act_observer="minmax", combined_stage1="none", combined_recon_iters=0):
-    """mode: "fp" | "naive" | "adaround" | "qdrop" | "brecq" | "combined".
+    """mode: "fp" | "naive" | "adaround" | "qdrop" | "pdquant" | "brecq" | "combined".
     fp 외에는 fp(FP 모델)가 필요하고, combined는 pidx(S)/h_eval/cal_idx(H_cal)도 필요하다.
     first_last_bits/last_abits/attn_quant/hi_wbit_convs/migrate는 양자화기 설정이라 calibrate 전에,
     조건과 무관하게 같은 방식으로 적용된다."""
@@ -494,7 +504,7 @@ def build(model_cls, w, names, device, calib, mode, fp=None, pidx=None, h_eval=N
     if gate_commute:
         # 09-30 설계 방향 1: C2fAttn의 텍스트 게이트를 cv2 뒤로 옮기는 FP 등가 재배치(quant/fusion_quant.py).
         # 양자화 전(wrap_convs 전)에 구조를 바꾼다. 재구성의 FP 기준도 같은 구조여야 하므로 아래 _fpref 참고.
-        assert mode in ("naive", "brecq", "qdrop"), f"게이트 교환 미지원 조건: {mode}"
+        assert mode in ("naive", "brecq", "qdrop", "pdquant"), f"게이트 교환 미지원 조건: {mode}"
         from quant.fusion_quant import gate_commute_all
         gate_commute_all(m.model)
     # 09-23: CLIP 인코더(clip_model) 제외는 quant_model.ALWAYS_SKIP_NAMES가 담당한다
@@ -523,14 +533,14 @@ def build(model_cls, w, names, device, calib, mode, fp=None, pidx=None, h_eval=N
         # 이전된 값 기준으로 잡혀야 하므로 calibrate 전. layer-wise AdaRound(optimize_adaround)는
         # conv.weight를 FP 입력과 직접 곱해 target을 만들어서 이전과 호환되지 않는다 -- combined는
         # 1단계가 brecq일 때만 허용(2단계의 s_mult는 conv당 스칼라라 이전과 독립).
-        assert mode in ("naive", "brecq", "qdrop") or \
+        assert mode in ("naive", "brecq", "qdrop", "pdquant") or \
             (mode == "combined" and combined_stage1 == "brecq"), f"migration 미지원 조건: {mode}"
         # migrate: True/"M" = 우리 M, "S" = SmoothQuant, "W" = AWQ(10-17 기준선, 같은 공유 제약·같은 이미지).
         from quant.channel_graph import search_and_apply_tied
         search_and_apply_tied(m.model, calib[:MIG_IMAGES], device, MIG_ALPHAS,
                               rule={"S": "smooth", "W": "awq"}.get(migrate, "tied"))
     _fpref = fp
-    if gate_commute and mode in ("brecq", "qdrop"):
+    if gate_commute and mode in ("brecq", "qdrop", "pdquant"):
         # BRECQ가 quant/FP conv를 트리 순서로 짝짓고 FP 출력을 목표로 쓰므로, FP 기준 모델도 같은
         # 게이트 교환 구조여야 cv2_main/cv2_side가 올바른 짝을 갖는다(FP 등가).
         from quant.fusion_quant import gate_commute_all as _gca
@@ -558,6 +568,24 @@ def build(model_cls, w, names, device, calib, mode, fp=None, pidx=None, h_eval=N
         optimize_brecq(m.model, _fpref.model, calib, device, iters=RECON_ITERS,
                        qdrop_prob=QDROP_PROB, verbose=False, learn_act_scale=True,
                        batch=1, neck_layerwise=False)
+    elif mode == "pdquant":
+        # 10-28 PD-Quant(Liu et al., CVPR 2023) 기준선. 공식 구현이 QDrop 코드 위에 만들어졌으므로 위 qdrop과 같은 설정
+        # (재구성 단위, iters, batch, drop 확률, LSQ)에 PD 손실과 DC만 더한다(quant/pdquant.py). BN 통계는 접기 전 모델에서 모은다.
+        from quant.pdquant import collect_bn_targets, PDContext
+        _unf = model_cls(w); _unf.set_classes(names)
+        _tg = collect_bn_targets(_unf.model)
+        del _unf
+        _named = dict(_fpref.model.named_modules())
+        _bn_map = {_named[k]: v for k, v in _tg.items() if isinstance(_named.get(k), torch.nn.Conv2d)}
+        print(f"  [pdquant] DC 대상 conv {len(_bn_map)}/{len(_tg)}개 (BN 통계), PD 손실 T={__import__('quant.pdquant', fromlist=['PD_T']).PD_T}", flush=True)
+        convert_to_adaround(m.model, channelwise_smult=False)
+        _pd = PDContext(_fpref.model, list(calib), device)
+        try:
+            optimize_brecq(m.model, _fpref.model, calib, device, iters=RECON_ITERS,
+                           qdrop_prob=QDROP_PROB, verbose=False, learn_act_scale=True,
+                           batch=1, neck_layerwise=False, pd=_pd, dc_bn_map=_bn_map)
+        finally:
+            _pd.close()
     elif mode == "brecq":
         # weight rounding과 activation scale을 공동 최적화한다(공식의 순차 2단계가 아님, batch 1, 전부 block-wise).
         convert_to_adaround(m.model, channelwise_smult=False)
@@ -593,6 +621,78 @@ def build(model_cls, w, names, device, calib, mode, fp=None, pidx=None, h_eval=N
     else:
         raise ValueError(f"알 수 없는 조건: {mode}")
     return m
+
+
+def qmodel_path(d, args, cond):
+    """--save-model/--load-model 파일 이름: <모델>_w<W>a<A>_s<seed>_<조건>.pt (조건의 '+'는 '-'로)."""
+    stem = os.path.splitext(os.path.basename(args.model))[0]
+    return os.path.join(d, f"{stem}_w{args.w_bits}a{args.a_bits}_s{args.seed}_{cond.replace('+', '-')}.pt")
+
+
+def save_qmodel(wrapper, path, meta):
+    """10-27: 빌드한 양자화 모델(ultralytics wrapper 안의 nn.Module)을 통째로 저장한다. 커스텀 모듈(QuantConv2d,
+    AdaRound, 게이트 교환 구조, 이전 scale mig)이 그대로 들어가므로 코드가 바뀌면 못 읽을 수 있다 -- 그래서 커밋과
+    인자를 옆의 .json에 남긴다. CLIP 텍스트 인코더(clip_model)는 원 가중치 그대로라 빼고 저장한다."""
+    import json, subprocess
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    core = wrapper.model
+    clip = getattr(core, "clip_model", None)
+    if clip is not None:
+        core.clip_model = None
+    try:
+        from qmodel_io import save_module
+        save_module(core, path + ".tmp")
+        os.replace(path + ".tmp", path)
+    finally:
+        if clip is not None:
+            core.clip_model = clip
+    root = os.path.dirname(os.path.abspath(__file__))
+    git = lambda *a: subprocess.run(["git", "-C", root, *a], capture_output=True, text=True).stdout.strip()
+    meta = dict(meta, commit=git("rev-parse", "HEAD"), dirty=bool(git("status", "--porcelain", "--untracked-files=no")),
+                saved=time.strftime("%Y-%m-%d %H:%M:%S"), torch=torch.__version__)
+    json.dump(meta, open(path[:-3] + ".json", "w"), indent=1, ensure_ascii=False)
+    print(f"  [save] {path} ({os.path.getsize(path) / 2**20:.1f} MiB)", flush=True)
+
+
+def update_qmodel_meta(path, **kw):
+    import json
+    j = path[:-3] + ".json"
+    if os.path.exists(j):
+        meta = json.load(open(j)); meta.update(kw)
+        json.dump(meta, open(j, "w"), indent=1, ensure_ascii=False)
+
+
+def load_qmodel(model_cls, w, path, device):
+    """save_qmodel로 저장한 모델을 ultralytics wrapper에 다시 넣는다. 어휘는 평가 전에 switch_vocab으로 바꾼다."""
+    import json
+    m = model_cls(w)
+    from qmodel_io import load_module
+    m.model = load_module(path, map_location=device)    # 일반 텐서 속성(ConstQ 캐시, scale 등)은 .to()로 안 옮겨진다
+    m.model.to(device).eval()
+    m.predictor = None
+    j = path[:-3] + ".json"
+    meta = json.load(open(j)) if os.path.exists(j) else {}
+    print(f"  [load] {path} (commit {meta.get('commit', '?')[:8]}{', dirty' if meta.get('dirty') else ''}, "
+          f"저장 {meta.get('saved', '?')}, 저장 당시 COCO AP {meta.get('coco_ap', '?')})", flush=True)
+    return m, meta
+
+
+def eval_odinw_yolo(fp, models, conditions, args, device):
+    """ODinW-13(GLIP 공식 split, core/odinw.py): 데이터셋마다 어휘를 바꿔 COCO AP. 반환 {모델: {데이터셋: AP, mean}}."""
+    from odinw import load_odinw13, coco_ap as odinw_ap, report as odinw_report
+    odinw_sets = load_odinw13(args.odinw_root, args.eval_cap)
+    odinw_res = {k: {} for k in ["FP32"] + conditions}
+    for ds in odinw_sets:
+        for k in odinw_res:
+            m = fp if k == "FP32" else models[k]
+            switch_vocab(m, ds["names"], device)
+            preds = predict_lvis_results(m, ds["img_paths"], ds["img_ids"], args.imgsz, device, max_det=300)
+            for r in preds:                                   # predict_lvis_results는 클래스 순번+1을 넣는다
+                r["category_id"] = ds["cat_ids"][r["category_id"] - 1]
+            odinw_res[k][ds["name"]] = 100 * odinw_ap(ds["gt"], preds, ds["img_ids"])
+        print(f"  [ODinW] {ds['name']} ({len(ds['img_ids'])}장) " +
+              " ".join(f"{k}={odinw_res[k][ds['name']]:.2f}" for k in odinw_res), flush=True)
+    return odinw_report(odinw_res, odinw_sets)
 
 
 def main():
@@ -634,9 +734,24 @@ def main():
     ap.add_argument("--eval-cap", type=int, default=0,
                     help="스모크 테스트용: flip/GT/UPIR/lost와 LVIS AP를 계산하는 probe 이미지 수 제한. 0이면 제한 없음. "
                          "COCO AP(measure_ap)에는 적용되지 않는다 -- 항상 --data의 전체 val 세트로 측정")
+    ap.add_argument("--odinw", action="store_true",
+                    help="LVIS 뒤에 ODinW-13(GLIP 공식 split)도 평가한다(core/odinw.py). --eval-cap은 데이터셋마다 적용")
+    ap.add_argument("--odinw-root", default="/data/taeho/odinw")
+    ap.add_argument("--odinw-only", action="store_true",
+                    help="COCO/LVIS flip·AP를 건너뛰고 ODinW-13만 평가한다(--odinw 포함). 조건 모델마다 COCO AP는 "
+                         "같은 모델인지 확인하려고 잰다(--no-coco-check로 끔)")
+    ap.add_argument("--no-coco-check", action="store_true", help="--odinw-only에서 COCO AP 확인을 건너뛴다")
+    ap.add_argument("--save-model", default="",
+                    help="빌드한 조건 모델을 이 폴더에 저장(qmodel_path 이름 + 메타 .json). 예: /data/taeho/cvpr2027_qmodels")
+    ap.add_argument("--mcheck-refresh", action="store_true",
+                    help="+A: 저장된 M 결정(configs/mcheck_cache)이 있어도 두 후보를 다시 빌드해 검사하고 결정을 덮어쓴다")
+    ap.add_argument("--load-model", default="",
+                    help="빌드 대신 이 폴더에서 같은 이름의 저장 모델을 불러온다(없으면 중단)")
     ap.add_argument("--post-build", default="",
                     help="진단 스크립트 경로. 빌드 직후(평가 전) 실행하고 평가 없이 종료(PTQ_POST_BUILD와 같음)")
     args = ap.parse_args()
+    if args.odinw_only:
+        args.odinw = True
     device = f"cuda:{args.device}" if args.device != "cpu" else "cpu"
     gt_ann = args.gt_ann or os.path.join(args.coco_root, "annotations", "instances_val2017.json")
     print(f"[args] {vars(args)}")
@@ -665,10 +780,13 @@ def main():
         os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
         torch.use_deterministic_algorithms(True, warn_only=True)
 
-    from lvis import LVIS
-    print(f"[lvis] loading GT {args.lvis_ann}")
-    lvis_gt = LVIS(args.lvis_ann)
-    lvis_img_ids = set(lvis_gt.get_img_ids())
+    if args.odinw_only:
+        lvis_gt, lvis_img_ids = None, set()
+    else:
+        from lvis import LVIS
+        print(f"[lvis] loading GT {args.lvis_ann}")
+        lvis_gt = LVIS(args.lvis_ann)
+        lvis_img_ids = set(lvis_gt.get_img_ids())
 
     coco = load_names("coco")
     lvis_names = load_names("lvis")
@@ -699,8 +817,9 @@ def main():
     # preprocess()로 다시 읽는다 -- 디스크 read 속도가 빠르므로 전체 실험
     # 시간(수 시간)에 비해 오버헤드가 무시할 수준.
 
-    coco_gt_by_path = load_coco_gt_by_path(gt_ann, probe_paths)
-    lvis_gt_by_path = load_lvis_gt_by_path(lvis_gt, lvis_probe_paths, lvis_probe_ids)
+    if not args.odinw_only:
+        coco_gt_by_path = load_coco_gt_by_path(gt_ann, probe_paths)
+        lvis_gt_by_path = load_lvis_gt_by_path(lvis_gt, lvis_probe_paths, lvis_probe_ids)
 
     rng = np.random.default_rng(args.seed)
     perm = rng.permutation(80)
@@ -713,7 +832,7 @@ def main():
 
     conditions = [c.strip() for c in args.conditions.split(",")]
 
-    _valid = {"naive", "adaround", "qdrop", "brecq", "combined"}
+    _valid = {"naive", "adaround", "qdrop", "pdquant", "brecq", "combined"}
     # 09-29: 조건 접미사 -- "brecq+PM"처럼 기반 조건 뒤에 양자화기 옵션을 조건별로 붙인다(한 run에서 짝비교).
     #   P = 보호(누수 없는 진단, COCO 어휘 top-1 flip 기준, 예산 PROTECT_BUDGET)
     #   R = 같은 예산 무작위 보호(random.Random(1000), runs/134 rand0과 같은 목록)
@@ -790,7 +909,21 @@ def main():
         # 10-02 +A: 이전(M)을 누수 없는 사전 검사로 켤지 정한다. M 끔/켬 두 후보를 모두 빌드(각각 같은 RNG 상태에서
         # 출발 -- 단독 조건과 bit-identical)하고, calibration에 쓰지 않은 train2017 이미지 + COCO 어휘에서 FP 대비
         # top-1 flip을 잰다. M을 켠 쪽 flip이 MCHECK_RATIO배를 넘으면 M을 끈 모델을 쓴다(runs/155 검증).
+        if args.load_model:
+            models[cond], _meta = load_qmodel(YOLOWorld, args.model, qmodel_path(args.load_model, args, cond), device)
+            calib_time[cond] = _meta.get("calib_time", float("nan"))
+            model_mib_by[cond] = quantized_weight_mib(models[cond].model)
+            continue
         _variants = [_flags0] if "A" not in _flags0 else [(_flags0 - {"A", "M"}), (_flags0 - {"A"}) | {"M"}]
+        _mc_path = mcheck_cache_path(args)
+        if len(_variants) == 2 and os.path.exists(_mc_path) and not args.mcheck_refresh:
+            # 10-28: 이 모델·프로토콜의 M 결정이 이미 있으면 그 후보만 빌드한다(두 번 빌드 + 검사 생략). 결과는
+            # 검사를 다시 돌렸을 때 고른 모델과 같다 -- 두 후보 모두 같은 RNG 상태에서 출발하므로.
+            import json as _json
+            _mc = _json.load(open(_mc_path))
+            _variants = [_variants[1] if _mc["use_m"] else _variants[0]]
+            print(f"  [+A] 저장된 결정 사용: M {'켬' if _mc['use_m'] else '끔'} ({_mc_path}; "
+                  f"M 끔 {_mc['flip_off']:.2f}% / 켬 {_mc['flip_on']:.2f}%, {_mc.get('source', '')})", flush=True)
         _built = []
         t_cond = time.perf_counter()
         for flags in _variants:
@@ -828,16 +961,40 @@ def main():
             models[cond] = _m_on if _use_m else _m_off
             print(f"  [+A] calib 밖 COCO flip: M 끔 {_fl_off:.2f}% / M 켬 {_fl_on:.2f}% -> "
                   f"M {'켬' if _use_m else '끔'} (기준 {MCHECK_RATIO}배, 검사 {time.perf_counter() - t_chk:.1f}s)", flush=True)
+            import json as _json
+            os.makedirs(MCHECK_CACHE, exist_ok=True)
+            _json.dump(dict(use_m=bool(_use_m), flip_off=_fl_off, flip_on=_fl_on, ratio=MCHECK_RATIO,
+                            source=f"{cond} W{args.w_bits}A{args.a_bits} seed {args.seed}, "
+                                   f"{time.strftime('%Y-%m-%d')}"), open(_mc_path, "w"), indent=1, ensure_ascii=False)
+            print(f"  [+A] 결정 저장 -> {_mc_path}", flush=True)
             del _m_off, _m_on, _built
             torch.cuda.empty_cache()
         calib_time[cond] = time.perf_counter() - t_cond
         model_mib_by[cond] = quantized_weight_mib(models[cond].model)
         print(f"  {cond} 빌드 {calib_time[cond]:.1f}s  (이론적 크기 {model_mib_by[cond]:.2f} MiB)")
+        if args.save_model:
+            save_qmodel(models[cond], qmodel_path(args.save_model, args, cond),
+                        dict(cond=cond, args=vars(args), calib_time=calib_time[cond], model_mib=model_mib_by[cond],
+                             protect=list(c_hi_wbit)))
     _post = args.post_build or os.environ.get("PTQ_POST_BUILD")
     if _post:
         # 10-01: 진단용 훅 -- 빌드 직후(평가 전) 모델을 그대로 넘겨 스크립트를 실행하고 종료(주 실험 경로 영향 없음).
         print(f"[post-build] {_post} 실행 후 평가 없이 종료", flush=True)
         exec(open(_post).read(), {**globals(), **locals()})   # 한 이름 공간: 스크립트 안 함수끼리 서로 보이게
+        return
+
+    if args.odinw_only:
+        # 10-27: COCO/LVIS는 이미 잰 조건을 ODinW에서만 다시 잴 때. COCO AP는 기존 로그와 같은 모델인지 확인하는 용도.
+        if not args.no_coco_check:
+            for cond in conditions:
+                (_ap, _), _ = measure_ap(models[cond], args.data, args.imgsz, args.device)
+                print(f"  [COCO-check][{cond}] AP={_ap:.2f} (기존 로그의 [COCO-80][{cond}] AP와 같아야 한다)", flush=True)
+                for d in (args.save_model, args.load_model):
+                    if d:
+                        update_qmodel_meta(qmodel_path(d, args, cond), coco_ap=round(_ap, 4))
+        eval_odinw_yolo(fp, models, conditions, args, device)
+        # COCO/LVIS 표가 없으므로 표 생성기(logparse, make_leaderboard)의 완료 문구("이론적 모델 크기")를 쓰지 않는다.
+        print("\n[ODinW 전용 실행 완료] 모델 크기: " + ", ".join(f"{k} {v:.2f} MiB" for k, v in model_mib_by.items()))
         return
 
     # ---------------- COCO-80: FP sim 1회 계산 + GT 매칭 ----------------
@@ -874,6 +1031,8 @@ def main():
         print(f"    [lost by group] S={lbg['S']}/{dbg['S']}({lrg['S']:.2f}%) "
               f"H_cal={lbg['H_cal']}/{dbg['H_cal']}({lrg['H_cal']:.2f}%) "
               f"H_eval={lbg['H_eval']}/{dbg['H_eval']}({lrg['H_eval']:.2f}%)")
+        if args.save_model:
+            update_qmodel_meta(qmodel_path(args.save_model, args, mode), coco_ap=round(coco_ap, 4))
         results[mode] = dict(coco_ap=coco_ap, s_ap=s_ap, heval_ap=heval_ap, heval_flip=heval_flip,
                              top1_flip=top1_flip, coco_gt=coco_gt_res, calib_time=calib_time[mode],
                              lost_rate_by_group=lrg)
@@ -924,6 +1083,12 @@ def main():
     print("\n[predict+AP] FP32 (참고, LVIS) ...")
     preds_fp = predict_lvis_results(fp, lvis_probe_paths, lvis_probe_ids, args.imgsz, device)
     fp_lvis = run_lvis_eval(lvis_gt, preds_fp, lvis_probe_ids)
+
+    # ---------------- ODinW-13 (10-27) ----------------
+    if args.odinw:
+        odinw_res = eval_odinw_yolo(fp, models, conditions, args, device)
+        for k in conditions:
+            results[k]["odinw"] = odinw_res[k]
 
     print("\n" + "=" * 100)
     lsq_bits = []

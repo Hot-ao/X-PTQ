@@ -1,0 +1,10 @@
+odinw-yw-W4A8-s0	--model yolov8s-world.pt --w-bits 4 --a-bits 8 --conditions brecq,brecq+GPM --seed 0 --odinw-only --save-model /data/taeho/cvpr2027_qmodels
+odinw-yw-W4A8-s1	--model yolov8s-world.pt --w-bits 4 --a-bits 8 --conditions brecq,brecq+GPM --seed 1 --odinw-only --save-model /data/taeho/cvpr2027_qmodels
+odinw-yw-W4A8-s3	--model yolov8s-world.pt --w-bits 4 --a-bits 8 --conditions brecq,brecq+GPM --seed 3 --odinw-only --save-model /data/taeho/cvpr2027_qmodels
+odinw-yw-W4A8-s4	--model yolov8s-world.pt --w-bits 4 --a-bits 8 --conditions brecq,brecq+GPM --seed 4 --odinw-only --save-model /data/taeho/cvpr2027_qmodels
+odinw-yw-W4A8-s5	--model yolov8s-world.pt --w-bits 4 --a-bits 8 --conditions brecq,brecq+GPM --seed 5 --odinw-only --save-model /data/taeho/cvpr2027_qmodels
+odinw-yw-W4A5-s1	--model yolov8s-world.pt --w-bits 4 --a-bits 5 --conditions brecq,brecq+GPM --seed 1 --odinw-only --save-model /data/taeho/cvpr2027_qmodels
+odinw-yw-W4A5-s2	--model yolov8s-world.pt --w-bits 4 --a-bits 5 --conditions brecq,brecq+GPM --seed 2 --odinw-only --save-model /data/taeho/cvpr2027_qmodels
+odinw-yw-W4A5-s3	--model yolov8s-world.pt --w-bits 4 --a-bits 5 --conditions brecq,brecq+GPM --seed 3 --odinw-only --save-model /data/taeho/cvpr2027_qmodels
+odinw-yw-W4A5-s4	--model yolov8s-world.pt --w-bits 4 --a-bits 5 --conditions brecq,brecq+GPM --seed 4 --odinw-only --save-model /data/taeho/cvpr2027_qmodels
+odinw-yw-W4A5-s5	--model yolov8s-world.pt --w-bits 4 --a-bits 5 --conditions brecq,brecq+GPM --seed 5 --odinw-only --save-model /data/taeho/cvpr2027_qmodels

@@ -57,23 +57,25 @@ def gate_commute(block: nn.Module) -> nn.Module:
     block._gc_act = cv2.act
     block._gc_hc_in = hc_in
     del block.cv2                                        # 원래 conv는 더 이상 쓰지 않음(wrap_convs 대상에서 제외)
-
-    def forward(self, x, guide):
-        y = list(self.cv1(x).split((self.c, self.c), 1))
-        y.extend(m(y[-1]) for m in self.m)
-        a = self.attn
-        z = y[-1]
-        from .attn_quant import attn_gate           # 10-01: attention 양자화 지점이 있으면 적용(없으면 기존과 동일 연산)
-        aw = attn_gate(a, z, guide)                                                  # [bs, nh, h, w]
-        p = a.proj_conv(z)                                                           # 게이트 전
-        out = self.cv2_main(torch.cat(y, 1))
-        for hh, sc in enumerate(self.cv2_side):
-            ph = p[:, hh * self._gc_hc_in:(hh + 1) * self._gc_hc_in]
-            out = out + aw[:, hh:hh + 1] * sc(ph)
-        return self._gc_act(out)
-
-    block.forward = types.MethodType(forward, block)
+    block.forward = types.MethodType(_gate_commute_forward, block)
     return block
+
+
+def _gate_commute_forward(self, x, guide):
+    # 10-27: gate_commute 안의 지역 함수였던 것을 모듈 수준으로 옮겼다(내용 동일). 저장한 모델을 다시 불러올 때
+    # core/qmodel_io.py가 이름으로 찾아 다시 붙인다.
+    y = list(self.cv1(x).split((self.c, self.c), 1))
+    y.extend(m(y[-1]) for m in self.m)
+    a = self.attn
+    z = y[-1]
+    from .attn_quant import attn_gate           # 10-01: attention 양자화 지점이 있으면 적용(없으면 기존과 동일 연산)
+    aw = attn_gate(a, z, guide)                                                  # [bs, nh, h, w]
+    p = a.proj_conv(z)                                                           # 게이트 전
+    out = self.cv2_main(torch.cat(y, 1))
+    for hh, sc in enumerate(self.cv2_side):
+        ph = p[:, hh * self._gc_hc_in:(hh + 1) * self._gc_hc_in]
+        out = out + aw[:, hh:hh + 1] * sc(ph)
+    return self._gc_act(out)
 
 
 def gate_commute_all(det_model: nn.Module) -> list:

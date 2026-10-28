@@ -1,0 +1,15 @@
+m-w4a4-s0	--model yolov8m-world.pt --w-bits 4 --a-bits 4 --conditions brecq,brecq+GPMA,brecq+GPM --seed 0 --save-model /data/taeho/cvpr2027_qmodels
+m-w4a4-s1	--model yolov8m-world.pt --w-bits 4 --a-bits 4 --conditions brecq,brecq+GPMA,brecq+GPM --seed 1 --save-model /data/taeho/cvpr2027_qmodels
+m-w4a4fl16-s0	--model yolov8m-world.pt --w-bits 4 --a-bits 4 --conditions brecq,brecq+GPMA,brecq+GPM --seed 0 --first-last-bits 16 --save-model /data/taeho/cvpr2027_qmodels/fl16
+s-w4a4-G-s0	--model yolov8s-world.pt --w-bits 4 --a-bits 4 --conditions brecq+G --seed 0 --save-model /data/taeho/cvpr2027_qmodels
+s-w4a4-P-s0	--model yolov8s-world.pt --w-bits 4 --a-bits 4 --conditions brecq+P --seed 0 --save-model /data/taeho/cvpr2027_qmodels
+s-w4a4-M-s0	--model yolov8s-world.pt --w-bits 4 --a-bits 4 --conditions brecq+M --seed 0 --save-model /data/taeho/cvpr2027_qmodels
+s-w4a4-GP-s0	--model yolov8s-world.pt --w-bits 4 --a-bits 4 --conditions brecq+GP --seed 0 --save-model /data/taeho/cvpr2027_qmodels
+s-w4a4-GM-s0	--model yolov8s-world.pt --w-bits 4 --a-bits 4 --conditions brecq+GM --seed 0 --save-model /data/taeho/cvpr2027_qmodels
+s-w4a4-PM-s0	--model yolov8s-world.pt --w-bits 4 --a-bits 4 --conditions brecq+PM --seed 0 --save-model /data/taeho/cvpr2027_qmodels
+s-w4a4-G-s1	--model yolov8s-world.pt --w-bits 4 --a-bits 4 --conditions brecq+G --seed 1 --save-model /data/taeho/cvpr2027_qmodels
+s-w4a4-P-s1	--model yolov8s-world.pt --w-bits 4 --a-bits 4 --conditions brecq+P --seed 1 --save-model /data/taeho/cvpr2027_qmodels
+s-w4a4-M-s1	--model yolov8s-world.pt --w-bits 4 --a-bits 4 --conditions brecq+M --seed 1 --save-model /data/taeho/cvpr2027_qmodels
+s-w4a4-GP-s1	--model yolov8s-world.pt --w-bits 4 --a-bits 4 --conditions brecq+GP --seed 1 --save-model /data/taeho/cvpr2027_qmodels
+s-w4a4-GM-s1	--model yolov8s-world.pt --w-bits 4 --a-bits 4 --conditions brecq+GM --seed 1 --save-model /data/taeho/cvpr2027_qmodels
+s-w4a4-PM-s1	--model yolov8s-world.pt --w-bits 4 --a-bits 4 --conditions brecq+PM --seed 1 --save-model /data/taeho/cvpr2027_qmodels

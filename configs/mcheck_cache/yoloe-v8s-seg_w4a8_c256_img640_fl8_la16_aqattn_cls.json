@@ -1,0 +1,7 @@
+{
+ "use_m": true,
+ "flip_off": 2.33,
+ "flip_on": 2.6,
+ "ratio": 1.5,
+ "source": "brecq+GPA W4A8 seed 0, promptcal-ptq/runs/164_yoloe/check-W4A8-GPA-s0.log (10-28 로그에서 옮김)"
+}
