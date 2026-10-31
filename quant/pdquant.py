@@ -26,6 +26,7 @@ QDrop의 block 재구성 위에 두 가지를 더한다. brecq.optimize_brecq(pd
 """
 
 from __future__ import annotations
+import os
 import torch
 import torch.nn.functional as F
 
@@ -75,12 +76,21 @@ class _CV4Capture:
 
 # ---------------------------------------------------------------- PD-Quant (10-28)
 PD_T = 4.0          # 공식 main_imagenet.py --T 기본값(run_script.py도 ResNet/RegNet은 4.0)
-PD_LAMB_R = 0.1     # 공식 --lamb_r 기본값 (pd 손실 / lamb_r)
+PD_LAMB_R = float(__import__("os").environ.get("PDQ_LAMB_R", "0.1"))   # 공식 --lamb_r 기본값 0.1 (pd 손실 / lamb_r). PDQ_LAMB_R로 진단 변경
 DC_LAMB_C = 0.02    # 공식 --lamb_c (ResNet 설정)
 DC_LR = 1e-3        # 공식 --bn_lr
 DC_ITERS = 500      # 공식 GetDcFpLayerInpOut의 iters
 DC_BATCH = 32       # 공식 batch_size(DC는 배치 단위로 보정)
 _EPS = 1e-6
+# 10-28 진단용 변형(환경변수, 기본값이면 위 공식 설정 그대로):
+#   PDQ_PD_REDUCE=sum|mean  PD KL을 anchor에 대해 합(공식 batchmean 그대로) 또는 평균
+#   PDQ_LAMB_R=<값>          PD 손실 가중치(나누는 값). 공식 0.1
+#   PDQ_DC_SKIP_FIRST=1      첫 블록(입력=이미지)에는 DC를 걸지 않는다
+#   PDQ_NO_PD=1 / PDQ_NO_DC=1  PD 손실 / DC를 끈다(run_comparison의 pdquant 분기에서 읽음)
+PD_REDUCE = os.environ.get("PDQ_PD_REDUCE", "sum")
+PD_OFF = os.environ.get("PDQ_NO_PD", "0") == "1"
+DC_OFF = os.environ.get("PDQ_NO_DC", "0") == "1"
+DC_SKIP_FIRST = os.environ.get("PDQ_DC_SKIP_FIRST", "0") == "1"   # 입력이 이미지인 첫 블록(model.0)은 DC 제외
 
 
 def collect_bn_targets(unfused_det_model):
@@ -189,6 +199,8 @@ class PDContext:
         lq = F.log_softmax(q / self.T, dim=-1)
         pf = F.softmax(f / self.T, dim=-1)
         kl = pf * (torch.log(pf + 1e-12) - lq)
+        if PD_REDUCE == "mean":          # 진단 변형: anchor 평균(분포 축은 합)
+            return kl.sum(-1).reshape(kl.size(0), -1).mean(1).mean()
         return kl.reshape(kl.size(0), -1).sum(1).mean()
 
     def loss(self, fm, out_q, idx):

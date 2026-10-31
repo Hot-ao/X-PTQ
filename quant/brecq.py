@@ -345,7 +345,10 @@ def optimize_brecq(quant_module, fp_module, calib_tensors, device,
             out = qm(*args)                    # block/conv를 quant weight로 통과 (다중 입력 지원)
             loss = lp_rec_loss(out, tgt)
             if pd is not None:                 # PD-Quant: 양자화 입력(drop 없음)의 출력 -> FP 나머지 네트워크 -> 예측 KL
-                loss = loss + pd.loss(fm, qm(*args_q), js)
+                _pdl = pd.loss(fm, qm(*args_q), js)
+                if it in (0, iters // 2, iters - 1):   # 공식도 rec/pd를 따로 출력한다
+                    print(f"    [pdquant] {label} it{it} rec {float(loss):.4g} pd {float(_pdl):.4g}", flush=True)
+                loss = loss + _pdl
             if it >= warmup * iters:           # 공식 warmup: 앞 구간은 round_loss=0
                 beta = temp_decay(it, iters, warmup)
                 loss = loss + reg_weight * sum(c.reg_loss(beta) for c in convs)

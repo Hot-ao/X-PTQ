@@ -65,6 +65,31 @@ from quant.brecq import optimize_brecq
 from quant.promptcal import optimize_promptcal_scale_neighbor
 
 
+CALIB_SOURCES = {    # 10-28 calibration 데이터 교체(일반화): 이름 -> (이미지 폴더 목록, 어휘)
+    "coco": None,                                                    # 기본: COCO train2017 + COCO 80
+    "o365": (["/data/taeho/o365_calib/images"], "Objects365"),       # Objects365 v2 train patch0 + O365 365
+    "o365gqa": (["/data/taeho/o365_calib/images", "/data/taeho/gqa/images"], "Objects365"),  # O365와 GQA를 번갈아(GoldG 이미지)
+}
+
+
+def calib_source(name, coco_root):
+    """calibration 출처의 (정렬된 이미지 경로 목록, 어휘)를 돌려준다. calibration(앞 --calib장), P 진단(앞 200장),
+    M 사전 검사(calibration 다음 200장)가 모두 이 목록과 어휘를 쓴다. 폴더가 여럿이면 각 폴더를 정렬한 뒤 한 장씩 번갈아 넣는다."""
+    if name == "coco":
+        return sorted(glob.glob(os.path.join(coco_root, "train2017", "*.jpg"))), load_names("coco")
+    dirs, vocab = CALIB_SOURCES[name]
+    lists = [sorted(glob.glob(os.path.join(d, "**", "*.jpg"), recursive=True)) for d in dirs]
+    assert all(lists), f"calibration 이미지 없음: {dirs}"
+    paths = [p for grp in zip(*lists) for p in grp]
+    return paths, load_names(vocab)
+
+
+def calib_tag(args):
+    """캐시·저장 파일 이름에 붙이는 calibration 출처 표시(기본 coco는 빈 문자열이라 기존 파일 이름 그대로)."""
+    cs = getattr(args, "calib_source", "coco")
+    return "" if cs == "coco" else f"_cs{cs}"
+
+
 def load_names(which):
     import ultralytics, yaml
     from pathlib import Path
@@ -478,9 +503,13 @@ def mcheck_cache_path(args):
     넣지 않는다. 빌드 결과를 바꾸는 프로토콜 인자(calibration 수, 입력 크기, 첫/마지막 비트, head 입력 비트, attention 양자화)는 넣는다."""
     stem = os.path.splitext(os.path.basename(args.model))[0]
     return os.path.join(MCHECK_CACHE, f"{stem}_w{args.w_bits}a{args.a_bits}_c{args.calib}_img{args.imgsz}_fl{args.first_last_bits}"
-                                      f"_la{args.last_abits}_aq{args.attn_quant}.json")
+                                      f"_la{args.last_abits}_aq{args.attn_quant}{calib_tag(args)}"
+                                      f"{'_migall' if getattr(args, 'mig_stat', '8') == 'all' else ''}"
+                                      f"{f'_xf{args.xmax_floor:g}' if getattr(args, 'xmax_floor', 0) > 0 else ''}.json")
 MIG_ALPHAS = (0.0, 0.25, 0.5, 0.75, 1.0)  # +M: scale 이전의 a 후보('이전 없음'도 항상 후보)
 MIG_IMAGES = 8                           # +M: a 탐색에 쓸 calibration 이미지 수
+MIG_STAT_ALL = False                     # +M: True면 max|x|를 calibration 전체에서(10-30 비교용, --mig-stat all)
+MIG_XMAX_FLOOR = 0.0                     # +M: max|x| 하한(소비 conv 최댓값 대비, --xmax-floor). 10-31 0.3% 확인용, 기본은 기존(0)
 RECON_ITERS_ADA = 1000                   # adaround 재구성 iters
 RECON_ITERS = 2000                       # brecq/qdrop 재구성 iters
 QDROP_PROB = 0.5
@@ -538,7 +567,8 @@ def build(model_cls, w, names, device, calib, mode, fp=None, pidx=None, h_eval=N
         # migrate: True/"M" = 우리 M, "S" = SmoothQuant, "W" = AWQ(10-17 기준선, 같은 공유 제약·같은 이미지).
         from quant.channel_graph import search_and_apply_tied
         search_and_apply_tied(m.model, calib[:MIG_IMAGES], device, MIG_ALPHAS,
-                              rule={"S": "smooth", "W": "awq"}.get(migrate, "tied"))
+                              rule={"S": "smooth", "W": "awq"}.get(migrate, "tied"),
+                              stat_images=calib if MIG_STAT_ALL else None, xmax_floor=MIG_XMAX_FLOOR)
     _fpref = fp
     if gate_commute and mode in ("brecq", "qdrop", "pdquant"):
         # BRECQ가 quant/FP conv를 트리 순서로 짝짓고 FP 출력을 목표로 쓰므로, FP 기준 모델도 같은
@@ -571,21 +601,28 @@ def build(model_cls, w, names, device, calib, mode, fp=None, pidx=None, h_eval=N
     elif mode == "pdquant":
         # 10-28 PD-Quant(Liu et al., CVPR 2023) 기준선. 공식 구현이 QDrop 코드 위에 만들어졌으므로 위 qdrop과 같은 설정
         # (재구성 단위, iters, batch, drop 확률, LSQ)에 PD 손실과 DC만 더한다(quant/pdquant.py). BN 통계는 접기 전 모델에서 모은다.
-        from quant.pdquant import collect_bn_targets, PDContext
+        from quant.pdquant import collect_bn_targets, PDContext, PD_OFF, DC_OFF, PD_REDUCE, PD_LAMB_R, DC_SKIP_FIRST
         _unf = model_cls(w); _unf.set_classes(names)
         _tg = collect_bn_targets(_unf.model)
         del _unf
         _named = dict(_fpref.model.named_modules())
-        _bn_map = {_named[k]: v for k, v in _tg.items() if isinstance(_named.get(k), torch.nn.Conv2d)}
+        _bn_map = {_named[k]: v for k, v in _tg.items() if isinstance(_named.get(k), torch.nn.Conv2d)
+                   and not (DC_SKIP_FIRST and k.startswith("model.0."))}
         print(f"  [pdquant] DC 대상 conv {len(_bn_map)}/{len(_tg)}개 (BN 통계), PD 손실 T={__import__('quant.pdquant', fromlist=['PD_T']).PD_T}", flush=True)
+        if DC_OFF or PD_OFF or PD_REDUCE != "sum" or PD_LAMB_R != 0.1 or DC_SKIP_FIRST:
+            print(f"  [pdquant][진단 변형] PD {'off' if PD_OFF else PD_REDUCE} lamb_r {PD_LAMB_R}, "
+                  f"DC {'off' if DC_OFF else ('on(첫 블록 제외)' if DC_SKIP_FIRST else 'on')}", flush=True)
+        if DC_OFF:
+            _bn_map = None
         convert_to_adaround(m.model, channelwise_smult=False)
-        _pd = PDContext(_fpref.model, list(calib), device)
+        _pd = None if PD_OFF else PDContext(_fpref.model, list(calib), device)
         try:
             optimize_brecq(m.model, _fpref.model, calib, device, iters=RECON_ITERS,
                            qdrop_prob=QDROP_PROB, verbose=False, learn_act_scale=True,
                            batch=1, neck_layerwise=False, pd=_pd, dc_bn_map=_bn_map)
         finally:
-            _pd.close()
+            if _pd is not None:
+                _pd.close()
     elif mode == "brecq":
         # weight rounding과 activation scale을 공동 최적화한다(공식의 순차 2단계가 아님, batch 1, 전부 block-wise).
         convert_to_adaround(m.model, channelwise_smult=False)
@@ -626,7 +663,7 @@ def build(model_cls, w, names, device, calib, mode, fp=None, pidx=None, h_eval=N
 def qmodel_path(d, args, cond):
     """--save-model/--load-model 파일 이름: <모델>_w<W>a<A>_s<seed>_<조건>.pt (조건의 '+'는 '-'로)."""
     stem = os.path.splitext(os.path.basename(args.model))[0]
-    return os.path.join(d, f"{stem}_w{args.w_bits}a{args.a_bits}_s{args.seed}_{cond.replace('+', '-')}.pt")
+    return os.path.join(d, f"{stem}_w{args.w_bits}a{args.a_bits}_s{args.seed}{calib_tag(args)}_{cond.replace('+', '-')}.pt")
 
 
 def save_qmodel(wrapper, path, meta):
@@ -708,6 +745,9 @@ def main():
     ap.add_argument("--w-bits", type=int, default=8)
     ap.add_argument("--a-bits", type=int, default=8)
     ap.add_argument("--calib", type=int, default=256)
+    ap.add_argument("--calib-source", default="coco", choices=list(CALIB_SOURCES),
+                    help="calibration·P 진단·M 검사에 쓸 이미지와 어휘(10-28). coco=train2017+COCO 80, "
+                         "o365=Objects365+O365 365, o365gqa=Objects365/GQA 번갈아+O365 365. 평가는 그대로 COCO/LVIS/ODinW")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--imgsz", type=int, default=640)
     ap.add_argument("--device", default="0")
@@ -719,6 +759,9 @@ def main():
     ap.add_argument("--last-abits", type=int, default=0,
                     help=">0이면 head cv2/cv3 마지막 1x1 conv의 입력 activation만 이 비트로(16 권장). "
                          "보호 진단에도 같은 값이 쓰이고 진단 캐시 이름에 _la<비트>가 붙는다. 기본 0=꺼짐")
+    ap.add_argument("--mig-stat", choices=["8", "all"], default="8",
+                    help="+M의 max|x| 통계: 8 = α 탐색 이미지(기존), all = calibration 전체(10-30 비교용)")
+    ap.add_argument("--xmax-floor", type=float, default=0.0, help="+M max|x| 하한(소비 conv 최댓값 대비). 0 = 기존")
     ap.add_argument("--attn-quant", choices=["none", "attn", "attn_cls"], default="none",
                     help="attention Linear/matmul(attn), + head contrastive matmul(attn_cls)을 8bit로 양자화")
     ap.add_argument("--adaround-act-observer", choices=["minmax", "mse"], default="minmax",
@@ -750,6 +793,9 @@ def main():
     ap.add_argument("--post-build", default="",
                     help="진단 스크립트 경로. 빌드 직후(평가 전) 실행하고 평가 없이 종료(PTQ_POST_BUILD와 같음)")
     args = ap.parse_args()
+    global MIG_STAT_ALL, MIG_XMAX_FLOOR
+    MIG_STAT_ALL = args.mig_stat == "all"
+    MIG_XMAX_FLOOR = args.xmax_floor
     if args.odinw_only:
         args.odinw = True
     device = f"cuda:{args.device}" if args.device != "cpu" else "cpu"
@@ -794,8 +840,10 @@ def main():
     YOLOWorld = model_factory(args.model)        # 10-04: 이름은 그대로 두고 모델 종류(YOLO-World / YOLOE)에 맞는 생성자를 쓴다
 
     # calib: train2017 (평가 데이터와 완전 분리)
-    calib_paths = sorted(glob.glob(os.path.join(args.coco_root, "train2017", "*.jpg")))[:args.calib]
-    print(f"[data] calib {len(calib_paths)}장 (train2017)")
+    _cs_paths, cvocab = calib_source(args.calib_source, args.coco_root)
+    calib_paths = _cs_paths[:args.calib]
+    print(f"[data] calib {len(calib_paths)}장 ({'train2017' if args.calib_source == 'coco' else args.calib_source}, "
+          f"어휘 {len(cvocab)}개)")
 
     # probe: val2017 전체 -- COCO-80은 5000장 다 쓰고, LVIS는 그중 minival(공식 4809장)과
     # 겹치는 것만 채점
@@ -827,8 +875,8 @@ def main():
     H_eval_set = set(H_eval)
     S_set = set(S); H_cal_set = set(H_cal)
 
-    print("[build] FP (COCO-80)")
-    fp = build(YOLOWorld, args.model, coco, device, calib, "fp")
+    print(f"[build] FP ({'COCO-80' if args.calib_source == 'coco' else f'{args.calib_source} 어휘 {len(cvocab)}'})")
+    fp = build(YOLOWorld, args.model, cvocab, device, calib, "fp")
 
     conditions = [c.strip() for c in args.conditions.split(",")]
 
@@ -864,14 +912,15 @@ def main():
         _cache = os.path.join(PROTECT_CACHE, f"{os.path.splitext(os.path.basename(args.model))[0]}"
                                              f"_n{PROTECT_IMAGES}_c{args.calib}_img{args.imgsz}"
                                                  f"{f'_la{args.last_abits}' if args.last_abits else ''}"
-                                                 f"{f'_aq{args.attn_quant}' if args.attn_quant != 'none' else ''}.json")
+                                                 f"{f'_aq{args.attn_quant}' if args.attn_quant != 'none' else ''}{calib_tag(args)}.json")
         if os.path.exists(_cache):
             _rows = _json.load(open(_cache))
         else:
             print(f"[protect] 누수 없는 conv 단위 진단 실행 -> {_cache}")
             _rows = rank_convs_leakfree(args.model, args.coco_root, device, n_eval=PROTECT_IMAGES,
                                         n_calib=args.calib, imgsz=args.imgsz, first_last_bits=args.first_last_bits or 8,
-                                        last_abits=args.last_abits, attn_quant=args.attn_quant)
+                                        last_abits=args.last_abits, attn_quant=args.attn_quant,
+                                        paths=_cs_paths, vocab=cvocab)
             _json.dump(_rows, open(_cache, "w"), indent=1)
         cond_lists["P"] = tuple(select_protected(_rows, _budget, "coco")[0])
         cond_lists["H"] = tuple(select_protected(_rows, _budget, "cls")[0])
@@ -939,7 +988,7 @@ def main():
             print(f"[build] {cond}" + (f" -> 후보 {'+'.join(sorted(flags))}" if len(_variants) > 1 else "")
                   + (f"  (W8 보호 {len(c_hi_wbit)}개 {list(c_hi_wbit)}, scale 이전={next((k for f, k in (('M', '켬'), ('S', 'SmoothQuant'), ('W', 'AWQ')) if f in flags), '끔')}, "
                      f"게이트 교환={'G' in flags})" if flags else ""))
-            _m = build(YOLOWorld, args.model, coco, device, calib, mode, fp=fp,
+            _m = build(YOLOWorld, args.model, cvocab, device, calib, mode, fp=fp,
                        pidx=S, h_eval=H_eval, cal_idx=H_cal,
                        w_bits=args.w_bits, a_bits=args.a_bits, skip_head=args.skip_head,
                        first_last_bits=args.first_last_bits, last_abits=args.last_abits,
@@ -955,11 +1004,11 @@ def main():
             from diag_w4_sensitivity import mcheck_flip
             t_chk = time.perf_counter()
             (_f_off, _m_off), (_f_on, _m_on) = _built
-            _fl_off, _fl_on = mcheck_flip([_m_off, _m_on], fp, args.model, coco, args.coco_root, args.calib,
-                                          args.imgsz, device)
+            _fl_off, _fl_on = mcheck_flip([_m_off, _m_on], fp, args.model, cvocab, args.coco_root, args.calib,
+                                          args.imgsz, device, paths=_cs_paths)
             _use_m = _fl_on <= MCHECK_RATIO * _fl_off
             models[cond] = _m_on if _use_m else _m_off
-            print(f"  [+A] calib 밖 COCO flip: M 끔 {_fl_off:.2f}% / M 켬 {_fl_on:.2f}% -> "
+            print(f"  [+A] calib 밖 flip({args.calib_source}): M 끔 {_fl_off:.2f}% / M 켬 {_fl_on:.2f}% -> "
                   f"M {'켬' if _use_m else '끔'} (기준 {MCHECK_RATIO}배, 검사 {time.perf_counter() - t_chk:.1f}s)", flush=True)
             import json as _json
             os.makedirs(MCHECK_CACHE, exist_ok=True)
@@ -976,6 +1025,12 @@ def main():
             save_qmodel(models[cond], qmodel_path(args.save_model, args, cond),
                         dict(cond=cond, args=vars(args), calib_time=calib_time[cond], model_mib=model_mib_by[cond],
                              protect=list(c_hi_wbit)))
+    if args.calib_source != "coco":
+        # calibration 어휘로 빌드했으므로 평가(COCO-80부터) 전에 COCO 어휘로 바꾼다. 이후 LVIS/ODinW는 원래대로 다시 바꾼다.
+        print(f"[switch] calibration 어휘({args.calib_source}) -> COCO-80 (평가용)")
+        switch_vocab(fp, coco, device)
+        for cond in conditions:
+            switch_vocab(models[cond], coco, device)
     _post = args.post_build or os.environ.get("PTQ_POST_BUILD")
     if _post:
         # 10-01: 진단용 훅 -- 빌드 직후(평가 전) 모델을 그대로 넘겨 스크립트를 실행하고 종료(주 실험 경로 영향 없음).

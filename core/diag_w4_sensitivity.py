@@ -201,7 +201,7 @@ def measure(q, evals, refs, device, vm_lvis, vm_coco):
                 n_lvis=a["ln"], n_coco=a["cn"])
 
 
-def rank_convs_leakfree(model_path, coco_root, device, n_eval=200, n_calib=256, imgsz=640, conf=0.25,
+def rank_convs_leakfree(model_path, coco_root, device, n_eval=200, n_calib=256, imgsz=640, conf=0.25, paths=None, vocab=None,
                         low_bits=4, first_last_bits=8, seed=0, last_abits=0, attn_quant="none"):
     """09-29 (P0): 보호할 conv를 고르기 위한 누수 없는 conv 단위 drop 진단.
     - 이미지: train2017 앞 n_eval장(calibration 부분집합). 평가셋(val2017) 미사용.
@@ -217,8 +217,10 @@ def rank_convs_leakfree(model_path, coco_root, device, n_eval=200, n_calib=256, 
     try:
         torch.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
-        coco = rc.load_names("coco")
-        paths = sorted(glob.glob(os.path.join(coco_root, "train2017", "*.jpg")))
+        # 10-28: paths/vocab을 주면 그 calibration 출처(run_comparison.calib_source)를 쓴다. 없으면 train2017 + COCO
+        coco = vocab if vocab is not None else rc.load_names("coco")
+        if paths is None:
+            paths = sorted(glob.glob(os.path.join(coco_root, "train2017", "*.jpg")))
         calib = [rc.preprocess(p, imgsz) for p in paths[:n_calib]]
         evals = [rc.preprocess(p, imgsz) for p in paths[:n_eval]]
         fp = rc.build(YOLOWorld, model_path, coco, device, calib, "fp")
@@ -248,14 +250,16 @@ def rank_convs_leakfree(model_path, coco_root, device, n_eval=200, n_calib=256, 
 
 
 @torch.no_grad()
-def mcheck_flip(qmodels, fp, model_path, coco, coco_root, n_calib, imgsz, device, n_eval=200, conf=0.25):
+def mcheck_flip(qmodels, fp, model_path, coco, coco_root, n_calib, imgsz, device, n_eval=200, conf=0.25, paths=None):
     """10-02 (+A): 이전(M) 채택 사전 검사. calibration에 쓰지 않은 train2017 이미지(정렬 순서로 앞 n_calib장 다음
     n_eval장)와 COCO(= calibration) 어휘만 써서, 각 양자화 모델의 FP 대비 top-1 flip(%)을 돌려준다.
     val2017/LVIS는 쓰지 않는다(누수 없음). runs/155: m에서 M의 해(flip 2~5배)를 잡고 s 저비트에서는 M을 유지한다."""
     global HS
     from model_zoo import model_factory
     YOLOWorld = model_factory(model_path)
-    paths = sorted(glob.glob(os.path.join(coco_root, "train2017", "*.jpg")))[n_calib:n_calib + n_eval]
+    if paths is None:      # 10-28: calibration 출처를 바꾸면 그 목록(어휘는 coco 인자로 들어옴)
+        paths = sorted(glob.glob(os.path.join(coco_root, "train2017", "*.jpg")))
+    paths = paths[n_calib:n_calib + n_eval]
     evals = [rc.preprocess(p, imgsz) for p in paths]
     HS = HeadSim(_find_head(fp.model))
     vm = VocabMetric(encode_text_bank(YOLOWorld, model_path, coco, device))

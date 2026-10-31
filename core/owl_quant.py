@@ -94,10 +94,11 @@ def _get(m, path):
 
 
 @torch.no_grad()
-def migrate(m, images, device, alphas, rule="tied", verbose=True):
+def migrate(m, images, device, alphas, rule="tied", verbose=True, stat_images=None, xmax_floor=0.0):
     """owl_units 단위마다 s를 정해 apply_migration. 규칙은 quant/channel_graph.search_and_apply_tied와 같다:
     tied(우리 M: max|x|^a/max|W|^(1-a), a 탐색, s=1 포함, W·A 양자화 출력 오차), smooth(a=0.5 고정),
-    awq(mean|x|^a, weight만 양자화한 오차로 a 탐색). calibrate() 전에 호출(모델은 FP 모드)."""
+    awq(mean|x|^a, weight만 양자화한 오차로 a 탐색). calibrate() 전에 호출(모델은 FP 모드).
+    stat_images/xmax_floor: channel_graph.search_and_apply_tied와 같다(기본값이면 기존과 같음)."""
     from quant.channel_graph import SMOOTH_ALPHA, AWQ_GRID
     units = [[(p, _get(m, p)) for p in u] for u in owl_units(m)]
     allc = [c for u in units for c in u]
@@ -107,6 +108,17 @@ def migrate(m, images, device, alphas, rule="tied", verbose=True):
         m(t.to(device))
     for h in hs:
         h.remove()
+    stat = {p: torch.stack([x.abs().amax(dim=(0, 2, 3)) for x in xs[p]]).amax(0).float() for p, _ in allc}
+    if stat_images is not None:
+        def acc(k):
+            def h(_m, inp):
+                stat[k] = torch.maximum(stat[k], inp[0].detach().abs().amax(dim=(0, 2, 3)).float())
+            return h
+        hs = [qc.register_forward_pre_hook(acc(p)) for p, qc in allc]
+        for t in stat_images:
+            m(t.to(device))
+        for h in hs:
+            h.remove()
 
     def err(p, qc, s, wonly):
         W = qc.conv.weight.detach().float()
@@ -124,7 +136,9 @@ def migrate(m, images, device, alphas, rule="tied", verbose=True):
 
     n_on = 0
     for u in units:
-        xmax = torch.stack([torch.stack([x.abs().amax(dim=(0, 2, 3)) for x in xs[p]]).amax(0) for p, _ in u]).amax(0).float()
+        xmax = torch.stack([stat[p] for p, _ in u]).amax(0)
+        if xmax_floor > 0:
+            xmax = xmax.clamp(min=xmax_floor * float(xmax.max()))
         wmax = torch.stack([qc.conv.weight.detach().abs().amax(dim=(0, 2, 3)) for _, qc in u]).amax(0).float()
         xmax, wmax = xmax.clamp(min=1e-5), wmax.clamp(min=1e-8)
         one = torch.ones_like(xmax)

@@ -132,7 +132,8 @@ AWQ_GRID = tuple(i / 20 for i in range(20))         # rule="awq": AWQ 공식 구
 
 
 @torch.no_grad()
-def search_and_apply_tied(model_module, images, device, alphas, verbose=True, rule="tied"):
+def search_and_apply_tied(model_module, images, device, alphas, verbose=True, rule="tied", stat_images=None,
+                          xmax_floor=0.0):
     """공유 제약을 지키는 scale 이전. calibrate() 전 호출. 반환: (deps, producers, consumers, s_of, uf).
 
     rule (10-17, 기준선 비교용 -- 세 규칙 모두 같은 공유 제약·같은 이미지·같은 적용 방식을 쓴다):
@@ -140,7 +141,10 @@ def search_and_apply_tied(model_module, images, device, alphas, verbose=True, ru
       "smooth" SmoothQuant(Xiao et al., ICML'23). 같은 식에 a = SMOOTH_ALPHA 고정, 탐색 없이 모든 단위에 적용.
       "awq"    AWQ(Lin et al., MLSys'24). s = mean|x|^a(activation 통계만), a ∈ AWQ_GRID를 weight만 양자화한
                출력 오차(activation은 FP)로 고른다. AWQ가 같은 입력을 받는 층들(q/k/v)에 s 하나를 쓰는 것이
-               여기의 공유 그룹과 같다. weight clipping 탐색은 기존 weight 양자화기(MSE)가 맡는다."""
+               여기의 공유 그룹과 같다. weight clipping 탐색은 기존 weight 양자화기(MSE)가 맡는다.
+    stat_images(10-30): 주면 max|x|를 images 대신 이 이미지들(calibration 전체)에서 최댓값만 누적해 잡는다(α 오차
+    평가는 그대로 images). xmax_floor: 소비 conv별 max|x|를 그 conv 최댓값의 이 비율 아래로 내리지 않는다.
+    둘 다 기본값이면 기존과 같다(gdino_quant.migrate 주석 참고)."""
     assert rule in ("tied", "smooth", "awq"), rule
     deps, producers, consumers = trace_channel_producers(model_module, images[0], device)
     uf = tie_groups(deps)
@@ -168,6 +172,18 @@ def search_and_apply_tied(model_module, images, device, alphas, verbose=True, ru
         h.remove()
     W = {ci: qc.conv.weight.detach().float() for ci, (_, qc) in enumerate(consumers)}
     xmax_c = {ci: torch.stack([x.abs().amax(dim=(0, 2, 3)) for x in xs[ci]]).amax(0).float() for ci in xs}
+    if stat_images is not None:
+        def _acc(k):
+            def h(_m, inp):
+                xmax_c[k] = torch.maximum(xmax_c[k], inp[0].detach().abs().amax(dim=(0, 2, 3)).float())
+            return h
+        hs = [qc.register_forward_pre_hook(_acc(i)) for i, (_, qc) in enumerate(consumers)]
+        for t in stat_images:
+            model_module(t.to(device))
+        for h in hs:
+            h.remove()
+    if xmax_floor > 0:
+        xmax_c = {ci: v.clamp(min=xmax_floor * float(v.max())) for ci, v in xmax_c.items()}
     wmax_c = {ci: W[ci].abs().amax(dim=(0, 2, 3)) for ci in W}
     # 그룹별 max|x|, max|W| (그룹에 속한 모든 소비 채널에 대해)
     gx, gw = {}, {}

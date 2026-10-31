@@ -1,0 +1,1948 @@
+[
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.0.blocks.0.attention.self.query",
+  "mparam": 0.009216,
+  "coco": -0.44052863436123363,
+  "flip": -0.734214390602056,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.0.blocks.0.attention.self.key",
+  "mparam": 0.009216,
+  "coco": -2.7755575615628914e-16,
+  "flip": -0.1468428781204114,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.0.blocks.0.attention.self.value",
+  "mparam": 0.009216,
+  "coco": 0.4405286343612334,
+  "flip": 0.7342143906020557,
+  "lost": -0.2936857562408223
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.0.blocks.0.attention.output.dense",
+  "mparam": 0.009216,
+  "coco": 1.6152716593245227,
+  "flip": 1.0279001468428781,
+  "lost": 0.5873715124816445
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.0.blocks.0.intermediate.dense",
+  "mparam": 0.036864,
+  "coco": 0.5873715124816445,
+  "flip": 0.14684287812041097,
+  "lost": 0.4405286343612335
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.0.blocks.0.output.dense",
+  "mparam": 0.036864,
+  "coco": 0.7342143906020555,
+  "flip": 0.5873715124816443,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.0.blocks.1.attention.self.query",
+  "mparam": 0.009216,
+  "coco": 0.8810572687224669,
+  "flip": 0.7342143906020557,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.0.blocks.1.attention.self.key",
+  "mparam": 0.009216,
+  "coco": 0.4405286343612335,
+  "flip": 0.0,
+  "lost": 0.4405286343612335
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.0.blocks.1.attention.self.value",
+  "mparam": 0.009216,
+  "coco": 0.14684287812041102,
+  "flip": 0.44052863436123335,
+  "lost": -0.2936857562408223
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.0.blocks.1.attention.output.dense",
+  "mparam": 0.009216,
+  "coco": 0.4405286343612335,
+  "flip": 0.2936857562408224,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.0.blocks.1.intermediate.dense",
+  "mparam": 0.036864,
+  "coco": 1.027900146842878,
+  "flip": 1.174743024963289,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.0.blocks.1.output.dense",
+  "mparam": 0.036864,
+  "coco": 1.9089574155653453,
+  "flip": 1.6152716593245229,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.0.downsample.reduction",
+  "mparam": 0.073728,
+  "coco": 1.0279001468428781,
+  "flip": 1.0279001468428781,
+  "lost": 0.0
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.1.blocks.0.attention.self.query",
+  "mparam": 0.036864,
+  "coco": -1.942890293094024e-16,
+  "flip": 0.14684287812041097,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.1.blocks.0.attention.self.key",
+  "mparam": 0.036864,
+  "coco": 0.14684287812041122,
+  "flip": 0.2936857562408224,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.1.blocks.0.attention.self.value",
+  "mparam": 0.036864,
+  "coco": 0.44052863436123313,
+  "flip": 0.5873715124816443,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.1.blocks.0.attention.output.dense",
+  "mparam": 0.036864,
+  "coco": 0.5873715124816445,
+  "flip": 0.7342143906020557,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.1.blocks.0.intermediate.dense",
+  "mparam": 0.147456,
+  "coco": 0.7342143906020555,
+  "flip": 0.8810572687224667,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.1.blocks.0.output.dense",
+  "mparam": 0.147456,
+  "coco": 1.027900146842878,
+  "flip": 1.174743024963289,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.1.blocks.1.attention.self.query",
+  "mparam": 0.036864,
+  "coco": -1.942890293094024e-16,
+  "flip": 0.14684287812041097,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.1.blocks.1.attention.self.key",
+  "mparam": 0.036864,
+  "coco": 0.5873715124816443,
+  "flip": 0.5873715124816443,
+  "lost": 0.0
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.1.blocks.1.attention.self.value",
+  "mparam": 0.036864,
+  "coco": 0.8810572687224667,
+  "flip": 0.5873715124816443,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.1.blocks.1.attention.output.dense",
+  "mparam": 0.036864,
+  "coco": 1.0279001468428781,
+  "flip": 0.7342143906020557,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.1.blocks.1.intermediate.dense",
+  "mparam": 0.147456,
+  "coco": -0.1468428781204114,
+  "flip": -0.1468428781204114,
+  "lost": 0.0
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.1.blocks.1.output.dense",
+  "mparam": 0.147456,
+  "coco": 1.3215859030837003,
+  "flip": 1.174743024963289,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.1.downsample.reduction",
+  "mparam": 0.294912,
+  "coco": 0.5873715124816443,
+  "flip": 0.5873715124816443,
+  "lost": 0.0
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.0.attention.self.query",
+  "mparam": 0.147456,
+  "coco": 1.3215859030837005,
+  "flip": 1.3215859030837005,
+  "lost": 0.0
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.0.attention.self.key",
+  "mparam": 0.147456,
+  "coco": -5.551115123125783e-17,
+  "flip": -0.2936857562408224,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.0.attention.self.value",
+  "mparam": 0.147456,
+  "coco": 0.7342143906020557,
+  "flip": 0.44052863436123335,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.0.attention.output.dense",
+  "mparam": 0.147456,
+  "coco": -0.5873715124816448,
+  "flip": -0.2936857562408224,
+  "lost": -0.2936857562408223
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.0.intermediate.dense",
+  "mparam": 0.589824,
+  "coco": 5.551115123125783e-17,
+  "flip": 0.2936857562408224,
+  "lost": -0.2936857562408223
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.0.output.dense",
+  "mparam": 0.589824,
+  "coco": -0.2936857562408226,
+  "flip": -0.1468428781204114,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.1.attention.self.query",
+  "mparam": 0.147456,
+  "coco": 0.14684287812041097,
+  "flip": 0.14684287812041097,
+  "lost": 0.0
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.1.attention.self.key",
+  "mparam": 0.147456,
+  "coco": -2.7755575615628914e-16,
+  "flip": -0.1468428781204114,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.1.attention.self.value",
+  "mparam": 0.147456,
+  "coco": -0.14684287812041125,
+  "flip": -0.2936857562408224,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.1.attention.output.dense",
+  "mparam": 0.147456,
+  "coco": 0.4405286343612333,
+  "flip": 0.14684287812041097,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.1.intermediate.dense",
+  "mparam": 0.589824,
+  "coco": 1.6152716593245224,
+  "flip": 1.9089574155653448,
+  "lost": -0.2936857562408223
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.1.output.dense",
+  "mparam": 0.589824,
+  "coco": 0.7342143906020557,
+  "flip": 0.44052863436123335,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.2.attention.self.query",
+  "mparam": 0.147456,
+  "coco": 0.14684287812041102,
+  "flip": 0.44052863436123335,
+  "lost": -0.2936857562408223
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.2.attention.self.key",
+  "mparam": 0.147456,
+  "coco": 0.14684287812041097,
+  "flip": 0.14684287812041097,
+  "lost": 0.0
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.2.attention.self.value",
+  "mparam": 0.147456,
+  "coco": 1.027900146842878,
+  "flip": 1.174743024963289,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.2.attention.output.dense",
+  "mparam": 0.147456,
+  "coco": 0.8810572687224667,
+  "flip": 0.8810572687224667,
+  "lost": 0.0
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.2.intermediate.dense",
+  "mparam": 0.589824,
+  "coco": 0.14684287812041122,
+  "flip": 0.2936857562408224,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.2.output.dense",
+  "mparam": 0.589824,
+  "coco": 0.14684287812041122,
+  "flip": 0.2936857562408224,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.3.attention.self.query",
+  "mparam": 0.147456,
+  "coco": -1.942890293094024e-16,
+  "flip": 0.14684287812041097,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.3.attention.self.key",
+  "mparam": 0.147456,
+  "coco": 0.8810572687224669,
+  "flip": 0.44052863436123335,
+  "lost": 0.4405286343612335
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.3.attention.self.value",
+  "mparam": 0.147456,
+  "coco": 0.5873715124816443,
+  "flip": 0.5873715124816443,
+  "lost": 0.0
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.3.attention.output.dense",
+  "mparam": 0.147456,
+  "coco": 1.1747430249632889,
+  "flip": 0.5873715124816443,
+  "lost": 0.5873715124816445
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.3.intermediate.dense",
+  "mparam": 0.589824,
+  "coco": 0.44052863436123313,
+  "flip": 0.5873715124816443,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.3.output.dense",
+  "mparam": 0.589824,
+  "coco": -1.942890293094024e-16,
+  "flip": 0.14684287812041097,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.4.attention.self.query",
+  "mparam": 0.147456,
+  "coco": 1.1747430249632893,
+  "flip": 1.0279001468428781,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.4.attention.self.key",
+  "mparam": 0.147456,
+  "coco": 1.3215859030837005,
+  "flip": 1.3215859030837005,
+  "lost": 0.0
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.4.attention.self.value",
+  "mparam": 0.147456,
+  "coco": -0.2936857562408226,
+  "flip": -0.1468428781204114,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.4.attention.output.dense",
+  "mparam": 0.147456,
+  "coco": -0.4405286343612336,
+  "flip": -0.2936857562408224,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.4.intermediate.dense",
+  "mparam": 0.589824,
+  "coco": 0.7342143906020557,
+  "flip": 0.7342143906020557,
+  "lost": 0.0
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.4.output.dense",
+  "mparam": 0.589824,
+  "coco": 0.293685756240822,
+  "flip": 0.5873715124816443,
+  "lost": -0.2936857562408223
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.5.attention.self.query",
+  "mparam": 0.147456,
+  "coco": -5.551115123125783e-17,
+  "flip": -0.2936857562408224,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.5.attention.self.key",
+  "mparam": 0.147456,
+  "coco": 0.14684287812041097,
+  "flip": 0.14684287812041097,
+  "lost": 0.0
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.5.attention.self.value",
+  "mparam": 0.147456,
+  "coco": 0.8810572687224669,
+  "flip": 0.7342143906020557,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.5.attention.output.dense",
+  "mparam": 0.147456,
+  "coco": 5.551115123125783e-17,
+  "flip": 0.2936857562408224,
+  "lost": -0.2936857562408223
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.5.intermediate.dense",
+  "mparam": 0.589824,
+  "coco": 0.2936857562408224,
+  "flip": 0.2936857562408224,
+  "lost": 0.0
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.blocks.5.output.dense",
+  "mparam": 0.589824,
+  "coco": 1.027900146842878,
+  "flip": 0.8810572687224667,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.2.downsample.reduction",
+  "mparam": 1.179648,
+  "coco": 0.44052863436123313,
+  "flip": 0.5873715124816443,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.3.blocks.0.attention.self.query",
+  "mparam": 0.589824,
+  "coco": 0.7342143906020557,
+  "flip": 0.44052863436123335,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.3.blocks.0.attention.self.key",
+  "mparam": 0.589824,
+  "coco": 1.027900146842878,
+  "flip": 0.5873715124816443,
+  "lost": 0.4405286343612335
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.3.blocks.0.attention.self.value",
+  "mparam": 0.589824,
+  "coco": 0.14684287812041097,
+  "flip": 0.14684287812041097,
+  "lost": 0.0
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.3.blocks.0.attention.output.dense",
+  "mparam": 0.589824,
+  "coco": 0.2936857562408221,
+  "flip": 0.14684287812041097,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.3.blocks.0.intermediate.dense",
+  "mparam": 2.359296,
+  "coco": 0.5873715124816448,
+  "flip": 0.2936857562408224,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.3.blocks.0.output.dense",
+  "mparam": 2.359296,
+  "coco": 0.5873715124816443,
+  "flip": 0.5873715124816443,
+  "lost": 0.0
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.3.blocks.1.attention.self.query",
+  "mparam": 0.589824,
+  "coco": 0.7342143906020555,
+  "flip": 0.5873715124816443,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.3.blocks.1.attention.self.key",
+  "mparam": 0.589824,
+  "coco": -0.5873715124816448,
+  "flip": -0.2936857562408224,
+  "lost": -0.2936857562408223
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.3.blocks.1.attention.self.value",
+  "mparam": 0.589824,
+  "coco": -0.2936857562408223,
+  "flip": 0.0,
+  "lost": -0.2936857562408223
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.3.blocks.1.attention.output.dense",
+  "mparam": 0.589824,
+  "coco": 0.5873715124816448,
+  "flip": 0.2936857562408224,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.3.blocks.1.intermediate.dense",
+  "mparam": 2.359296,
+  "coco": 0.5873715124816443,
+  "flip": 0.5873715124816443,
+  "lost": 0.0
+ },
+ {
+  "name": "model.backbone.conv_encoder.model.encoder.layers.3.blocks.1.output.dense",
+  "mparam": 2.359296,
+  "coco": 0.44052863436123335,
+  "flip": 0.44052863436123335,
+  "lost": 0.0
+ },
+ {
+  "name": "model.input_proj_vision.0.0",
+  "mparam": 0.049152,
+  "coco": 0.8810572687224669,
+  "flip": 0.44052863436123335,
+  "lost": 0.4405286343612335
+ },
+ {
+  "name": "model.input_proj_vision.1.0",
+  "mparam": 0.098304,
+  "coco": -0.14684287812041116,
+  "flip": 0.0,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.input_proj_vision.2.0",
+  "mparam": 0.196608,
+  "coco": -0.5873715124816448,
+  "flip": -0.2936857562408224,
+  "lost": -0.2936857562408223
+ },
+ {
+  "name": "model.input_proj_vision.3.0",
+  "mparam": 1.769472,
+  "coco": -0.1468428781204114,
+  "flip": -0.1468428781204114,
+  "lost": 0.0
+ },
+ {
+  "name": "model.encoder.layers.0.text_enhancer_layer.self_attn.query",
+  "mparam": 0.065536,
+  "coco": 0.8810572687224667,
+  "flip": 0.5873715124816443,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.0.text_enhancer_layer.self_attn.key",
+  "mparam": 0.065536,
+  "coco": 0.29368575624082216,
+  "flip": 0.44052863436123335,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.encoder.layers.0.text_enhancer_layer.self_attn.value",
+  "mparam": 0.065536,
+  "coco": -0.14684287812041116,
+  "flip": 0.0,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.encoder.layers.0.text_enhancer_layer.self_attn.out_proj",
+  "mparam": 0.065536,
+  "coco": 0.14684287812041097,
+  "flip": 0.14684287812041097,
+  "lost": 0.0
+ },
+ {
+  "name": "model.encoder.layers.0.text_enhancer_layer.fc1",
+  "mparam": 0.262144,
+  "coco": 0.7342143906020555,
+  "flip": 0.5873715124816443,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.encoder.layers.0.text_enhancer_layer.fc2",
+  "mparam": 0.262144,
+  "coco": 1.6152716593245229,
+  "flip": 1.3215859030837005,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.0.fusion_layer.attn.vision_proj",
+  "mparam": 0.262144,
+  "coco": -5.551115123125783e-17,
+  "flip": -0.2936857562408224,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.0.fusion_layer.attn.text_proj",
+  "mparam": 0.262144,
+  "coco": 0.7342143906020557,
+  "flip": 0.7342143906020557,
+  "lost": 0.0
+ },
+ {
+  "name": "model.encoder.layers.0.fusion_layer.attn.values_vision_proj",
+  "mparam": 0.262144,
+  "coco": 1.3215859030837003,
+  "flip": 0.7342143906020557,
+  "lost": 0.5873715124816445
+ },
+ {
+  "name": "model.encoder.layers.0.fusion_layer.attn.values_text_proj",
+  "mparam": 0.262144,
+  "coco": 1.3215859030837005,
+  "flip": 1.0279001468428781,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.0.fusion_layer.attn.out_vision_proj",
+  "mparam": 0.262144,
+  "coco": 1.3215859030837003,
+  "flip": 1.174743024963289,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.encoder.layers.0.fusion_layer.attn.out_text_proj",
+  "mparam": 0.262144,
+  "coco": 0.7342143906020555,
+  "flip": 0.8810572687224667,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.encoder.layers.0.deformable_layer.self_attn.sampling_offsets",
+  "mparam": 0.065536,
+  "coco": 1.4684287812041112,
+  "flip": 0.8810572687224667,
+  "lost": 0.5873715124816445
+ },
+ {
+  "name": "model.encoder.layers.0.deformable_layer.self_attn.attention_weights",
+  "mparam": 0.032768,
+  "coco": 1.0279001468428781,
+  "flip": 1.0279001468428781,
+  "lost": 0.0
+ },
+ {
+  "name": "model.encoder.layers.0.deformable_layer.self_attn.value_proj",
+  "mparam": 0.065536,
+  "coco": 0.4405286343612333,
+  "flip": 0.14684287812041097,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.0.deformable_layer.self_attn.output_proj",
+  "mparam": 0.065536,
+  "coco": 2.2026431718061676,
+  "flip": 1.3215859030837005,
+  "lost": 0.8810572687224669
+ },
+ {
+  "name": "model.encoder.layers.0.deformable_layer.fc1",
+  "mparam": 0.524288,
+  "coco": 1.3215859030837003,
+  "flip": 0.7342143906020557,
+  "lost": 0.5873715124816445
+ },
+ {
+  "name": "model.encoder.layers.0.deformable_layer.fc2",
+  "mparam": 0.524288,
+  "coco": 0.7342143906020557,
+  "flip": 0.44052863436123335,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.1.text_enhancer_layer.self_attn.query",
+  "mparam": 0.065536,
+  "coco": 0.0,
+  "flip": 0.0,
+  "lost": 0.0
+ },
+ {
+  "name": "model.encoder.layers.1.text_enhancer_layer.self_attn.key",
+  "mparam": 0.065536,
+  "coco": 0.0,
+  "flip": 0.0,
+  "lost": 0.0
+ },
+ {
+  "name": "model.encoder.layers.1.text_enhancer_layer.self_attn.value",
+  "mparam": 0.065536,
+  "coco": -0.7342143906020562,
+  "flip": -0.4405286343612338,
+  "lost": -0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.1.text_enhancer_layer.self_attn.out_proj",
+  "mparam": 0.065536,
+  "coco": 1.174743024963289,
+  "flip": 1.174743024963289,
+  "lost": 0.0
+ },
+ {
+  "name": "model.encoder.layers.1.text_enhancer_layer.fc1",
+  "mparam": 0.262144,
+  "coco": 0.4405286343612335,
+  "flip": 0.0,
+  "lost": 0.4405286343612335
+ },
+ {
+  "name": "model.encoder.layers.1.text_enhancer_layer.fc2",
+  "mparam": 0.262144,
+  "coco": -2.7755575615628914e-16,
+  "flip": -0.1468428781204114,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.encoder.layers.1.fusion_layer.attn.vision_proj",
+  "mparam": 0.262144,
+  "coco": 0.5873715124816445,
+  "flip": 0.14684287812041097,
+  "lost": 0.4405286343612335
+ },
+ {
+  "name": "model.encoder.layers.1.fusion_layer.attn.text_proj",
+  "mparam": 0.262144,
+  "coco": 0.4405286343612333,
+  "flip": 0.14684287812041097,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.1.fusion_layer.attn.values_vision_proj",
+  "mparam": 0.262144,
+  "coco": 0.7342143906020555,
+  "flip": 0.5873715124816443,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.encoder.layers.1.fusion_layer.attn.values_text_proj",
+  "mparam": 0.262144,
+  "coco": 0.44052863436123313,
+  "flip": -0.1468428781204114,
+  "lost": 0.5873715124816445
+ },
+ {
+  "name": "model.encoder.layers.1.fusion_layer.attn.out_vision_proj",
+  "mparam": 0.262144,
+  "coco": -0.14684287812041116,
+  "flip": 0.0,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.encoder.layers.1.fusion_layer.attn.out_text_proj",
+  "mparam": 0.262144,
+  "coco": 2.3494860499265786,
+  "flip": 2.2026431718061676,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.encoder.layers.1.deformable_layer.self_attn.sampling_offsets",
+  "mparam": 0.065536,
+  "coco": -0.8810572687224671,
+  "flip": -0.734214390602056,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.encoder.layers.1.deformable_layer.self_attn.attention_weights",
+  "mparam": 0.032768,
+  "coco": -0.4405286343612338,
+  "flip": -0.4405286343612338,
+  "lost": 0.0
+ },
+ {
+  "name": "model.encoder.layers.1.deformable_layer.self_attn.value_proj",
+  "mparam": 0.065536,
+  "coco": -0.14684287812041136,
+  "flip": 0.14684287812041097,
+  "lost": -0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.1.deformable_layer.self_attn.output_proj",
+  "mparam": 0.065536,
+  "coco": 0.1468428781204109,
+  "flip": -0.1468428781204114,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.1.deformable_layer.fc1",
+  "mparam": 0.524288,
+  "coco": 1.4684287812041117,
+  "flip": 1.3215859030837005,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.encoder.layers.1.deformable_layer.fc2",
+  "mparam": 0.524288,
+  "coco": 0.7342143906020557,
+  "flip": 0.44052863436123335,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.2.text_enhancer_layer.self_attn.query",
+  "mparam": 0.065536,
+  "coco": 1.1747430249632893,
+  "flip": 1.0279001468428781,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.encoder.layers.2.text_enhancer_layer.self_attn.key",
+  "mparam": 0.065536,
+  "coco": 0.8810572687224667,
+  "flip": 0.8810572687224667,
+  "lost": 0.0
+ },
+ {
+  "name": "model.encoder.layers.2.text_enhancer_layer.self_attn.value",
+  "mparam": 0.065536,
+  "coco": 0.44052863436123313,
+  "flip": 0.5873715124816443,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.encoder.layers.2.text_enhancer_layer.self_attn.out_proj",
+  "mparam": 0.065536,
+  "coco": -0.2936857562408223,
+  "flip": 0.0,
+  "lost": -0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.2.text_enhancer_layer.fc1",
+  "mparam": 0.262144,
+  "coco": 0.0,
+  "flip": 0.0,
+  "lost": 0.0
+ },
+ {
+  "name": "model.encoder.layers.2.text_enhancer_layer.fc2",
+  "mparam": 0.262144,
+  "coco": 1.174743024963289,
+  "flip": 0.8810572687224667,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.2.fusion_layer.attn.vision_proj",
+  "mparam": 0.262144,
+  "coco": 1.174743024963289,
+  "flip": 0.8810572687224667,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.2.fusion_layer.attn.text_proj",
+  "mparam": 0.262144,
+  "coco": 0.4405286343612335,
+  "flip": 0.2936857562408224,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.encoder.layers.2.fusion_layer.attn.values_vision_proj",
+  "mparam": 0.262144,
+  "coco": 0.29368575624082216,
+  "flip": 0.44052863436123335,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.encoder.layers.2.fusion_layer.attn.values_text_proj",
+  "mparam": 0.262144,
+  "coco": 0.2936857562408221,
+  "flip": 0.14684287812041097,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.encoder.layers.2.fusion_layer.attn.out_vision_proj",
+  "mparam": 0.262144,
+  "coco": -0.734214390602056,
+  "flip": -0.5873715124816448,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.encoder.layers.2.fusion_layer.attn.out_text_proj",
+  "mparam": 0.262144,
+  "coco": -0.44052863436123374,
+  "flip": -0.1468428781204114,
+  "lost": -0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.2.deformable_layer.self_attn.sampling_offsets",
+  "mparam": 0.065536,
+  "coco": 0.8810572687224669,
+  "flip": 1.0279001468428781,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.encoder.layers.2.deformable_layer.self_attn.attention_weights",
+  "mparam": 0.032768,
+  "coco": 0.7342143906020557,
+  "flip": 0.44052863436123335,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.2.deformable_layer.self_attn.value_proj",
+  "mparam": 0.065536,
+  "coco": 0.44052863436123335,
+  "flip": 0.44052863436123335,
+  "lost": 0.0
+ },
+ {
+  "name": "model.encoder.layers.2.deformable_layer.self_attn.output_proj",
+  "mparam": 0.065536,
+  "coco": 0.4405286343612335,
+  "flip": 0.0,
+  "lost": 0.4405286343612335
+ },
+ {
+  "name": "model.encoder.layers.2.deformable_layer.fc1",
+  "mparam": 0.524288,
+  "coco": 0.1468428781204109,
+  "flip": -0.1468428781204114,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.2.deformable_layer.fc2",
+  "mparam": 0.524288,
+  "coco": 0.7342143906020555,
+  "flip": 0.5873715124816443,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.encoder.layers.3.text_enhancer_layer.self_attn.query",
+  "mparam": 0.065536,
+  "coco": 0.2936857562408221,
+  "flip": -0.1468428781204114,
+  "lost": 0.4405286343612335
+ },
+ {
+  "name": "model.encoder.layers.3.text_enhancer_layer.self_attn.key",
+  "mparam": 0.065536,
+  "coco": -0.14684287812041136,
+  "flip": 0.14684287812041097,
+  "lost": -0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.3.text_enhancer_layer.self_attn.value",
+  "mparam": 0.065536,
+  "coco": -0.14684287812041136,
+  "flip": 0.14684287812041097,
+  "lost": -0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.3.text_enhancer_layer.self_attn.out_proj",
+  "mparam": 0.065536,
+  "coco": 0.5873715124816448,
+  "flip": 0.2936857562408224,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.3.text_enhancer_layer.fc1",
+  "mparam": 0.262144,
+  "coco": -0.29368575624082244,
+  "flip": -0.734214390602056,
+  "lost": 0.4405286343612335
+ },
+ {
+  "name": "model.encoder.layers.3.text_enhancer_layer.fc2",
+  "mparam": 0.262144,
+  "coco": 1.1747430249632893,
+  "flip": 1.0279001468428781,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.encoder.layers.3.fusion_layer.attn.vision_proj",
+  "mparam": 0.262144,
+  "coco": -1.942890293094024e-16,
+  "flip": 0.14684287812041097,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.encoder.layers.3.fusion_layer.attn.text_proj",
+  "mparam": 0.262144,
+  "coco": 0.14684287812041102,
+  "flip": 0.44052863436123335,
+  "lost": -0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.3.fusion_layer.attn.values_vision_proj",
+  "mparam": 0.262144,
+  "coco": 0.293685756240822,
+  "flip": 0.5873715124816443,
+  "lost": -0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.3.fusion_layer.attn.values_text_proj",
+  "mparam": 0.262144,
+  "coco": 0.14684287812041114,
+  "flip": 0.0,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.encoder.layers.3.fusion_layer.attn.out_vision_proj",
+  "mparam": 0.262144,
+  "coco": -0.1468428781204114,
+  "flip": -0.1468428781204114,
+  "lost": 0.0
+ },
+ {
+  "name": "model.encoder.layers.3.fusion_layer.attn.out_text_proj",
+  "mparam": 0.262144,
+  "coco": 0.2936857562408224,
+  "flip": 0.2936857562408224,
+  "lost": 0.0
+ },
+ {
+  "name": "model.encoder.layers.3.deformable_layer.self_attn.sampling_offsets",
+  "mparam": 0.065536,
+  "coco": 0.2936857562408224,
+  "flip": 0.2936857562408224,
+  "lost": 0.0
+ },
+ {
+  "name": "model.encoder.layers.3.deformable_layer.self_attn.attention_weights",
+  "mparam": 0.032768,
+  "coco": 0.8810572687224669,
+  "flip": 1.0279001468428781,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.encoder.layers.3.deformable_layer.self_attn.value_proj",
+  "mparam": 0.065536,
+  "coco": -0.14684287812041116,
+  "flip": 0.0,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.encoder.layers.3.deformable_layer.self_attn.output_proj",
+  "mparam": 0.065536,
+  "coco": 1.027900146842878,
+  "flip": 0.5873715124816443,
+  "lost": 0.4405286343612335
+ },
+ {
+  "name": "model.encoder.layers.3.deformable_layer.fc1",
+  "mparam": 0.524288,
+  "coco": 0.5873715124816448,
+  "flip": 0.2936857562408224,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.3.deformable_layer.fc2",
+  "mparam": 0.524288,
+  "coco": 1.174743024963289,
+  "flip": 1.174743024963289,
+  "lost": 0.0
+ },
+ {
+  "name": "model.encoder.layers.4.text_enhancer_layer.self_attn.query",
+  "mparam": 0.065536,
+  "coco": 0.14684287812041102,
+  "flip": 0.44052863436123335,
+  "lost": -0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.4.text_enhancer_layer.self_attn.key",
+  "mparam": 0.065536,
+  "coco": 0.29368575624082216,
+  "flip": 0.44052863436123335,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.encoder.layers.4.text_enhancer_layer.self_attn.value",
+  "mparam": 0.065536,
+  "coco": 0.5873715124816448,
+  "flip": 0.2936857562408224,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.4.text_enhancer_layer.self_attn.out_proj",
+  "mparam": 0.065536,
+  "coco": 0.14684287812041075,
+  "flip": -0.4405286343612338,
+  "lost": 0.5873715124816445
+ },
+ {
+  "name": "model.encoder.layers.4.text_enhancer_layer.fc1",
+  "mparam": 0.262144,
+  "coco": 0.2936857562408223,
+  "flip": 0.0,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.4.text_enhancer_layer.fc2",
+  "mparam": 0.262144,
+  "coco": 1.6152716593245227,
+  "flip": 1.0279001468428781,
+  "lost": 0.5873715124816445
+ },
+ {
+  "name": "model.encoder.layers.4.fusion_layer.attn.vision_proj",
+  "mparam": 0.262144,
+  "coco": 0.14684287812041097,
+  "flip": 0.14684287812041097,
+  "lost": 0.0
+ },
+ {
+  "name": "model.encoder.layers.4.fusion_layer.attn.text_proj",
+  "mparam": 0.262144,
+  "coco": 0.293685756240822,
+  "flip": 0.5873715124816443,
+  "lost": -0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.4.fusion_layer.attn.values_vision_proj",
+  "mparam": 0.262144,
+  "coco": 0.14684287812041097,
+  "flip": 0.14684287812041097,
+  "lost": 0.0
+ },
+ {
+  "name": "model.encoder.layers.4.fusion_layer.attn.values_text_proj",
+  "mparam": 0.262144,
+  "coco": 0.14684287812041097,
+  "flip": 0.14684287812041097,
+  "lost": 0.0
+ },
+ {
+  "name": "model.encoder.layers.4.fusion_layer.attn.out_vision_proj",
+  "mparam": 0.262144,
+  "coco": -0.8810572687224671,
+  "flip": -0.734214390602056,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.encoder.layers.4.fusion_layer.attn.out_text_proj",
+  "mparam": 0.262144,
+  "coco": 0.734214390602056,
+  "flip": 0.2936857562408224,
+  "lost": 0.4405286343612335
+ },
+ {
+  "name": "model.encoder.layers.4.deformable_layer.self_attn.sampling_offsets",
+  "mparam": 0.065536,
+  "coco": 0.293685756240822,
+  "flip": 0.5873715124816443,
+  "lost": -0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.4.deformable_layer.self_attn.attention_weights",
+  "mparam": 0.032768,
+  "coco": 0.7342143906020557,
+  "flip": 0.7342143906020557,
+  "lost": 0.0
+ },
+ {
+  "name": "model.encoder.layers.4.deformable_layer.self_attn.value_proj",
+  "mparam": 0.065536,
+  "coco": -1.0279001468428783,
+  "flip": -0.734214390602056,
+  "lost": -0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.4.deformable_layer.self_attn.output_proj",
+  "mparam": 0.065536,
+  "coco": 0.5873715124816443,
+  "flip": 0.5873715124816443,
+  "lost": 0.0
+ },
+ {
+  "name": "model.encoder.layers.4.deformable_layer.fc1",
+  "mparam": 0.524288,
+  "coco": 0.4405286343612335,
+  "flip": 0.0,
+  "lost": 0.4405286343612335
+ },
+ {
+  "name": "model.encoder.layers.4.deformable_layer.fc2",
+  "mparam": 0.524288,
+  "coco": -0.1468428781204114,
+  "flip": -0.1468428781204114,
+  "lost": 0.0
+ },
+ {
+  "name": "model.encoder.layers.5.text_enhancer_layer.self_attn.query",
+  "mparam": 0.065536,
+  "coco": 0.2936857562408221,
+  "flip": 0.14684287812041097,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.encoder.layers.5.text_enhancer_layer.self_attn.key",
+  "mparam": 0.065536,
+  "coco": -0.5873715124816448,
+  "flip": -0.734214390602056,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.encoder.layers.5.text_enhancer_layer.self_attn.value",
+  "mparam": 0.065536,
+  "coco": -0.14684287812041147,
+  "flip": -0.4405286343612338,
+  "lost": 0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.5.text_enhancer_layer.self_attn.out_proj",
+  "mparam": 0.065536,
+  "coco": 0.29368575624082216,
+  "flip": 0.44052863436123335,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.encoder.layers.5.text_enhancer_layer.fc1",
+  "mparam": 0.262144,
+  "coco": 0.5873715124816445,
+  "flip": 0.44052863436123335,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.encoder.layers.5.text_enhancer_layer.fc2",
+  "mparam": 0.262144,
+  "coco": 0.29368575624082216,
+  "flip": -0.2936857562408224,
+  "lost": 0.5873715124816445
+ },
+ {
+  "name": "model.encoder.layers.5.fusion_layer.attn.vision_proj",
+  "mparam": 0.262144,
+  "coco": -0.734214390602056,
+  "flip": -0.5873715124816448,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.encoder.layers.5.fusion_layer.attn.text_proj",
+  "mparam": 0.262144,
+  "coco": 0.44052863436123335,
+  "flip": 0.44052863436123335,
+  "lost": 0.0
+ },
+ {
+  "name": "model.encoder.layers.5.fusion_layer.attn.values_vision_proj",
+  "mparam": 0.262144,
+  "coco": -0.5873715124816448,
+  "flip": -0.2936857562408224,
+  "lost": -0.2936857562408223
+ },
+ {
+  "name": "model.encoder.layers.5.fusion_layer.attn.values_text_proj",
+  "mparam": 0.262144,
+  "coco": 0.29368575624082216,
+  "flip": 0.44052863436123335,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.encoder.layers.5.fusion_layer.attn.out_vision_proj",
+  "mparam": 0.262144,
+  "coco": 0.7342143906020555,
+  "flip": 0.8810572687224667,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.encoder.layers.5.fusion_layer.attn.out_text_proj",
+  "mparam": 0.262144,
+  "coco": 0.2936857562408221,
+  "flip": 0.14684287812041097,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.encoder.layers.5.deformable_layer.self_attn.sampling_offsets",
+  "mparam": 0.065536,
+  "coco": -0.14684287812041116,
+  "flip": 0.0,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.encoder.layers.5.deformable_layer.self_attn.attention_weights",
+  "mparam": 0.032768,
+  "coco": 0.0,
+  "flip": 0.0,
+  "lost": 0.0
+ },
+ {
+  "name": "model.encoder.layers.5.deformable_layer.self_attn.value_proj",
+  "mparam": 0.065536,
+  "coco": 0.0,
+  "flip": 0.0,
+  "lost": 0.0
+ },
+ {
+  "name": "model.encoder.layers.5.deformable_layer.self_attn.output_proj",
+  "mparam": 0.065536,
+  "coco": 0.5873715124816443,
+  "flip": 0.5873715124816443,
+  "lost": 0.0
+ },
+ {
+  "name": "model.encoder.layers.5.deformable_layer.fc1",
+  "mparam": 0.524288,
+  "coco": 1.3215859030837003,
+  "flip": 0.8810572687224667,
+  "lost": 0.4405286343612335
+ },
+ {
+  "name": "model.encoder.layers.5.deformable_layer.fc2",
+  "mparam": 0.524288,
+  "coco": 2.4963289280469896,
+  "flip": 1.4684287812041115,
+  "lost": 1.0279001468428781
+ },
+ {
+  "name": "model.decoder.layers.0.self_attn.query",
+  "mparam": 0.065536,
+  "coco": -0.1468428781204114,
+  "flip": -0.1468428781204114,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.0.self_attn.key",
+  "mparam": 0.065536,
+  "coco": -0.2936857562408224,
+  "flip": -0.2936857562408224,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.0.self_attn.value",
+  "mparam": 0.065536,
+  "coco": 0.2936857562408224,
+  "flip": 0.2936857562408224,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.0.self_attn.out_proj",
+  "mparam": 0.065536,
+  "coco": 0.44052863436123335,
+  "flip": 0.44052863436123335,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.0.encoder_attn_text.query",
+  "mparam": 0.065536,
+  "coco": 0.2936857562408224,
+  "flip": 0.2936857562408224,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.0.encoder_attn_text.key",
+  "mparam": 0.065536,
+  "coco": -0.4405286343612338,
+  "flip": -0.4405286343612338,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.0.encoder_attn_text.value",
+  "mparam": 0.065536,
+  "coco": 0.5873715124816443,
+  "flip": 0.5873715124816443,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.0.encoder_attn_text.out_proj",
+  "mparam": 0.065536,
+  "coco": 2.2026431718061676,
+  "flip": 2.2026431718061676,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.0.encoder_attn.sampling_offsets",
+  "mparam": 0.065536,
+  "coco": 0.5873715124816445,
+  "flip": 0.7342143906020557,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.decoder.layers.0.encoder_attn.attention_weights",
+  "mparam": 0.032768,
+  "coco": 0.44052863436123335,
+  "flip": 0.44052863436123335,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.0.encoder_attn.value_proj",
+  "mparam": 0.065536,
+  "coco": 0.14684287812041122,
+  "flip": 0.2936857562408224,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.decoder.layers.0.encoder_attn.output_proj",
+  "mparam": 0.065536,
+  "coco": -0.4405286343612338,
+  "flip": -0.4405286343612338,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.0.fc1",
+  "mparam": 0.524288,
+  "coco": 0.0,
+  "flip": 0.0,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.0.fc2",
+  "mparam": 0.524288,
+  "coco": -0.4405286343612338,
+  "flip": -0.4405286343612338,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.1.self_attn.query",
+  "mparam": 0.065536,
+  "coco": 0.7342143906020557,
+  "flip": 0.7342143906020557,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.1.self_attn.key",
+  "mparam": 0.065536,
+  "coco": -0.5873715124816448,
+  "flip": -0.5873715124816448,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.1.self_attn.value",
+  "mparam": 0.065536,
+  "coco": 0.14684287812041097,
+  "flip": 0.14684287812041097,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.1.self_attn.out_proj",
+  "mparam": 0.065536,
+  "coco": 0.5873715124816443,
+  "flip": 0.5873715124816443,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.1.encoder_attn_text.query",
+  "mparam": 0.065536,
+  "coco": 0.0,
+  "flip": 0.0,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.1.encoder_attn_text.key",
+  "mparam": 0.065536,
+  "coco": -0.4405286343612336,
+  "flip": -0.2936857562408224,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.decoder.layers.1.encoder_attn_text.value",
+  "mparam": 0.065536,
+  "coco": 0.14684287812041097,
+  "flip": 0.14684287812041097,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.1.encoder_attn_text.out_proj",
+  "mparam": 0.065536,
+  "coco": 0.14684287812041097,
+  "flip": 0.14684287812041097,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.1.encoder_attn.sampling_offsets",
+  "mparam": 0.065536,
+  "coco": 1.3215859030837005,
+  "flip": 1.3215859030837005,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.1.encoder_attn.attention_weights",
+  "mparam": 0.032768,
+  "coco": -0.2936857562408224,
+  "flip": -0.2936857562408224,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.1.encoder_attn.value_proj",
+  "mparam": 0.065536,
+  "coco": 0.0,
+  "flip": 0.0,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.1.encoder_attn.output_proj",
+  "mparam": 0.065536,
+  "coco": 0.2936857562408224,
+  "flip": 0.2936857562408224,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.1.fc1",
+  "mparam": 0.524288,
+  "coco": -0.2936857562408224,
+  "flip": -0.2936857562408224,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.1.fc2",
+  "mparam": 0.524288,
+  "coco": 0.2936857562408224,
+  "flip": 0.2936857562408224,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.2.self_attn.query",
+  "mparam": 0.065536,
+  "coco": -0.2936857562408224,
+  "flip": -0.2936857562408224,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.2.self_attn.key",
+  "mparam": 0.065536,
+  "coco": 1.7621145374449334,
+  "flip": 1.7621145374449334,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.2.self_attn.value",
+  "mparam": 0.065536,
+  "coco": 0.2936857562408224,
+  "flip": 0.2936857562408224,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.2.self_attn.out_proj",
+  "mparam": 0.065536,
+  "coco": 0.8810572687224667,
+  "flip": 0.8810572687224667,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.2.encoder_attn_text.query",
+  "mparam": 0.065536,
+  "coco": 0.5873715124816443,
+  "flip": 0.5873715124816443,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.2.encoder_attn_text.key",
+  "mparam": 0.065536,
+  "coco": -0.5873715124816448,
+  "flip": -0.5873715124816448,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.2.encoder_attn_text.value",
+  "mparam": 0.065536,
+  "coco": -0.4405286343612338,
+  "flip": -0.4405286343612338,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.2.encoder_attn_text.out_proj",
+  "mparam": 0.065536,
+  "coco": 0.14684287812041097,
+  "flip": 0.14684287812041097,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.2.encoder_attn.sampling_offsets",
+  "mparam": 0.065536,
+  "coco": 0.7342143906020557,
+  "flip": 0.7342143906020557,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.2.encoder_attn.attention_weights",
+  "mparam": 0.032768,
+  "coco": 0.5873715124816443,
+  "flip": 0.5873715124816443,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.2.encoder_attn.value_proj",
+  "mparam": 0.065536,
+  "coco": 0.7342143906020557,
+  "flip": 0.7342143906020557,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.2.encoder_attn.output_proj",
+  "mparam": 0.065536,
+  "coco": 0.5873715124816443,
+  "flip": 0.5873715124816443,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.2.fc1",
+  "mparam": 0.524288,
+  "coco": 0.44052863436123335,
+  "flip": 0.44052863436123335,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.2.fc2",
+  "mparam": 0.524288,
+  "coco": 0.2936857562408224,
+  "flip": 0.2936857562408224,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.3.self_attn.query",
+  "mparam": 0.065536,
+  "coco": -0.1468428781204114,
+  "flip": -0.1468428781204114,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.3.self_attn.key",
+  "mparam": 0.065536,
+  "coco": 0.5873715124816443,
+  "flip": 0.5873715124816443,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.3.self_attn.value",
+  "mparam": 0.065536,
+  "coco": 0.44052863436123335,
+  "flip": 0.44052863436123335,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.3.self_attn.out_proj",
+  "mparam": 0.065536,
+  "coco": 0.8810572687224667,
+  "flip": 0.8810572687224667,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.3.encoder_attn_text.query",
+  "mparam": 0.065536,
+  "coco": 0.7342143906020557,
+  "flip": 0.7342143906020557,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.3.encoder_attn_text.key",
+  "mparam": 0.065536,
+  "coco": 0.5873715124816443,
+  "flip": 0.5873715124816443,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.3.encoder_attn_text.value",
+  "mparam": 0.065536,
+  "coco": 0.2936857562408224,
+  "flip": 0.2936857562408224,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.3.encoder_attn_text.out_proj",
+  "mparam": 0.065536,
+  "coco": 0.5873715124816443,
+  "flip": 0.5873715124816443,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.3.encoder_attn.sampling_offsets",
+  "mparam": 0.065536,
+  "coco": 1.174743024963289,
+  "flip": 1.174743024963289,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.3.encoder_attn.attention_weights",
+  "mparam": 0.032768,
+  "coco": 0.44052863436123335,
+  "flip": 0.44052863436123335,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.3.encoder_attn.value_proj",
+  "mparam": 0.065536,
+  "coco": 1.3215859030837005,
+  "flip": 1.3215859030837005,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.3.encoder_attn.output_proj",
+  "mparam": 0.065536,
+  "coco": 0.44052863436123335,
+  "flip": 0.44052863436123335,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.3.fc1",
+  "mparam": 0.524288,
+  "coco": 0.14684287812041097,
+  "flip": 0.14684287812041097,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.3.fc2",
+  "mparam": 0.524288,
+  "coco": 0.7342143906020557,
+  "flip": 0.7342143906020557,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.4.self_attn.query",
+  "mparam": 0.065536,
+  "coco": 0.2936857562408224,
+  "flip": 0.2936857562408224,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.4.self_attn.key",
+  "mparam": 0.065536,
+  "coco": 0.0,
+  "flip": 0.0,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.4.self_attn.value",
+  "mparam": 0.065536,
+  "coco": 0.14684287812041097,
+  "flip": 0.14684287812041097,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.4.self_attn.out_proj",
+  "mparam": 0.065536,
+  "coco": 0.0,
+  "flip": 0.0,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.4.encoder_attn_text.query",
+  "mparam": 0.065536,
+  "coco": 0.2936857562408224,
+  "flip": 0.2936857562408224,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.4.encoder_attn_text.key",
+  "mparam": 0.065536,
+  "coco": 0.5873715124816443,
+  "flip": 0.5873715124816443,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.4.encoder_attn_text.value",
+  "mparam": 0.065536,
+  "coco": -0.2936857562408224,
+  "flip": -0.2936857562408224,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.4.encoder_attn_text.out_proj",
+  "mparam": 0.065536,
+  "coco": 0.2936857562408224,
+  "flip": 0.2936857562408224,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.4.encoder_attn.sampling_offsets",
+  "mparam": 0.065536,
+  "coco": 0.0,
+  "flip": 0.0,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.4.encoder_attn.attention_weights",
+  "mparam": 0.032768,
+  "coco": -0.2936857562408224,
+  "flip": -0.2936857562408224,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.4.encoder_attn.value_proj",
+  "mparam": 0.065536,
+  "coco": 0.44052863436123335,
+  "flip": 0.44052863436123335,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.4.encoder_attn.output_proj",
+  "mparam": 0.065536,
+  "coco": -0.1468428781204114,
+  "flip": -0.1468428781204114,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.4.fc1",
+  "mparam": 0.524288,
+  "coco": 0.44052863436123335,
+  "flip": 0.44052863436123335,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.4.fc2",
+  "mparam": 0.524288,
+  "coco": -0.1468428781204114,
+  "flip": -0.1468428781204114,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.5.self_attn.query",
+  "mparam": 0.065536,
+  "coco": 0.44052863436123335,
+  "flip": 0.44052863436123335,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.5.self_attn.key",
+  "mparam": 0.065536,
+  "coco": 0.0,
+  "flip": 0.0,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.5.self_attn.value",
+  "mparam": 0.065536,
+  "coco": -0.1468428781204114,
+  "flip": -0.1468428781204114,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.5.self_attn.out_proj",
+  "mparam": 0.065536,
+  "coco": 0.2936857562408224,
+  "flip": 0.2936857562408224,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.5.encoder_attn_text.query",
+  "mparam": 0.065536,
+  "coco": 0.0,
+  "flip": 0.0,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.5.encoder_attn_text.key",
+  "mparam": 0.065536,
+  "coco": 0.0,
+  "flip": 0.0,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.5.encoder_attn_text.value",
+  "mparam": 0.065536,
+  "coco": 0.14684287812041097,
+  "flip": 0.14684287812041097,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.5.encoder_attn_text.out_proj",
+  "mparam": 0.065536,
+  "coco": -0.1468428781204114,
+  "flip": -0.1468428781204114,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.5.encoder_attn.sampling_offsets",
+  "mparam": 0.065536,
+  "coco": -0.2936857562408224,
+  "flip": -0.2936857562408224,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.5.encoder_attn.attention_weights",
+  "mparam": 0.032768,
+  "coco": 0.14684287812041097,
+  "flip": 0.14684287812041097,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.5.encoder_attn.value_proj",
+  "mparam": 0.065536,
+  "coco": 0.2936857562408224,
+  "flip": 0.2936857562408224,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.5.encoder_attn.output_proj",
+  "mparam": 0.065536,
+  "coco": 0.14684287812041097,
+  "flip": 0.14684287812041097,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.5.fc1",
+  "mparam": 0.524288,
+  "coco": 0.44052863436123335,
+  "flip": 0.44052863436123335,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.layers.5.fc2",
+  "mparam": 0.524288,
+  "coco": 0.14684287812041097,
+  "flip": 0.14684287812041097,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.reference_points_head.layers.0",
+  "mparam": 0.131072,
+  "coco": 1.3215859030837003,
+  "flip": 1.174743024963289,
+  "lost": 0.14684287812041114
+ },
+ {
+  "name": "model.decoder.reference_points_head.layers.1",
+  "mparam": 0.065536,
+  "coco": 1.0279001468428781,
+  "flip": 1.0279001468428781,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.bbox_embed.0.layers.0",
+  "mparam": 0.065536,
+  "coco": 0.44052863436123335,
+  "flip": 0.44052863436123335,
+  "lost": 0.0
+ },
+ {
+  "name": "model.decoder.bbox_embed.0.layers.1",
+  "mparam": 0.065536,
+  "coco": 0.14684287812041097,
+  "flip": 0.14684287812041097,
+  "lost": 0.0
+ },
+ {
+  "name": "model.enc_output",
+  "mparam": 0.065536,
+  "coco": -0.2936857562408226,
+  "flip": -0.1468428781204114,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.encoder_output_bbox_embed.layers.0",
+  "mparam": 0.065536,
+  "coco": 0.7342143906020555,
+  "flip": 0.8810572687224667,
+  "lost": -0.14684287812041116
+ },
+ {
+  "name": "model.encoder_output_bbox_embed.layers.1",
+  "mparam": 0.065536,
+  "coco": 0.5873715124816445,
+  "flip": 0.44052863436123335,
+  "lost": 0.14684287812041114
+ }
+]
