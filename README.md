@@ -12,6 +12,7 @@
 | 10-27~28 변경 사항 (코드·데이터·실험) | [`docs/UPDATE_2026-10-28.md`](docs/UPDATE_2026-10-28.md) |
 | 왜 이렇게 됐는지 (시도와 기각 기록) | [`docs/HISTORY.md`](docs/HISTORY.md) |
 | 논문 구성과 남은 일 | [`docs/PAPER_OUTLINE.md`](docs/PAPER_OUTLINE.md)(v1, 방법 중심), [`docs/PAPER_OUTLINE_v2_diagnosis.md`](docs/PAPER_OUTLINE_v2_diagnosis.md)(v2, 진단 중심) |
+| 논문 관련 문서 (시나리오, 현황 정리, 변경 경위; **10-31부터 새 논문 문서는 모두 여기에 둔다**) | [`documents/`](documents/) — [`STATUS_2026-10-31.md`](documents/STATUS_2026-10-31.md), [`METHOD_SCENARIO.md`](documents/METHOD_SCENARIO.md), [`GDINO_CHANGES.md`](documents/GDINO_CHANGES.md) |
 | 실험 현황 한눈에 | `results/LEADERBOARD.html`, `results/leaderboard.csv` |
 | 쓰지 않게 된 파일 | [`archive/README.md`](archive/README.md) |
 
