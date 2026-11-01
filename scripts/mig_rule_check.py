@@ -20,6 +20,10 @@ RULES = [("old8", dict()), ("old8+floor", dict(xmax_floor=0.01)), ("all", dict(s
 FLOORS = [float(f) for f in os.environ.get("MIG_FLOORS", "").split(",") if f]   # 주면 8장 + 하한 후보만 비교
 if FLOORS:
     RULES = [("old8", dict())] + [(f"old8+f{f:g}", dict(xmax_floor=f)) for f in FLOORS]
+ALL_FLOOR = os.environ.get("MIG_ALL_FLOOR")   # 11-01: 주면 같은 하한에서 8장 vs calibration 전체만 비교
+if ALL_FLOOR:
+    _f = float(ALL_FLOOR)
+    RULES = [(f"old8+f{_f:g}", dict(xmax_floor=_f)), (f"all+f{_f:g}", dict(stat_images=True, xmax_floor=_f))]
 
 
 class Stop(Exception):
@@ -51,7 +55,8 @@ def run_rules(fn, model_module, calib, call):
         del mm
         print(f"  [{name}] M {dt:.0f}s, GPU 추가 최대 {peak:.2f} GiB, 단위 {len(alphas)}개 중 이전 {sum(a != '-' for a in alphas)}개",
               flush=True)
-    a0, s0 = out["old8"][0], out["old8"][1]
+    ref = RULES[0][0]
+    a0, s0 = out[ref][0], out[ref][1]
     for name, _ in RULES[1:]:
         a1, s1 = out[name][0], out[name][1]
         ch = [(i, x, y) for i, (x, y) in enumerate(zip(a0, a1)) if x != y]
@@ -59,7 +64,7 @@ def run_rules(fn, model_module, calib, call):
         onoff = sum((k in s0) != (k in s1) for k in keys)
         rel = [float((s1[k] / s0[k] - 1).abs().max()) for k in keys if k in s0 and k in s1]
         rel.sort()
-        print(f"  old8 -> {name}: α 바뀐 단위 {len(ch)}/{len(a0)} {ch[:12]}, 이전 on/off 바뀐 conv {onoff}, "
+        print(f"  {ref} -> {name}: α 바뀐 단위 {len(ch)}/{len(a0)} {ch[:12]}, 이전 on/off 바뀐 conv {onoff}, "
               f"s 최대 상대변화 중앙값 {rel[len(rel)//2] if rel else 0:.3f} / 최대 {rel[-1] if rel else 0:.3g}", flush=True)
     return out
 

@@ -2,7 +2,7 @@
 
 변경 내용과 그 이유는 [GDINO_CHANGES.md](GDINO_CHANGES.md)에 있다. 이 문서는 무엇을 돌렸고, 무엇이 돌고 있고, 무엇이 남았는지를 기록한다.
 
-최종 갱신: 2026-11-01 11:15
+최종 갱신: 2026-11-01 16:50
 
 ---
 
@@ -16,6 +16,7 @@
 | 11-01 | YOLO/OWL 기본값도 하한 0.3%로 바꾼다(M 정의 하나로 통일) | `run_comparison.py`, `run_owl.py`의 `--xmax-floor` 기본값 0 → 0.003 |
 | 11-01 | 하한이 실제로 작동하는 실험은 전부 다시 돌린다 | 안 돌리면 "옛 코드 결과"라고 논문에 기재해야 함 |
 | 11-01 | 하한이 작동하지 않는 모델(S·YOLOE·v2)은 seed 0 대표 재현만 먼저 하고, 나머지 seed는 시간이 남으면 돌린다 | 같은 모델이 만들어지므로 숫자가 같아야 함. GPU 시간은 GDINO 보강을 우선 |
+| 11-01 | S 보호 예산 스윕을 ③ 재현보다 먼저 돌린다(①② 다음). 예산 1.5%는 학습 쪽 flip이 다른 값을 명확히 가리킬 때만 바꾼다 | 예산을 정당화하는 실험이 없음. LVIS로 예산을 고르면 누수이므로 LVIS는 보고용 |
 
 ---
 
@@ -67,6 +68,7 @@
 | `core/gdino_quant.py`, `core/owl_quant.py`, `quant/channel_graph.py` | M의 xmax 하한(`xmax_floor`), xmax 측정 이미지 선택(`stat_images`) |
 | `run_comparison.py`, `run_owl.py` | `--xmax-floor`(11-01부터 기본 0.003), `--mig-stat`. mcheck 캐시 이름에 하한 표시(`_xf0.003`) |
 | `run_gdino.py` | `--xmax-floor`(기본 0.003), `--mig-stat`. 11-01: `--lvis-start`(LVIS 구간 시작), `--save-dets`(검출 결과 json 저장) |
+| `run_comparison.py` (11-01 오후) | `--protect-budget`(기본 1.5%, 기존과 동일), `--train-flip`(calib 밖 train 200장 flip 기록) |
 | `scripts/mig_rule_check.py` | 규칙·하한별 α·s 비교 점검 스크립트 |
 
 ---
@@ -99,7 +101,13 @@ GPU별로 앞 작업이 끝나면 다음 작업이 자동으로 시작된다. �
 - 판단: 첫 1000장과 같은 순서(PM > QDrop > BRECQ)가 나오는지 본다.
 - 규모: GPU당 약 8.5시간. 11-02 정오 전후 완료 예상.
 
-### ③ S·YOLOE·v2 seed 0 재현 (`runs/225_repro`, 15건)
+### ④ S 보호 예산 스윕 (`runs/225_repro` 대기열 앞 36건, 태그 `bud-*`)
+- YOLO-World-S, W4A5·W4A8, `brecq+GP` 단독, 예산 0 / 0.5 / 1 / 1.5 / 3 / 5%, seed 0~2.
+- `--train-flip`: calib 밖 train2017 200장(+A 검사와 같은 이미지, 보호 진단 200장과 겹치지 않음)의 flip을 같이 기록한다.
+- 판정 규칙(돌리기 전 확정): 예산은 학습 쪽 flip 곡선으로만 판단한다. 1.5%가 아닌 값을 명확히 가리킬 때만 바꾼다. LVIS·COCO는 보고용.
+- 규모: 약 16 GPU-시간. ② 다음, ③보다 먼저 시작한다. 기존 ③ 대기열은 `queue.repro_only.tsv`에 보관.
+
+### ③ S·YOLOE·v2 seed 0 재현 (`runs/225_repro`, 15건, ④ 다음)
 - 원래와 같은 조건 묶음으로 하한 0.3% 기본값을 써서 다시 돌린다.
   - S: W4A8, W4A5, W4A6, W8A8(M), W8A8 GPM, W4A5 ablation
   - v2: W4A8, W4A5, W8A8
