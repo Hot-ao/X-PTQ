@@ -180,10 +180,49 @@ $\Delta_\ell$이 큰 층부터 담는 greedy로 풀고, $\mathcal S^{*}$의 weig
 
 ### 5.3 M: 공유 제약 scale 이전과 사전 검사
 
-기본 등가식과 $s$ 공식은 SmoothQuant 계열과 같다.
+**왜 이런 형태인가: 배포 가능한 정수 연산의 제약**
+
+**① activation은 채널별 scale을 쓸 수 없다.** 1×1 conv와 Linear는 출력 채널 $o$마다 입력 채널 $c$에 대한 합을 계산한다.
 
 $$
-Wx=\big(W\,\mathrm{diag}(s)\big)\big(\mathrm{diag}(s)^{-1}x\big),\qquad
+y_o=\sum_c W_{o,c}\,x_c
+$$
+
+정수 연산에서는 $W_{o,c}\approx\Delta^w_o\,\bar W_{o,c}$, $x_c\approx\Delta^x\,\bar x_c$로 두고 정수끼리 곱해 더한 뒤 마지막에 scale을 한 번 곱한다.
+
+$$
+y_o\approx\Delta^w_o\,\Delta^x\sum_c \bar W_{o,c}\,\bar x_c
+$$
+
+- weight scale $\Delta^w_o$는 출력 채널마다 달라도 합 바깥으로 꺼낼 수 있다.
+- activation scale을 입력 채널마다 다르게($\Delta^x_c$) 하면 더하는 항마다 scale이 달라서 합 바깥으로 꺼낼 수 없다. 정수 누산 구조가 깨진다.
+
+그래서 표준 정수 커널(엣지 NPU 포함)은 **activation은 텐서당 scale 하나(per-tensor), weight는 출력 채널별 scale(per-channel)**을 쓴다. activation의 채널별 크기 편차를 activation 쪽에서 직접 해결할 수 없다.
+
+**② 편차를 weight로 옮긴다 (scale 이전).** 입력 채널마다 $s_c$를 정해 activation은 나누고 weight 열은 곱한다.
+
+$$
+Wx=\big(W\,\mathrm{diag}(s)\big)\big(\mathrm{diag}(s)^{-1}x\big)
+$$
+
+- FP 결과는 같다.
+- $x/s$는 채널 편차가 줄어 per-tensor 격자를 덜 낭비한다.
+- 늘어난 편차는 per-channel scale을 가진 weight가 받는다.
+
+커널 형태(activation per-tensor, weight per-channel)를 그대로 두고 채널 편차 문제를 줄이는 방법이다. 여기까지(①②)는 SmoothQuant 계열과 같은 배경이다.
+
+**③ 그런데 소비 층마다 $s$를 따로 정할 수는 없다.** 처음에는 소비 층마다 자기 입력에 맞는 $s$를 독립적으로 정했다. 하지만 배포에서 $x/s$를 만드는 곳은 소비 층이 아니라 **생산 층**이다. 생산 층은 `conv → 활성화 → requant`에서 정수로 반올림하기 직전에 채널별 $1/s$를 곱해 내보낸다. 그러면 두 가지 제약이 생긴다.
+
+- **같은 생산 채널을 받는 모든 소비 층은 같은 $s$를 써야 한다.** 생산 층이 내보내는 $x/s$는 하나뿐이다. 예를 들어 C2f의 y1은 Bottleneck과 마지막 cv2가 함께 받는다.
+- **residual add로 합쳐지는 채널들은 같은 $s$여야 한다.** 그래야 더한 뒤에도 하나의 $s$로 나눠진 값이 유지된다.
+
+concat, split, upsample, maxpool은 양수 채널 배율과 순서를 바꿔도 결과가 같아서 $s$가 그대로 통과한다. 소비 층별 독립 $s$는 시뮬레이션에서는 동작하지만 실제 정수 커널로는 재현할 수 없다. 그래서 M은 생산 채널 단위로 $s$를 묶는 **공유 제약**을 둔다(아래 (1)). 이 형태는 배포형 시뮬레이션(생산 층이 $x/s$를 내보내고 소비 층은 $W\cdot s$만 사용)에서 FP와 같음을 확인했다(상대 오차 5.5e-6).
+
+- **[TODO] 배포형 등가성(5.5e-6)을 하한($\tau=0.003$) 적용 후에도 다시 확인한다.** 기존 값은 하한 도입 전에 잰 것이다.
+
+**s 공식.** SmoothQuant 계열과 같다.
+
+$$
 s_c(\alpha)=\frac{\max|x_c|^{\alpha}}{\max|W_{:,c}|^{1-\alpha}}
 $$
 
