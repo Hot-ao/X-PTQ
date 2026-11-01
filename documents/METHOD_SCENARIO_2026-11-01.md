@@ -187,26 +187,40 @@ Wx=\big(W\,\mathrm{diag}(s)\big)\big(\mathrm{diag}(s)^{-1}x\big),\qquad
 s_c(\alpha)=\frac{\max|x_c|^{\alpha}}{\max|W_{:,c}|^{1-\alpha}}
 $$
 
-우리가 더한 것은 세 가지다.
+우리가 더한 것은 네 가지다. 통계와 α 탐색에는 calibration 이미지 앞 $N_m=8$장만 쓴다.
 
-**(1) 공유 제약.** 배포에서 $x/s$는 생산 층의 requant 단계에서 만들어진다. 따라서 같은 생산 채널 그룹 $g$를 받는 모든 소비 층 $\mathcal C(g)$와, residual add로 합쳐지는 채널들은 하나의 $s$를 공유해야 한다.
+**(1) 공유 제약.** 배포에서 $x/s$는 생산 층의 requant 단계에서 만들어진다. 따라서 같은 생산 채널 그룹 $g$를 받는 모든 소비 층 $\mathcal C(g)$와, residual add로 합쳐지는 채널들은 하나의 $s$를 공유해야 한다. $s$ 공식의 $\max|x_c|$, $\max|W_{:,c}|$는 그룹의 모든 소비 층에 대한 최댓값으로 바꾼다.
 
 $$
-s_c=s_{g(c)},\qquad \max|x_c|\leftarrow\max_{j\in\mathcal C(g)}\max\big|x^{(j)}_c\big|
+s_c=s_{g(c)},\qquad \max|x_c|\leftarrow\max_{j\in\mathcal C(g)}\widetilde x^{(j)}_c,\qquad \max|W_{:,c}|\leftarrow\max_{j\in\mathcal C(g)}\max\big|W^{(j)}_{:,c}\big|
 $$
 
-**(2) "이전 없음"을 포함한 α 선택.** 단위 $U$마다 출력 오차를 최소화하는 $\alpha$를 고른다. $\varnothing$은 $s=1$(이전 없음)이라 어떤 단위도 이전 때문에 나빠지지 않는다.
+**(2) 채널 통계 하한.** $N_m$장에서 거의 0이던 채널은 다른 이미지에서 켜질 수 있다. 그 채널은 $s$가 극단적으로 작아져 $x/s$가 폭주한다(ReLU 뒤 희소 채널, `runs/217_mig_rule`). 그래서 소비 층 $j$마다 채널 통계를 그 입력의 최대 채널값 대비 $\tau$ 아래로 내리지 않는다.
+
+$$
+\widetilde x^{(j)}_c=\max\!\Big(\max\big|x^{(j)}_c\big|,\ \tau\max_{c'}\max\big|x^{(j)}_{c'}\big|\Big),\qquad\tau=0.003
+$$
+
+규칙은 모든 모델에 같다. 트랜스포머(OWLv2, Grounding DINO)는 한 단위의 소비 Linear들이 같은 입력 텐서를 받으므로 "소비 층 입력 최댓값"이 곧 단위 최댓값이다. YOLO 계열은 소비 conv가 여러 생산자 출력의 concat을 받으므로 그 concat 전체의 최댓값이 기준이 된다.
+
+**(3) "이전 없음"을 포함한 α 선택.** 단위 $U$(add로 묶인 생산자 집합)마다, $U$의 채널을 받는 모든 소비 층 $\mathcal C(U)$의 상대 출력 오차 합을 최소화하는 $\alpha$를 고른다. $\varnothing$은 $s=1$(이전 없음)이다. 따라서 이 대리 오차 기준으로 $s=1$보다 나쁜 $\alpha$는 고르지 않는다(최종 지표까지 보장하지는 않는다).
 
 $$
 \alpha^{*}_U=\arg\min_{\alpha\in\{0,\,0.25,\,0.5,\,0.75,\,1\}\cup\{\varnothing\}}
-\sum_{j\in U}\frac{\big\|Q_w\big(W_j\,\mathrm{diag}(s)\big)\,Q_a\big(x_j/s\big)-W_jx_j\big\|^2}{\|W_jx_j\|^2}
+\sum_{j\in\mathcal C(U)}\frac{\big\|Q_w\big(W_j\,\mathrm{diag}(s)\big)\,Q_a\big(x_j/s\big)-W_jx_j\big\|^2}{\|W_jx_j\|^2}
 $$
 
-**(3) 사전 검사.** calibration에 쓰지 않은 이미지(held-cal)에서 M을 켠 모델과 끈 모델의 판정 손상을 비교한다.
+단위는 순서대로 하나씩 정한다. 한 소비 층이 여러 단위의 채널을 받으면(concat), 앞에서 정한 단위의 $s$는 고정하고 아직 정하지 않은 단위의 채널은 $s=1$로 둔다.
+
+**(4) 사전 검사.** calibration에 쓰지 않은 이미지(held-cal: train2017에서 calibration 다음 200장, COCO 어휘)에서 M을 켠 모델과 끈 모델의 판정 손상을 비교한다.
 
 $$
 \text{M 사용}\iff\mathrm{Flip}_{\text{held-cal}}(\text{M 켬})\le\rho\cdot\mathrm{Flip}_{\text{held-cal}}(\text{M 끔}),\qquad\rho=1.5
 $$
+
+검사는 모델 × 비트 설정마다 한 번(처음 실행한 seed에서) 하고, 그 결정을 모든 seed와 기반 PTQ(BRECQ·QDrop)에 같이 쓴다(`configs/mcheck_cache`).
+
+**구현 세부(부록).** $s$는 단위 안 기하평균으로 나눠 정규화한다. per-channel weight 양자화와 per-tensor activation 양자화에서는 결과가 같고 수치 안정용이다. 계보가 없는 입력 채널(stem의 이미지 입력, attention처럼 비선형 경로로만 이어진 채널)은 $s=1$이다. C2fAttn의 attention은 입력 $x$를 그대로 쓰므로, 배포 시 그 앞에서 $x\cdot s$로 되돌린다(`quant/channel_graph.py::check_deploy_equivalence`).
 
 ### 5.4 전체 파이프라인
 
