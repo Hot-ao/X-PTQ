@@ -509,7 +509,7 @@ def mcheck_cache_path(args):
 MIG_ALPHAS = (0.0, 0.25, 0.5, 0.75, 1.0)  # +M: scale 이전의 a 후보('이전 없음'도 항상 후보)
 MIG_IMAGES = 8                           # +M: a 탐색에 쓸 calibration 이미지 수
 MIG_STAT_ALL = False                     # +M: True면 max|x|를 calibration 전체에서(10-30 비교용, --mig-stat all)
-MIG_XMAX_FLOOR = 0.0                     # +M: max|x| 하한(소비 conv 최댓값 대비, --xmax-floor). 10-31 0.3% 확인용, 기본은 기존(0)
+MIG_XMAX_FLOOR = 0.003                   # +M: max|x| 하한(소비 conv 최댓값 대비, --xmax-floor). 11-01부터 기본 0.3%(gdino_quant.XMAX_FLOOR와 같은 정의), 0 = 10-31 이전
 RECON_ITERS_ADA = 1000                   # adaround 재구성 iters
 RECON_ITERS = 2000                       # brecq/qdrop 재구성 iters
 QDROP_PROB = 0.5
@@ -761,7 +761,7 @@ def main():
                          "보호 진단에도 같은 값이 쓰이고 진단 캐시 이름에 _la<비트>가 붙는다. 기본 0=꺼짐")
     ap.add_argument("--mig-stat", choices=["8", "all"], default="8",
                     help="+M의 max|x| 통계: 8 = α 탐색 이미지(기존), all = calibration 전체(10-30 비교용)")
-    ap.add_argument("--xmax-floor", type=float, default=0.0, help="+M max|x| 하한(소비 conv 최댓값 대비). 0 = 기존")
+    ap.add_argument("--xmax-floor", type=float, default=0.003, help="+M max|x| 하한(소비 conv 최댓값 대비). 0 = 10-31 이전 규칙")
     ap.add_argument("--attn-quant", choices=["none", "attn", "attn_cls"], default="none",
                     help="attention Linear/matmul(attn), + head contrastive matmul(attn_cls)을 8bit로 양자화")
     ap.add_argument("--adaround-act-observer", choices=["minmax", "mse"], default="minmax",

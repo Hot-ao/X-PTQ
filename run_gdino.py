@@ -13,7 +13,8 @@ two-stage query 선택 뒤라 FP 입력).
     (two-stage 선택) OWLv2처럼 같은 위치끼리 비교할 수 없다.
   - LVIS AP(--lvis): LVIS minival과 겹치는 이미지, 1203 어휘를 chunk 32개로 나눠 chunk마다 forward. chunk별 상위 300개를
     모아 이미지당 상위 1000개, Fixed AP(run_comparison.run_lvis_eval). 이미지당 forward 32번이라 느리다
-    (RTX 4000 Ada에서 FP만 4809장 약 15시간 추정) -- --lvis-cap으로 앞에서 일부만 쓸 수 있다.
+    (RTX 4000 Ada에서 FP만 4809장 약 15시간 추정) -- --lvis-start/--lvis-cap으로 일부 구간만 쓸 수 있다.
+    --save-dets를 주면 조건별 검출 결과와 flip/lost 개수를 json으로 남겨, 나중에 구간들을 합쳐 다시 AP를 낼 수 있다.
 """
 from __future__ import annotations
 import argparse, copy, glob, json, os, sys, time
@@ -244,6 +245,8 @@ def main():
     ap.add_argument("--skip-coco", action="store_true")
     ap.add_argument("--lvis", action="store_true", help="LVIS minival도 잰다(chunk 32개, 느림)")
     ap.add_argument("--lvis-cap", type=int, default=0, help=">0이면 LVIS 이미지를 앞에서 이만큼만")
+    ap.add_argument("--lvis-start", type=int, default=0, help="LVIS 이미지(파일 이름 순)를 이 번째부터(--lvis-cap은 그 뒤로)")
+    ap.add_argument("--save-dets", default="", help="LVIS 조건별 검출 결과·flip/lost 개수를 이 폴더에 json으로")
     ap.add_argument("--diag", action="store_true", help="P 진단을 돌려 캐시를 만든다(조건이 있으면 이어서 빌드)")
     ap.add_argument("--mig-stat", choices=["8", "all"], default="8", help="+M max|x| 통계: 8장(α 탐색 이미지) | calibration 전체")
     ap.add_argument("--xmax-floor", type=float, default=0.003, help="+M max|x| 하한(단위 최댓값 대비)")
@@ -339,12 +342,21 @@ def main():
         lv = set(lvis_gt.get_img_ids())
         allp = sorted(glob.glob(os.path.join(args.coco_root, "val2017", "*.jpg")))
         pairs = [(p, int(os.path.basename(p)[:-4])) for p in allp if int(os.path.basename(p)[:-4]) in lv]
+        pairs = pairs[args.lvis_start:]
         if args.lvis_cap > 0:
             pairs = pairs[:args.lvis_cap]
         lvis_names = load_names("lvis")
         t0 = time.time()
         ev = evaluate(models, lvis_names, [p for p, _ in pairs], [i for _, i in pairs],
                       list(range(1, len(lvis_names) + 1)), device, topk=1000)
+        if args.save_dets:
+            os.makedirs(args.save_dets, exist_ok=True)
+            for k, v in ev.items():
+                f = os.path.join(args.save_dets, f"lvis_w{args.w_bits}a{args.a_bits}_s{args.seed}_{k.replace('+', '-')}"
+                                                 f"_{args.lvis_start}-{args.lvis_start + len(pairs)}.json")
+                json.dump(dict(image_ids=[i for _, i in pairs], results=v["results"], flip=v["flip"], lost=v["lost"],
+                               n_conf=v["n_conf"]), open(f, "w"))
+                print(f"  [dets] {f}", flush=True)
         for k, v in ev.items():
             r = run_lvis_eval(lvis_gt, v["results"], [i for _, i in pairs])
             res.setdefault(k, {}).update(lvis=100 * r["AP"], apr=100 * r["APr"], apc=100 * r["APc"], apf=100 * r["APf"],

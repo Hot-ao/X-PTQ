@@ -86,7 +86,7 @@ def evaluate(models, names, paths, ids, cat_ids, device, topk, gt_cls=None, conf
 
 
 PROTECT_CACHE = "configs/protect_cache"
-MIG_XMAX_FLOOR = 0.0     # +M max|x| 하한(--xmax-floor, 10-31 0.3% 확인용). 0 = 기존
+MIG_XMAX_FLOOR = 0.003   # +M max|x| 하한(--xmax-floor, 11-01부터 기본 0.3%: gdino_quant.XMAX_FLOOR와 같은 정의). 0 = 10-31 이전
 def protect_file():
     import owl_zoo
     return os.path.join(PROTECT_CACHE, f"{owl_zoo.OWL_NAME.split('/')[-1]}_n200_c256_img960_la16_aqattn_cls_p16.json")
@@ -219,7 +219,7 @@ def main():
     ap.add_argument("--diag", action="store_true", help="보호 진단 캐시만 만들고 끝낸다")
     ap.add_argument("--attn-bits", type=int, default=8, help="0이면 attention·region-텍스트 내적을 FP로(진단용)")
     ap.add_argument("--p-bits", type=int, default=16, help="softmax 출력 비트(확정 16, owl_quant.apply_protocol 참고)")
-    ap.add_argument("--xmax-floor", type=float, default=0.0, help="+M max|x| 하한(단위 최댓값 대비). 0 = 기존")
+    ap.add_argument("--xmax-floor", type=float, default=0.003, help="+M max|x| 하한(단위 최댓값 대비). 0 = 10-31 이전 규칙")
     ap.add_argument("--no-qkv-quant", action="store_true", help="q/k/v 양자화 지점을 끈다(진단용)")
     ap.add_argument("--swap-eval", action="store_true", help="COCO AP를 분류·위치 성분으로 나눠 잰다(진단용)")
     ap.add_argument("--skip-lvis", action="store_true")
