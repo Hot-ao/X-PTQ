@@ -248,7 +248,7 @@ def main():
     ap.add_argument("--lvis-start", type=int, default=0, help="LVIS 이미지(파일 이름 순)를 이 번째부터(--lvis-cap은 그 뒤로)")
     ap.add_argument("--save-dets", default="", help="LVIS 조건별 검출 결과·flip/lost 개수를 이 폴더에 json으로")
     ap.add_argument("--diag", action="store_true", help="P 진단을 돌려 캐시를 만든다(조건이 있으면 이어서 빌드)")
-    ap.add_argument("--mig-stat", choices=["8", "all"], default="8", help="+M max|x| 통계: 8장(α 탐색 이미지) | calibration 전체")
+    ap.add_argument("--mig-stat", choices=["8", "all"], default="all", help="+M max|x| 통계: calibration 전체(11-02 기본) | 8장(α 탐색 이미지, 11-01까지)")
     ap.add_argument("--xmax-floor", type=float, default=0.003, help="+M max|x| 하한(단위 최댓값 대비)")
     ap.add_argument("--diag-n", type=int, default=64, help="P 진단 이미지 수(calibration 앞에서)")
     ap.add_argument("--mcheck-n", type=int, default=200, help="M 사전 검사 이미지 수(calibration 다음 train2017)")

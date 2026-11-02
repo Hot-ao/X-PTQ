@@ -87,6 +87,7 @@ def evaluate(models, names, paths, ids, cat_ids, device, topk, gt_cls=None, conf
 
 PROTECT_CACHE = "configs/protect_cache"
 MIG_XMAX_FLOOR = 0.003   # +M max|x| 하한(--xmax-floor, 11-01부터 기본 0.3%: gdino_quant.XMAX_FLOOR와 같은 정의). 0 = 10-31 이전
+MIG_STAT_ALL = True      # +M max|x| 통계를 calibration 전체에서(--mig-stat, 11-02 기본). False = α 탐색 8장(11-01까지)
 def protect_file():
     import owl_zoo
     return os.path.join(PROTECT_CACHE, f"{owl_zoo.OWL_NAME.split('/')[-1]}_n200_c256_img960_la16_aqattn_cls_p16.json")
@@ -109,7 +110,8 @@ def build_q(cond, w_bits, a_bits, calib, device, prot, attn_bits=8, p_bits=16, q
     print(f"[build] {cond}: {', '.join(desc)}" + (f", W8 보호 {len(prot)}개" if "P" in flags else "")
           + (f", 이전={rule}" if rule else ""), flush=True)
     if rule:
-        n = migrate(m, calib[:MIG_IMAGES], device, MIG_ALPHAS, rule=rule, verbose=False, xmax_floor=MIG_XMAX_FLOOR)
+        n = migrate(m, calib[:MIG_IMAGES], device, MIG_ALPHAS, rule=rule, verbose=False, xmax_floor=MIG_XMAX_FLOOR,
+                    stat_images=calib if MIG_STAT_ALL else None)
         print(f"  이전 적용 단위 {n}/{len(owl_units(m))}", flush=True)
     calibrate(m, calib, device=device, act_observer="mse")
     if base in ("brecq", "qdrop"):
@@ -220,6 +222,8 @@ def main():
     ap.add_argument("--attn-bits", type=int, default=8, help="0이면 attention·region-텍스트 내적을 FP로(진단용)")
     ap.add_argument("--p-bits", type=int, default=16, help="softmax 출력 비트(확정 16, owl_quant.apply_protocol 참고)")
     ap.add_argument("--xmax-floor", type=float, default=0.003, help="+M max|x| 하한(단위 최댓값 대비). 0 = 10-31 이전 규칙")
+    ap.add_argument("--mig-stat", choices=["8", "all"], default="all",
+                    help="+M max|x| 통계: calibration 전체(11-02 기본) | 8장(α 탐색 이미지, 11-01까지)")
     ap.add_argument("--no-qkv-quant", action="store_true", help="q/k/v 양자화 지점을 끈다(진단용)")
     ap.add_argument("--swap-eval", action="store_true", help="COCO AP를 분류·위치 성분으로 나눠 잰다(진단용)")
     ap.add_argument("--skip-lvis", action="store_true")
@@ -229,8 +233,9 @@ def main():
     ap.add_argument("--load-model", default="", help="빌드 대신 이 폴더의 저장 모델을 불러온다")
     ap.add_argument("--owl-name", default=None, help="HF 체크포인트(기본 owl_zoo.OWL_NAME = ST)")
     args = ap.parse_args()
-    global MIG_XMAX_FLOOR
+    global MIG_XMAX_FLOOR, MIG_STAT_ALL
     MIG_XMAX_FLOOR = args.xmax_floor
+    MIG_STAT_ALL = args.mig_stat == "all"
     print(f"[args] {vars(args)}", flush=True)
     device = f"cuda:{args.device}"
     import owl_zoo

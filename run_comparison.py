@@ -490,7 +490,7 @@ def quantized_weight_mib(model_module):
     return total_bits / 8 / (1024 * 1024)
 
 
-MCHECK_RATIO = 1.5   # 10-02 +A: M을 켠 쪽 calib-밖 COCO flip이 이 배수를 넘으면 M을 끈다
+MCHECK_RATIO = 1.0   # 10-02 +A: M을 켠 쪽 calib-밖 COCO flip이 이 배수를 넘으면 M을 끈다. 11-02: 1.5 -> 1.0(1.1~1.4 구간에서 M이 손해인 경우를 놓침: YOLOE-v8s W4A8, S W4A8)
 PROTECT_BUDGET = 0.015                   # +P/+R/+H: W8로 보호할 양자화 weight 파라미터 비율
 PROTECT_IMAGES = 200                     # 보호 진단 이미지 수(train2017 앞쪽)
 PROTECT_CACHE = "configs/protect_cache"  # 진단 결과 캐시(모델·프로토콜별, seed·조건과 무관하게 한 번만 계산)
@@ -505,7 +505,9 @@ def mcheck_cache_path(args):
     return os.path.join(MCHECK_CACHE, f"{stem}_w{args.w_bits}a{args.a_bits}_c{args.calib}_img{args.imgsz}_fl{args.first_last_bits}"
                                       f"_la{args.last_abits}_aq{args.attn_quant}{calib_tag(args)}"
                                       f"{'_migall' if getattr(args, 'mig_stat', '8') == 'all' else ''}"
-                                      f"{f'_xf{args.xmax_floor:g}' if getattr(args, 'xmax_floor', 0) > 0 else ''}.json")
+                                      f"{f'_xf{args.xmax_floor:g}' if getattr(args, 'xmax_floor', 0) > 0 else ''}"
+                                      f"{'_prefill' if getattr(args, 'protect_refill_g', False) else ''}"
+                                      f"{f'_pb{args.protect_budget:g}' if getattr(args, 'protect_budget', PROTECT_BUDGET) != PROTECT_BUDGET else ''}.json")
 MIG_ALPHAS = (0.0, 0.25, 0.5, 0.75, 1.0)  # +M: scale 이전의 a 후보('이전 없음'도 항상 후보)
 MIG_IMAGES = 8                           # +M: a 탐색에 쓸 calibration 이미지 수
 MIG_STAT_ALL = False                     # +M: True면 max|x|를 calibration 전체에서(10-30 비교용, --mig-stat all)
@@ -759,9 +761,17 @@ def main():
     ap.add_argument("--last-abits", type=int, default=0,
                     help=">0이면 head cv2/cv3 마지막 1x1 conv의 입력 activation만 이 비트로(16 권장). "
                          "보호 진단에도 같은 값이 쓰이고 진단 캐시 이름에 _la<비트>가 붙는다. 기본 0=꺼짐")
-    ap.add_argument("--mig-stat", choices=["8", "all"], default="8",
-                    help="+M의 max|x| 통계: 8 = α 탐색 이미지(기존), all = calibration 전체(10-30 비교용)")
+    ap.add_argument("--mig-stat", choices=["8", "all"], default="all",
+                    help="+M의 max|x| 통계: all = calibration 전체(11-02 기본), 8 = α 탐색 이미지(11-01까지)")
     ap.add_argument("--xmax-floor", type=float, default=0.003, help="+M max|x| 하한(소비 conv 최댓값 대비). 0 = 10-31 이전 규칙")
+    ap.add_argument("--protect-budget", type=float, default=PROTECT_BUDGET,
+                    help="+P/+R/+H 보호 예산(양자화 weight 파라미터 비율). 11-01: 예산 스윕용, 기본 1.5%%")
+    ap.add_argument("--protect-refill-g", action=argparse.BooleanOptionalAction, default=True,
+                    help="11-02 기본: G와 함께 쓰는 P는 C2fAttn cv2(G가 대신 다루는 conv)를 진단 행에서 먼저 빼고 예산 안에서 "
+                         "고른다(예산 분모는 전체 양자화 weight). --no-protect-refill-g = 11-01까지의 규칙(1.5%%로 고른 뒤 "
+                         "그 conv만 빼고 빈자리를 채우지 않음; runs/228에서 S 실제 보호 0.33%%)")
+    ap.add_argument("--train-flip", action="store_true",
+                    help="빌드 직후 calib 밖 train2017 200장(+A 검사와 같은 이미지·COCO 어휘)에서 조건별 top-1 flip을 잰다")
     ap.add_argument("--attn-quant", choices=["none", "attn", "attn_cls"], default="none",
                     help="attention Linear/matmul(attn), + head contrastive matmul(attn_cls)을 8bit로 양자화")
     ap.add_argument("--adaround-act-observer", choices=["minmax", "mse"], default="minmax",
@@ -907,7 +917,7 @@ def main():
     if (_all_flags & {"P", "R", "H"}) and args.w_bits < 8:
         import json as _json, random as _random
         from diag_w4_sensitivity import rank_convs_leakfree, select_protected
-        _budget = PROTECT_BUDGET
+        _budget = args.protect_budget
         os.makedirs(PROTECT_CACHE, exist_ok=True)
         _cache = os.path.join(PROTECT_CACHE, f"{os.path.splitext(os.path.basename(args.model))[0]}"
                                              f"_n{PROTECT_IMAGES}_c{args.calib}_img{args.imgsz}"
@@ -924,6 +934,10 @@ def main():
             _json.dump(_rows, open(_cache, "w"), indent=1)
         cond_lists["P"] = tuple(select_protected(_rows, _budget, "coco")[0])
         cond_lists["H"] = tuple(select_protected(_rows, _budget, "cls")[0])
+        if args.protect_refill_g:
+            _attn_i = {str(i) for i, b in enumerate(fp.model.model) if type(b).__name__ == "C2fAttn"}
+            _rows_g = [r for r in _rows if not (r["name"].split(".")[0] in _attn_i and r["name"].split(".")[1:2] == ["cv2"])]
+            cond_lists["Pg"] = tuple(select_protected(_rows_g, _budget, "coco", total=sum(r["mparam"] for r in _rows))[0])
         # R: runs/134 random_sets.json(rand0)과 같은 절차 -- 진단 행 순서(groups_of 순서)로 섞고 예산 ±10%.
         _convs = [(r["name"], r["mparam"]) for r in _rows]
         _target = _budget * sum(p for _, p in _convs)
@@ -980,7 +994,8 @@ def main():
             if _rng_snapshot[1] is not None:
                 torch.cuda.set_rng_state_all(_rng_snapshot[1])
             _np.random.set_state(_rng_snapshot[2]); _py_random.setstate(_rng_snapshot[3])
-            c_hi_wbit = tuple(dict.fromkeys(sum((cond_lists[f] for f in "PRH" if f in flags), ())))
+            _src = dict(cond_lists, P=cond_lists["Pg"]) if ("G" in flags and "Pg" in cond_lists) else cond_lists
+            c_hi_wbit = tuple(dict.fromkeys(sum((_src[f] for f in "PRH" if f in flags), ())))
             if "G" in flags:
                 _attn_idx = {str(i) for i, b in enumerate(fp.model.model) if type(b).__name__ == "C2fAttn"}
                 c_hi_wbit = tuple(n for n in c_hi_wbit
@@ -1025,6 +1040,12 @@ def main():
             save_qmodel(models[cond], qmodel_path(args.save_model, args, cond),
                         dict(cond=cond, args=vars(args), calib_time=calib_time[cond], model_mib=model_mib_by[cond],
                              protect=list(c_hi_wbit)))
+    if args.train_flip:
+        # 11-01: 예산 스윕의 판정 기준. 보호 진단(train2017 앞 200장)과 겹치지 않는 calib 밖 이미지라 누수가 없다.
+        from diag_w4_sensitivity import mcheck_flip
+        _tf = mcheck_flip([models[c] for c in conditions], fp, args.model, cvocab, args.coco_root, args.calib,
+                          args.imgsz, device, paths=_cs_paths)
+        print("[train-flip] calib 밖 flip(%): " + ", ".join(f"{c} {v:.2f}" for c, v in zip(conditions, _tf)), flush=True)
     if args.calib_source != "coco":
         # calibration 어휘로 빌드했으므로 평가(COCO-80부터) 전에 COCO 어휘로 바꾼다. 이후 LVIS/ODinW는 원래대로 다시 바꾼다.
         print(f"[switch] calibration 어휘({args.calib_source}) -> COCO-80 (평가용)")

@@ -267,10 +267,11 @@ def mcheck_flip(qmodels, fp, model_path, coco, coco_root, n_calib, imgsz, device
     return [measure(q, evals, refs, device, vm, vm)["coco"] for q in qmodels]
 
 
-def select_protected(rows, budget_frac, criterion="coco"):
+def select_protected(rows, budget_frac, criterion="coco", total=None):
     """예산(전체 양자화 weight 파라미터 대비 비율) 안에서 criterion 변화량이 큰 순으로 greedy 선택.
-    runs/134 select.py와 같은 규칙: 예산의 110%를 넘지 않게 담고, 90% 이상 차면 멈춘다."""
-    total = sum(r["mparam"] for r in rows)
+    runs/134 select.py와 같은 규칙: 예산의 110%를 넘지 않게 담고, 90% 이상 차면 멈춘다.
+    total: 예산의 분모. 후보 행을 걸러 넘길 때(G 뒤 다시 채움) 분모는 전체 행 기준으로 준다(11-02)."""
+    total = sum(r["mparam"] for r in rows) if total is None else total
     budget = budget_frac * total
     sel, tot = [], 0.0
     for r in sorted(rows, key=lambda r: r[criterion], reverse=True):
