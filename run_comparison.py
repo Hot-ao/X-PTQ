@@ -490,7 +490,7 @@ def quantized_weight_mib(model_module):
     return total_bits / 8 / (1024 * 1024)
 
 
-MCHECK_RATIO = 1.5   # 10-02 +A: M을 켠 쪽 calib-밖 COCO flip이 이 배수를 넘으면 M을 끈다
+MCHECK_RATIO = 1.0   # 10-02 +A: M을 켠 쪽 calib-밖 COCO flip이 이 배수를 넘으면 M을 끈다. 11-02: 1.5 -> 1.0(1.1~1.4 구간에서 M이 손해인 경우를 놓침: YOLOE-v8s W4A8, S W4A8)
 PROTECT_BUDGET = 0.015                   # +P/+R/+H: W8로 보호할 양자화 weight 파라미터 비율
 PROTECT_IMAGES = 200                     # 보호 진단 이미지 수(train2017 앞쪽)
 PROTECT_CACHE = "configs/protect_cache"  # 진단 결과 캐시(모델·프로토콜별, seed·조건과 무관하게 한 번만 계산)
@@ -761,8 +761,8 @@ def main():
     ap.add_argument("--last-abits", type=int, default=0,
                     help=">0이면 head cv2/cv3 마지막 1x1 conv의 입력 activation만 이 비트로(16 권장). "
                          "보호 진단에도 같은 값이 쓰이고 진단 캐시 이름에 _la<비트>가 붙는다. 기본 0=꺼짐")
-    ap.add_argument("--mig-stat", choices=["8", "all"], default="8",
-                    help="+M의 max|x| 통계: 8 = α 탐색 이미지(기존), all = calibration 전체(10-30 비교용)")
+    ap.add_argument("--mig-stat", choices=["8", "all"], default="all",
+                    help="+M의 max|x| 통계: all = calibration 전체(11-02 기본), 8 = α 탐색 이미지(11-01까지)")
     ap.add_argument("--xmax-floor", type=float, default=0.003, help="+M max|x| 하한(소비 conv 최댓값 대비). 0 = 10-31 이전 규칙")
     ap.add_argument("--protect-budget", type=float, default=PROTECT_BUDGET,
                     help="+P/+R/+H 보호 예산(양자화 weight 파라미터 비율). 11-01: 예산 스윕용, 기본 1.5%%")
