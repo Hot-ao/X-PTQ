@@ -85,6 +85,8 @@ def protocol_of(a):
         extra.append(f"평가 {a.get('eval_cap')}장")
     if not a.get('deterministic', False):
         extra.append('비결정적')
+    if a.get('yoloe_seg') or a.get('yw_seg'):
+        extra.append('seg mask 포함')     # 11-05: mask 분기까지 양자화한 seg 실험(runs/243 등)은 검출 결과와 섞지 않는다
     return base + (' · ' + ', '.join(extra) if extra else '')
 
 
@@ -153,7 +155,8 @@ def collect_json_logs():
                 continue
             out.append(dict(m=model, p=proto, s=setting, c=c, seed=-1 if c == 'FP32' else int(a.get('seed', 0)),
                             t=round(starts.get(f, mtime)), end=round(mtime), src=os.path.dirname(rel),
-                            size=met.get('size_mib'), build=None, tags=rule_tags(c, a, mtime), v=v))
+                            size=met.get('size_mib'), build=None, tags=rule_tags(c, a, mtime), v=v,
+                            log=rel, save=a.get('save_model') or None))
     return out
 
 
@@ -231,7 +234,7 @@ def collect():
                 v['tf'] = tf[c]
             allrecs.append(dict(m=model, p=proto, s=setting, c=key[3], seed=key[4], t=round(starts.get(f, mtime)),
                                 end=round(mtime), src=os.path.dirname(rel), size=size, build=build_s,
-                                tags=rule_tags(c, a, mtime), v=v))
+                                tags=rule_tags(c, a, mtime), v=v, log=rel, save=a.get('save_model') or None))
             if key in recs and recs[key]['mtime'] >= mtime:
                 continue
             recs[key] = dict(metrics=met, mtime=mtime, src=rel, size=size, build_s=build_s)
@@ -449,7 +452,7 @@ def judge(g, res):
 
 
 def pick_ours(res, m, s, seeds=None):
-    """'우리 방법' 칸: 새 규칙 GP·GPM을 seed마다 train flip(ρ=1.0)으로 고른다. OWL·GDINO는 고정 조건."""
+    """'우리 방법' 칸: GP·GPM 중 seed 0의 train flip(ρ=1.0)이 낮은 쪽을 골라 모든 seed에 쓴다(11-05). OWL·GDINO는 고정 조건."""
     def g(c, proto=None):
         cands = [only_seed(x, seeds) for x in res.values() if x['m'] == m and x['s'] == s and x['c'] == c and not x['tags']
                  and (x['p'] == proto if proto else is_main(x['p']))]
@@ -464,16 +467,16 @@ def pick_ours(res, m, s, seeds=None):
     gp, gpm = g('brecq+GP'), g('brecq+GPM')
     if not gp or not gpm:
         return (None, None)
-    per, pick, ends = {}, {}, []
-    for seed in sorted(set(gp['per']) & set(gpm['per'])):
-        a, b = gp['per'][seed], gpm['per'][seed]
-        if a.get('tf') is None or b.get('tf') is None:
-            continue
-        use_m = b['tf'] <= a['tf']
-        per[seed] = b if use_m else a
-        pick[seed] = 'GPM' if use_m else 'GP'
-    if not per:
+    # 11-05: seed마다 고르던 것을 seed 0(없으면 가장 앞 seed)에서 한 번 고르고 모든 seed에 고정 (QDrop+Ours·seg와 같은 규칙)
+    seeds_ok = [k for k in sorted(set(gp['per']) & set(gpm['per']))
+                if gp['per'][k].get('tf') is not None and gpm['per'][k].get('tf') is not None]
+    if not seeds_ok:
         return (None, None)
+    s0 = 0 if 0 in seeds_ok else seeds_ok[0]
+    use_m = gpm['per'][s0]['tf'] <= gp['per'][s0]['tf']
+    src = gpm if use_m else gp
+    per = {k: src['per'][k] for k in seeds_ok}
+    pick = {k: 'GPM' if use_m else 'GP' for k in seeds_ok}
     stats = {k: list(mean_sd([v.get(k) for v in per.values()])) for k in ('coco', 'lvis', 'lvis_flip', 'apr')}
     x = dict(m=m, s=s, c='ours', per=per, seeds=sorted(per), stats=stats, end=max(gp['end'], gpm['end']),
              src=sorted(set(gp['src']) | set(gpm['src'])), tags=[], p=gp['p'])
@@ -587,7 +590,7 @@ def fixed_tables(res, pending):
 
 
 def main_cell(res, pending, m, s, c):
-    """메인 표 안의 한 칸(seed 0~2 평균). 'ours' = BRECQ 위 seed마다 ρ 선택,
+    """메인 표 안의 한 칸(seed 0~2 평균). 'ours' = BRECQ 위 seed 0에서 ρ로 고른 구성을 모든 seed에 고정,
     'qdrop+ours' = QDrop 위에 seed 0에서 고른 구성(GP/GPM)을 모든 seed에 고정."""
     S3 = DRAFT_SEEDS
     b = best(res, m, s, 'brecq', seeds=S3)

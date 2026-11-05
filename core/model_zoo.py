@@ -4,10 +4,96 @@
 - YOLOE(yoloe-*.pt): 공개 가중치는 분할(seg) 모델이라, 같은 이름의 검출 구성(yoloe-v8s.yaml 등)을 만들고
   가중치를 불러온다(head의 mask 분기는 버린다). 텍스트는 MobileCLIP → RepRTA(head.reprta)를 거친 상수(pe)로 head의
   contrastive에만 쓰인다. neck에 텍스트 융합이 없어서 게이트 교환(G)은 적용되지 않는다(gate_commute_all이 아무것도 안 함).
+- 11-05: YOLOE_SEG(run_comparison --yoloe-seg)를 켜면 seg 모델 그대로 만든다(mask 분기 포함, 양자화·재구성 대상).
+  head를 SegHeadDetView로 바꿔 평소에는 검출 head와 같은 출력(mask 계수를 뺀 것)을 내므로 flip·진단·재구성 코드는
+  그대로다. mask 분기는 계산은 하므로 재구성 hook에 잡힌다. LVIS predict 때만 seg_outputs()로 mask를 낸다.
+- 11-05: YW_SEG(run_comparison --yw-seg <mask 가중치>)를 주면 YOLO-World의 WorldDetect에 YOLO-World-Seg(mmyolo
+  YOLOWv8InsHeadModule)의 mask 분기를 붙인다(WorldSegHeadView). 검출 부분은 그대로라 G·P·M이 모두 적용된다.
+  mask 가중치는 scripts/convert_yw_seg.py로 변환한다. 원본과 다른 점은 proto 업샘플(최근접, ConvTranspose 아님)뿐.
 """
 from __future__ import annotations
+import contextlib
 import os
 import torch
+
+YOLOE_SEG = False
+YW_SEG = None
+
+
+from ultralytics.nn.modules.block import Proto
+from ultralytics.nn.modules.conv import Conv
+from ultralytics.nn.modules.head import WorldDetect, YOLOESegment
+
+
+class SegHeadDetView(YOLOESegment):
+    """YOLOE-seg head. det_only면 검출 head(YOLOEDetect)와 같은 형식 (y[B, 4+nc, A], preds)을 낸다."""
+    det_only = True
+
+    def forward(self, x):
+        out = super().forward(x)
+        if self.training or self.export or not self.det_only:
+            return out
+        (y, _proto), preds = out
+        return y[:, :-self.nm], preds
+
+
+class WorldProto(Proto):
+    """mmyolo ProtoModule: conv1 -> 최근접 2배 업샘플 -> conv2 -> conv3 (ultralytics Proto는 ConvTranspose2d)."""
+
+    def __init__(self, c1, c_=256, c2=32):
+        super().__init__(c1, c_, c2)
+        self.upsample = torch.nn.Upsample(scale_factor=2, mode="nearest")
+
+
+class WorldSegHeadView(WorldDetect):
+    """YOLO-World-Seg head = WorldDetect + mask 계수(cv5) + prototype(proto). det_only면 WorldDetect와 같은 출력."""
+    det_only = True
+    nm = 32
+
+    def forward(self, x, text):
+        bs = x[0].shape[0]
+        mc = torch.cat([self.cv5[i](x[i]).view(bs, self.nm, -1) for i in range(self.nl)], 2)   # WorldDetect가 x를 바꾸기 전에
+        proto = self.proto(x[0])
+        out = super().forward(x, text)
+        if self.training or self.export or self.det_only:
+            return out
+        y, preds = out
+        return (torch.cat([y, mc], 1), proto), preds
+
+
+def attach_world_seg(m, path):
+    """YOLOWorld 래퍼 m의 head에 mask 분기를 붙이고 가중치(convert_yw_seg.py 출력)를 넣는다."""
+    head = m.model.model[-1]
+    ch = [lvl[0].conv.in_channels for lvl in head.cv2]
+    c4 = max(ch[0] // 4, WorldSegHeadView.nm)
+    head.cv5 = torch.nn.ModuleList(torch.nn.Sequential(Conv(c, c4, 3), Conv(c4, c4, 3), torch.nn.Conv2d(c4, WorldSegHeadView.nm, 1))
+                                   for c in ch)
+    head.proto = WorldProto(ch[0], 256, WorldSegHeadView.nm)
+    sd = torch.load(path, map_location="cpu", weights_only=True)
+    own = {k for k in head.state_dict() if k.startswith(("cv5.", "proto."))}
+    if set(sd) != own:
+        raise ValueError(f"mask 가중치 이름 불일치: 없음 {sorted(own - set(sd))[:5]}, 남음 {sorted(set(sd) - own)[:5]}")
+    head.load_state_dict(sd, strict=False)
+    p0 = next(head.cv2.parameters())
+    for mod in (head.cv5, head.proto):
+        mod.to(p0.device, p0.dtype).train(head.training)          # 새 모듈은 train 모드로 생기므로 head 상태에 맞춘다
+    head.__class__ = WorldSegHeadView
+    return m
+
+
+def is_seg(model) -> bool:
+    return isinstance(model.model.model[-1], (SegHeadDetView, WorldSegHeadView))
+
+
+@contextlib.contextmanager
+def seg_outputs(model):
+    """이 안에서만 head가 seg 출력((det+mask 계수, proto), preds)을 낸다(ultralytics predict용)."""
+    head = model.model.model[-1]
+    head.det_only = False
+    try:
+        yield
+    finally:
+        head.det_only = True
 
 
 def is_yoloe(path: str) -> bool:
@@ -49,6 +135,10 @@ def model_factory(path: str):
 
         def make(w):
             stem = os.path.splitext(os.path.basename(str(w)))[0]
+            if YOLOE_SEG and stem.endswith("-seg"):
+                m = YOLOE(f"{stem}.yaml").load(w)
+                m.model.model[-1].__class__ = SegHeadDetView
+                return make_pools_deterministic(m)
             stem = stem[:-4] if stem.endswith("-seg") else stem          # yoloe-v8s-seg -> yoloe-v8s
             return make_pools_deterministic(YOLOE(f"{stem}.yaml").load(w))
         make.__name__ = "YOLOE"
@@ -56,7 +146,8 @@ def model_factory(path: str):
     from ultralytics import YOLOWorld
 
     def make(w):
-        return make_pools_deterministic(YOLOWorld(w))
+        m = YOLOWorld(w)
+        return make_pools_deterministic(attach_world_seg(m, YW_SEG) if YW_SEG else m)
     make.__name__ = "YOLOWorld"
     return make
 

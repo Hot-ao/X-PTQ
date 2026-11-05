@@ -144,8 +144,15 @@ def measure_ap(model, data, imgsz, device):
     # 복사해서 순식간에 수백 GB로 터질 수 있다(09-09 실측: RSS 66GB 부모에서
     # worker 8개가 fork되며 시스템 전체가 OOM 직전까지 감). single-process로
     # 강제해서 fork 자체를 없앤다.
-    metrics = model.val(data=data, imgsz=imgsz, device=device, save_json=False,
-                        verbose=False, workers=0)
+    from model_zoo import is_seg
+    seg, task0 = is_seg(model), model.task
+    if seg:
+        model.task = "detect"      # 11-05: seg 모델도 COCO는 박스만(head는 기본이 검출 출력, model_zoo.SegHeadDetView)
+    try:
+        metrics = model.val(data=data, imgsz=imgsz, device=device, save_json=False,
+                            verbose=False, workers=0, **({"task": "detect"} if seg else {}))
+    finally:
+        model.task = task0
     overall = float(metrics.box.map) * 100, float(metrics.box.map50) * 100
     # 09-16 버그 수정: metrics.box.maps는 이미 클래스 id로 직접 인덱싱된
     # nc-길이 배열이라(ultralytics.utils.metrics.Metric.maps 참고) ap_class_index와
@@ -362,7 +369,10 @@ def gt_metrics_for_method(fp_sims, q_sims, gt_targets, H_eval_set=None, S_set=No
     return out
 
 
-def predict_lvis_results(model, img_paths, img_ids, imgsz, device, conf=0.001, max_det=1000):
+def predict_lvis_results(model, img_paths, img_ids, imgsz, device, conf=0.001, max_det=1000, segm_out=None,
+                         segm_topk=300):
+    # 11-05: segm_out(list)를 주면 YOLOE-seg의 mask도 이미지당 점수 상위 segm_topk개(LVIS 표준 max_dets=300)만
+    # 원본 해상도(retina_masks) RLE로 담는다. 박스 결과(반환값)는 그대로.
     # 09-17 버그 수정: DetectionValidator(COCO_AP가 쓰는 model.val() 경로)는
     # NMS를 multi_label=True로 호출하는데, DetectionPredictor(여기서 쓰는
     # model.predict() 경로)는 이 인자를 아예 안 넘겨서 non_max_suppression
@@ -378,29 +388,48 @@ def predict_lvis_results(model, img_paths, img_ids, imgsz, device, conf=0.001, m
     import functools
     orig_nms = nms.non_max_suppression
     nms.non_max_suppression = functools.partial(orig_nms, multi_label=True)
+    import contextlib
+    from model_zoo import seg_outputs, is_seg
+    ctx = seg_outputs(model) if is_seg(model) else contextlib.nullcontext()   # seg 모델의 predictor는 항상 seg 출력을 기대
+    pkw = {}
+    if is_seg(model) and model.task != "segment":        # 11-05: YOLO-World-Seg. YOLOWorld task_map에는 detect뿐이다
+        from ultralytics.models.yolo.segment import SegmentationPredictor
+        if not isinstance(model.predictor, SegmentationPredictor):
+            model.predictor = None
+        pkw.update(predictor=SegmentationPredictor, task="segment")   # task도 넘긴다: 두 번째 predict부터 overrides의 detect로 덮인다
     try:
         results = []
-        for path, img_id in zip(img_paths, img_ids):
-            # 10-04: agnostic_nms=False를 명시한다. YOLOE.predict()는 기본으로 클래스 무관 NMS를 강제로 켜서
-            # (ultralytics models/yolo/model.py) LVIS처럼 비슷한 클래스가 겹치는 어휘에서 recall이 무너진다
-            # (YOLOE-v8s FP LVIS AP 11.0). YOLO-World는 원래 기본값이 False라 결과가 같다.
-            r = model.predict(source=path, imgsz=imgsz, device=device, conf=conf,
-                              max_det=max_det, verbose=False, agnostic_nms=False)[0]
-            if r.boxes is None or len(r.boxes) == 0:
-                continue
-            xyxy = r.boxes.xyxy.cpu().numpy()
-            confs = r.boxes.conf.cpu().numpy()
-            clss = r.boxes.cls.cpu().numpy().astype(int)
-            for (x1, y1, x2, y2), sc, c in zip(xyxy, confs, clss):
-                results.append({"image_id": int(img_id), "category_id": int(c) + 1,
-                                "bbox": [float(x1), float(y1), float(x2 - x1), float(y2 - y1)],
-                                "score": float(sc)})
+        with ctx:
+            for path, img_id in zip(img_paths, img_ids):
+                # 10-04: agnostic_nms=False를 명시한다. YOLOE.predict()는 기본으로 클래스 무관 NMS를 강제로 켜서
+                # (ultralytics models/yolo/model.py) LVIS처럼 비슷한 클래스가 겹치는 어휘에서 recall이 무너진다
+                # (YOLOE-v8s FP LVIS AP 11.0). YOLO-World는 원래 기본값이 False라 결과가 같다.
+                r = model.predict(source=path, imgsz=imgsz, device=device, conf=conf, max_det=max_det, verbose=False,
+                                  agnostic_nms=False, **pkw, **({"retina_masks": True} if segm_out is not None else {}))[0]
+                if r.boxes is None or len(r.boxes) == 0:
+                    continue
+                xyxy = r.boxes.xyxy.cpu().numpy()
+                confs = r.boxes.conf.cpu().numpy()
+                clss = r.boxes.cls.cpu().numpy().astype(int)
+                for (x1, y1, x2, y2), sc, c in zip(xyxy, confs, clss):
+                    results.append({"image_id": int(img_id), "category_id": int(c) + 1,
+                                    "bbox": [float(x1), float(y1), float(x2 - x1), float(y2 - y1)],
+                                    "score": float(sc)})
+                if segm_out is not None and r.masks is not None:
+                    from pycocotools import mask as mask_util
+                    top = np.argsort(-confs)[:segm_topk]
+                    mk = r.masks.data[torch.as_tensor(top, device=r.masks.data.device)] > 0.5
+                    rles = mask_util.encode(np.asfortranarray(mk.permute(1, 2, 0).cpu().numpy().astype(np.uint8)))
+                    for j, rle in zip(top, rles):
+                        rle["counts"] = rle["counts"].decode("ascii")
+                        segm_out.append({"image_id": int(img_id), "category_id": int(clss[j]) + 1,
+                                         "segmentation": rle, "score": float(confs[j])})
     finally:
         nms.non_max_suppression = orig_nms
     return results
 
 
-def run_lvis_eval(lvis_gt, results, img_ids):
+def run_lvis_eval(lvis_gt, results, img_ids, iou_type="bbox"):
     # 09-17: Fixed AP 프로토콜 채택(YOLO-World 논문 및 LVIS long-tail
     # 문헌 관행, Dave et al. -- 이미지당 dets 상한(표준 AP의 max_dets=300)이
     # rare class를 구조적으로 불리하게 만든다는 지적). 이미지당 상한 없이,
@@ -418,7 +447,7 @@ def run_lvis_eval(lvis_gt, results, img_ids):
         by_cat[r["category_id"]].append(r)
     fixed = [r for rs in by_cat.values() for r in sorted(rs, key=lambda x: -x["score"])[:10000]]
     lvis_dt = LVISResults(lvis_gt, fixed, max_dets=-1)
-    ev = LVISEval(lvis_gt, lvis_dt, iou_type="bbox")
+    ev = LVISEval(lvis_gt, lvis_dt, iou_type=iou_type)
     ev.params.img_ids = img_ids
     ev.run()
     return ev.get_results()
@@ -787,6 +816,11 @@ def main():
     ap.add_argument("--eval-cap", type=int, default=0,
                     help="스모크 테스트용: flip/GT/UPIR/lost와 LVIS AP를 계산하는 probe 이미지 수 제한. 0이면 제한 없음. "
                          "COCO AP(measure_ap)에는 적용되지 않는다 -- 항상 --data의 전체 val 세트로 측정")
+    ap.add_argument("--yoloe-seg", action="store_true",
+                    help="11-05: YOLOE-seg를 mask 분기까지 포함해 양자화하고 LVIS mask AP(segm)도 잰다(core/model_zoo.py)")
+    ap.add_argument("--yw-seg", default=None,
+                    help="11-05: YOLO-World에 YOLO-World-Seg mask 분기를 붙인다(scripts/convert_yw_seg.py 출력 경로). "
+                         "--yoloe-seg처럼 mask까지 양자화하고 LVIS mask AP도 잰다")
     ap.add_argument("--odinw", action="store_true",
                     help="LVIS 뒤에 ODinW-13(GLIP 공식 split)도 평가한다(core/odinw.py). --eval-cap은 데이터셋마다 적용")
     ap.add_argument("--odinw-root", default="/data/taeho/odinw")
@@ -849,7 +883,10 @@ def main():
 
     coco = load_names("coco")
     lvis_names = load_names("lvis")
+    import model_zoo
     from model_zoo import model_factory
+    model_zoo.YOLOE_SEG = args.yoloe_seg
+    model_zoo.YW_SEG = args.yw_seg
     YOLOWorld = model_factory(args.model)        # 10-04: 이름은 그대로 두고 모델 종류(YOLO-World / YOLOE)에 맞는 생성자를 쓴다
 
     # calib: train2017 (평가 데이터와 완전 분리)
@@ -1146,8 +1183,15 @@ def main():
 
     for mode in conditions:
         print(f"[predict+AP] {mode} (minival {len(lvis_probe_paths)}장) ...")
-        preds = predict_lvis_results(models[mode], lvis_probe_paths, lvis_probe_ids, args.imgsz, device)
+        segm = [] if args.yoloe_seg or args.yw_seg else None
+        preds = predict_lvis_results(models[mode], lvis_probe_paths, lvis_probe_ids, args.imgsz, device, segm_out=segm)
         lvis_ap_res = run_lvis_eval(lvis_gt, preds, lvis_probe_ids)
+        if segm is not None:
+            sg = run_lvis_eval(lvis_gt, segm, lvis_probe_ids, iou_type="segm")
+            results[mode]["lvis_segm"] = {k: sg.get(k, 0.0) for k in ("AP", "AP50", "APr", "APc", "APf")}
+            print(f"  [LVIS-segm][{mode}] AP={sg.get('AP',0):.4f} AP50={sg.get('AP50',0):.4f} "
+                  f"APr={sg.get('APr',0):.4f} APc={sg.get('APc',0):.4f} APf={sg.get('APf',0):.4f}", flush=True)
+            del segm
         print(f"  [LVIS-AP][{mode}] AP={lvis_ap_res.get('AP',0):.4f} AP50={lvis_ap_res.get('AP50',0):.4f} "
               f"APr={lvis_ap_res.get('APr',0):.4f} APc={lvis_ap_res.get('APc',0):.4f} "
               f"APf={lvis_ap_res.get('APf',0):.4f}")
@@ -1160,8 +1204,10 @@ def main():
                                          lateral=r["lateral"], corrective_rate=r["corrective_rate"]))
 
     print("\n[predict+AP] FP32 (참고, LVIS) ...")
-    preds_fp = predict_lvis_results(fp, lvis_probe_paths, lvis_probe_ids, args.imgsz, device)
+    segm_fp = [] if args.yoloe_seg or args.yw_seg else None
+    preds_fp = predict_lvis_results(fp, lvis_probe_paths, lvis_probe_ids, args.imgsz, device, segm_out=segm_fp)
     fp_lvis = run_lvis_eval(lvis_gt, preds_fp, lvis_probe_ids)
+    fp_segm = run_lvis_eval(lvis_gt, segm_fp, lvis_probe_ids, iou_type="segm") if segm_fp is not None else None
 
     # ---------------- ODinW-13 (10-27) ----------------
     if args.odinw:
@@ -1196,6 +1242,18 @@ def main():
         r = results[mode]
         print(f"{mode:>10} | {r['coco_ap']:>8.2f} | {r['s_ap']:>7.2f} | {r['heval_ap']:>9.2f} | "
               f"{r['lvis_ap']:>8.4f} | {r['lvis_apr']:>6.4f} | {r['lvis_apc']:>6.4f} | {r['lvis_apf']:>6.4f}")
+
+    if fp_segm is not None:
+        print("\n" + "=" * 100)
+        print(" LVIS mask AP (segm, 이미지당 상위 300개, 11-05 --yoloe-seg)")
+        print("=" * 100)
+        print(f"{'':>10} | {'segm AP':>8} | {'AP50':>6} | {'APr':>6} | {'APc':>6} | {'APf':>6}")
+        print(f"{'FP32':>10} | {fp_segm.get('AP',0):>8.4f} | {fp_segm.get('AP50',0):>6.4f} | {fp_segm.get('APr',0):>6.4f} | "
+              f"{fp_segm.get('APc',0):>6.4f} | {fp_segm.get('APf',0):>6.4f}")
+        for mode in conditions:
+            g = results[mode].get("lvis_segm", {})
+            print(f"{mode:>10} | {g.get('AP',0):>8.4f} | {g.get('AP50',0):>6.4f} | {g.get('APr',0):>6.4f} | "
+                  f"{g.get('APc',0):>6.4f} | {g.get('APf',0):>6.4f}")
 
     print("\n" + "=" * 100)
     print(" flip / GT / UPIR / 비용")

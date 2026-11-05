@@ -73,7 +73,20 @@ def set_first_last_bits(det_model: nn.Module, bits: int = 8):
                 last.w_bits = bits
                 last.a_obs.bits = bits
                 changed.append(f"head.{branch}.{li}.-1")
+    for name, last in _mask_last(head):
+        last.w_bits = bits
+        last.a_obs.bits = bits
+        changed.append(name)
     return changed
+
+
+def _mask_last(head):
+    """11-05: YOLOE-seg head의 mask 출력 conv(cv5[l][-1] mask 계수, proto.cv3 prototype). 검출 head면 빈 목록.
+    cv2/cv3 마지막 conv와 같은 규칙(W8, 입력 A16)을 적용하려고 따로 모은다."""
+    out = [(f"head.cv5.{li}.-1", lvl[-1]) for li, lvl in enumerate(getattr(head, "cv5", []))]
+    pc = getattr(getattr(getattr(head, "proto", None), "cv3", None), "conv", None)
+    out.append(("head.proto.cv3", pc))
+    return [(n, m) for n, m in out if isinstance(m, QuantConv2d)]
 
 
 def set_last_abits(det_model: nn.Module, bits: int = 16):
@@ -90,6 +103,9 @@ def set_last_abits(det_model: nn.Module, bits: int = 16):
             if isinstance(last, QuantConv2d):
                 last.a_obs.bits = bits
                 changed.append(f"head.{branch}.{li}.-1")
+    for name, last in _mask_last(head):
+        last.a_obs.bits = bits
+        changed.append(name)
     return changed
 
 
