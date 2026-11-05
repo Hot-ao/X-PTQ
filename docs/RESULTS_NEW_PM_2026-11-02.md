@@ -1,6 +1,6 @@
 # 새 P·M 규칙 실험 결과 (2026-11-02 13:30 기준)
 
-방향 문서: [PAPER_DIRECTION_2026-11-02.md](PAPER_DIRECTION_2026-11-02.md)
+방향 문서: [documents/PAPER_DIRECTION_2026-11-02.md](../documents/PAPER_DIRECTION_2026-11-02.md)
 
 수치는 LVIS minival AP(×100) / LVIS top-1 flip(%)이다. 따로 적지 않으면 YOLO-World-S다. 진행 중인 실험은 `runs/234_rerun_s0`에서 끝나는 대로 채운다.
 

@@ -2,7 +2,7 @@
 
 이전 버전: [docs/PAPER_DIRECTION.md](../docs/PAPER_DIRECTION.md) (10-27)
 
-새 규칙 수치: [RESULTS_NEW_PM_2026-11-02.md](RESULTS_NEW_PM_2026-11-02.md)
+새 규칙 수치: [docs/RESULTS_NEW_PM_2026-11-02.md](../docs/RESULTS_NEW_PM_2026-11-02.md)
 
 마감: 초록 등록 11-10, 본문 11-16, 부록 11-23 (AoE)
 
@@ -17,7 +17,7 @@
 - 10-27 이후 바뀐 것은 세 가지다.
   1. **P와 M의 규칙을 정리했다.** P는 G 뒤에 예산을 다시 채우고, 분모는 전체 weight로 바꿨다. M은 xmax를 calibration 전체에서 재고, 사전 검사 ρ를 1.0으로 바꿨다.
   2. **P 예산에 근거가 생겼다.** 예산은 "손상 집중도"로 설명한다. 혼합 정밀도 논문들이 예산을 정하는 방식에 대한 답이다.
-  3. **Grounding DINO가 추가됐다.** DETR 계열이고, held-out LVIS에서 PM이 QDrop보다 1.2점 높다.
+  3. **Grounding DINO가 추가됐다.** DETR 계열이고, held-out LVIS AP에서 PM이 QDrop보다 1.0점 높다(11-04 갱신: 새 규칙, LVIS 2000장). flip은 측정 방법이 달라 재실험한다(§5).
 - **새 규칙의 seed 0 결과는 기존과 같은 양상이고, W4A5에서는 더 좋다.**
   - S W4A5 GPM은 seed 3개 평균 22.38에서 22.98로 올랐다(+0.60).
   - W4A4는 18.10에서 18.09로 같다.
@@ -73,7 +73,7 @@
 | R5 | M은 받쳐 주는 요소가 있을 때만 이득이다 | 새 규칙 W4A5 GPM − GP +0.61, M 단독 W4A5 −0.75 (기존 6 seed) | 강함 | – |
 | R6 | P 예산은 M과 함께일 때 성능으로 이어진다 | 예산 sweep: GPM은 단조 증가, GP는 평평 | 중간 | **신규** |
 | R7 | 학습 없는 plug-in이다(BRECQ, QDrop) | QDrop+GPM | 강함 | 새 규칙으로 재확인 대기 |
-| R8 | DETR·ViT 계열에서도 진단과 처방 선택이 맞게 작동한다 | GDINO LVIS: PM 34.96 > QDrop 33.76 > BRECQ 31.72 (seed 0, 1000장) | 중간 | **GDINO 신규** |
+| R8 | DETR·ViT 계열에서도 진단과 처방 선택이 맞게 작동한다 | GDINO LVIS AP: PM 30.23 > QDrop 29.23 > BRECQ 27.26 (seed 0, 2000장, 11-04). flip은 재측정 전이라 근거로 쓰지 않는다 | 중간 | **GDINO 신규** |
 | R9 | calibration 어휘로 학습하면 held-out이 나빠진다 | PromptCal −1.06 | 보조 | – |
 
 ## 5. 정직하게 적을 것 (새 규칙에서 드러난 점 포함)
@@ -84,7 +84,8 @@
 | v2 W8A8 | M 검사가 놓친다(flip 4.23 → 8.09) | 한계 (기존과 같음) |
 | m | P 목록이 비고 M이 해롭다. 다시 채움 규칙으로 GP는 좋아졌다 | 표 각주 |
 | W4A4 | per-tensor A4는 열지 못했다. 18점대 | 한계 |
-| GDINO | seed 1개, LVIS 1000–2000장 subset이다. 짝 차이로만 해석한다 | 표 각주 |
+| GDINO | seed 1개, LVIS 2000장 subset이다. 짝 차이로만 해석한다 | 표 각주 |
+| GDINO flip (11-05) | 기존 flip은 어휘 chunk 안 top-1 기준이라 다른 모델(1203 어휘 전체 top-1)과 정의가 다르다. 전체 어휘 기준으로 재실험하고, 그전에는 flip을 쓰지 않는다 | 재실험 후 표 각주 |
 | 실기기 | 지연을 실측하지 않았다. 연산 형태가 같고 크기는 +1.6% | 한계 |
 
 - 규칙을 바꾼 이유(P 다시 채움, xmax 256장)는 부록 한 단락으로 쓴다.

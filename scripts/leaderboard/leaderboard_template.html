@@ -43,6 +43,18 @@ th{color:var(--muted);font-weight:600;font-size:12px;background:var(--panel);pos
 td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 tr.ours td{background:var(--ours)}
 .grid td{min-width:112px}
+.grid.main td{min-width:68px;padding:4px 8px}
+.grid.main .mc .v{font-size:14px}
+.grid.main tr.bt td{border-top:2px solid var(--line)}
+.grid.main .dd{font-size:11px}
+.grid.main tr.pair td{border-top:1px dashed var(--line)}
+.grid.main .cfgh{font-weight:400;font-size:11.5px;font-family:var(--mono)}
+.grid.main td.bitc{vertical-align:middle;font-weight:600;font-variant-numeric:tabular-nums}
+.grid.main tr.blk td{background:var(--line2);font-weight:600}
+.grid.main td.oc,.grid.main th.oc{background:var(--ours)}
+.grid.main .oc .v{font-weight:700}
+.grid.main .gl,.grid.main th.grp{border-left:2px solid var(--line)}
+.grid.main th.grp{text-align:center}
 .v{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
 .s{color:var(--muted);font-size:11.5px;font-variant-numeric:tabular-nums}
 .old .v{color:var(--old);font-weight:500}
@@ -85,11 +97,13 @@ details>summary::-webkit-details-marker{display:none}
 <nav id="nav">
   <button data-s="queue">실험 대기열</button>
   <button data-s="fixed">주요 표</button>
+  <button data-s="drafts">메인 표 안</button>
   <button data-s="tables">결과 분류</button>
 </nav>
 <main>
   <section id="queue"></section>
   <section id="fixed"></section>
+  <section id="drafts"></section>
   <section id="tables"></section>
 </main>
 <script>
@@ -155,7 +169,7 @@ function cellHTML(c, opt = {}) {
   const d = c.d ? `<span class="${c.d[0] >= 0 ? 'dpos' : 'dneg'}">${c.d[0] >= 0 ? '+' : ''}${c.d[0].toFixed(2)}</span>` : '';
   const tip = [`종료 ${ts(c.end)}`, `seed ${c.n}개`, c.src && c.src.join(', '), c.note && `선택: ${c.note}`,
     c.tags && c.tags.length && `기존 규칙: ${c.tags.join(', ')}`].filter(Boolean).join('\n');
-  return `<div class="${c.old ? 'old' : ''}" title="${esc(tip)}"><span class="v">${f2(c.lvis)}</span>
+  return `<div class="${c.old ? 'old' : ''}" title="${esc(tip)}"><span class="v">${f2(c.lvis)}</span>${opt.apr && c.apr != null ? `<span class="muted"> / ${f2(c.apr)}</span>` : ''}
     ${recent(c.end) ? '<span class="badge b-new">new</span>' : ''}
     <div class="s">${c.flip != null ? 'flip ' + c.flip.toFixed(1) + '%' : ''}${opt.noN ? '' : ' · n=' + c.n}${d ? ' · Δ ' + d : ''}</div>
     ${c.pending ? `<div><span class="badge ${c.pending.startsWith('진행') ? 'b-run' : 'b-wait'}">${esc(c.pending.split(' · ')[0])}</span></div>` : ''}</div>`;
@@ -188,6 +202,68 @@ function renderFixed() {
     F.t3.map(r => `<tr class="${r.cond === 'brecq+GPM' ? 'ours' : ''}"><td class="mono">${esc(r.label)}</td>${S3.map(s => `<td>${cellHTML(r.cells[s])}</td>`).join('')}</tr>`).join('') +
     '</tbody></table></div></div>';
   $('#fixed').innerHTML = h;
+}
+
+// ---------- 메인 표 안 ----------
+function mainCell(c, delta) {
+  if (!c) return '<span class="muted">–</span>';
+  if (c.lvis == null && c.pending) return `<span class="badge ${c.pending.startsWith('진행') ? 'b-run' : 'b-wait'}">${esc(c.pending.split(' · ')[0])}</span>`;
+  const d = c.d ? `<span class="${c.d[0] >= 0 ? 'dpos' : 'dneg'}">${c.d[0] >= 0 ? '+' : ''}${c.d[0].toFixed(1)}</span>` : '';
+  const tip = [`종료 ${ts(c.end)}`, c.src && c.src.join(', '), c.note && `조건: ${c.note}`, c.n && `seed ${c.n}개${c.sd != null ? ` · AP sd ${c.sd.toFixed(2)}` : ''}`, c.apr != null && `APr ${f2(c.apr)}`, c.flip != null && `LVIS flip ${c.flip.toFixed(1)}%`,
+    c.tags && c.tags.length && `기존 규칙: ${c.tags.join(', ')}`].filter(Boolean).join('\n');
+  return `<div class="mc ${c.old ? 'old' : ''}" title="${esc(tip + (d ? '\n기반 대비 ΔAP ' + c.d[0].toFixed(2) : ''))}"><span class="v">${f2(c.lvis)}</span><span class="s">${c.flip != null ? ` (${c.flip.toFixed(1)})` : ''}</span>${delta && c.d ? ` <span class="dd ${c.d[0] >= 0 ? 'dpos' : 'dneg'}">${c.d[0] >= 0 ? '+' : ''}${c.d[0].toFixed(1)}</span>` : ''}${recent(c.end) ? ' <span class="badge b-new">new</span>' : ''}</div>`;
+}
+const isOurs = c => c === 'ours' || c.endsWith('+ours');
+// 모델별 Ours 구성: ρ 검사 선택(GP/GPM)을 비트마다 모아 보여준다. YOLOE는 텍스트 게이트가 없어 G를 뺀다.
+function oursCfg(d, m) {
+  const noG = !m.startsWith('yolov8');
+  const per = d.bits.map(s => {
+    const c = d.cells[`${m}|${s}|ours`];
+    let k = c && c.note ? [...new Set(c.note.split(', ').map(t => t.split(':').pop()))].join('/') : null;   // seed마다 다르면 GP/GPM
+    if (k && noG) k = k.replace('G', '');
+    return [s.replace(/^W(\d+)A(\d+)$/, '$1/$2'), k];
+  }).filter(([, k]) => k);
+  if (!per.length) return '–';
+  return new Set(per.map(([, k]) => k)).size === 1 ? per[0][1] : per.map(([b, k]) => `${k} (${b})`).join(' · ');
+}
+function draftHTML(d) {
+  const K = (m, s, c) => d.cells[`${m}|${s}|${c}`];
+  let body, head;
+  if (d.layout === 'model-rows') {
+    head = `<tr><th rowspan="2">모델</th><th rowspan="2">FP32</th>${d.bits.map(s => `<th colspan="${d.cols.length}" class="grp">${s}</th>`).join('')}</tr>
+      <tr>${d.bits.map(() => d.cols.map(([l, c], i) => `<th class="${isOurs(c) ? 'oc' : ''} ${i === 0 ? 'gl' : ''}">${esc(l)}</th>`).join('')).join('')}</tr>`;
+    body = d.models.map(m => `<tr><td>${esc(d.names[m])}</td><td>${mainCell(d.fp[m])}</td>${d.bits.map(s => d.cols.map(([l, c], i) =>
+      `<td class="${isOurs(c) ? 'oc' : ''} ${i === 0 ? 'gl' : ''}">${mainCell(K(m, s, c))}</td>`).join('')).join('')}</tr>`).join('');
+  } else if (d.layout === 'bit-col') {
+    head = `<tr><th>방법</th><th>W/A</th>${d.models.map(m => `<th>${esc(d.names[m])}<div class="cfgh">Ours: ${esc(oursCfg(d, m))}</div></th>`).join('')}</tr>`;
+    body = `<tr><td>FP32</td><td>32/32</td>${d.models.map(m => `<td>${mainCell(d.fp[m])}</td>`).join('')}</tr>` +
+      d.bits.map(s => d.rows.map(([l, c], i) => `<tr class="${i === 0 ? 'bt' : d.delta && i > 0 && !isOurs(c) ? 'pair' : ''}"><td class="${isOurs(c) ? 'oc' : ''}">${esc(l)}</td>
+        ${i === 0 ? `<td rowspan="${d.rows.length}" class="bitc">${s.replace(/^W(\d+)A(\d+)$/, '$1/$2')}</td>` : ''}${d.models.map(m => `<td class="${isOurs(c) ? 'oc' : ''}">${mainCell(K(m, s, c), d.delta && isOurs(c))}</td>`).join('')}</tr>`).join('')).join('');
+  } else {
+    head = `<tr><th>방법</th>${d.models.map(m => `<th>${esc(d.names[m])}</th>`).join('')}</tr>`;
+    body = `<tr><td>FP32</td>${d.models.map(m => `<td>${mainCell(d.fp[m])}</td>`).join('')}</tr>` +
+      d.bits.map(s => `<tr class="blk"><td colspan="${d.models.length + 1}">${s}</td></tr>` + d.rows.map(([l, c]) =>
+        `<tr><td class="${isOurs(c) ? 'oc' : ''}">${esc(l)}</td>${d.models.map(m => `<td class="${isOurs(c) ? 'oc' : ''}">${mainCell(K(m, s, c))}</td>`).join('')}</tr>`).join('')).join('');
+  }
+  return `<div class="panel"><h2>${esc(d.name)}</h2><p class="desc">${esc(d.desc || '')}</p>
+    <div class="scroll"><table class="grid main"><thead>${head}</thead><tbody>${body}</tbody></table></div></div>`;
+}
+function renderDrafts() {
+  const ids = D.drafts.map(d => d.id);
+  let on = store.get('drafts_on', ids.slice(0, 1)).filter(i => ids.includes(i));
+  if (!on.length) on = ids.slice(0, 1);
+  let h = `<div class="panel"><h2>메인 표 안</h2>
+    <p class="desc">논문 표 1 후보를 나란히 비교한다. 위 버튼으로 보고 싶은 안을 여러 개 켤 수 있다. 칸 = LVIS minival AP (LVIS flip %), seed 0~2 평균(GDINO·OWL은 seed 0). Ours는 seed마다 ρ로 고르고, QDrop+Ours는 seed 0에서 고른 구성을 고정한다. APr과 기반(BRECQ/QDrop) 대비 ΔAP는 칸에 마우스를 올리면 보인다. Ours 구성: G 게이트 교환, P W8 보호, M scale 이전 (YOLOE는 텍스트 게이트가 없어 G 없음).
+    +Ours = ρ=1.0 검사로 GP/GPM 선택, QDrop 쪽도 같은 선택. 칸에 마우스를 올리면 조건·flip. 안은 <span class="mono">scripts/leaderboard/main_drafts.json</span>에서 추가·수정한다.</p>
+    <div class="subtabs" id="dtabs">${D.drafts.map(d => `<button data-d="${esc(d.id)}" class="${on.includes(d.id) ? 'on' : ''}">${esc(d.name)}</button>`).join('')}</div></div>` +
+    D.drafts.filter(d => on.includes(d.id)).map(draftHTML).join('');
+  $('#drafts').innerHTML = h;
+  $('#dtabs').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const i = b.dataset.d;
+    store.set('drafts_on', on.includes(i) ? on.filter(x => x !== i) : ids.filter(x => on.includes(x) || x === i));
+    renderDrafts();
+  };
 }
 
 // ---------- 결과 분류 ----------
@@ -260,7 +336,7 @@ function renderTables() {
   $('#rst').onclick = () => { if (confirm('이 브라우저에 저장한 표 배정을 모두 지울까?')) { assign = {}; store.set('assign', assign); renderTables(); } };
 }
 
-renderQueue(); renderFixed(); renderTables();
+renderQueue(); renderFixed(); renderDrafts(); renderTables();
 show(store.get('tab', 'queue'));
 // 10분마다 다시 읽는다(선택한 탭·필터·배정은 브라우저에 남는다)
 setTimeout(() => location.reload(), 600000);

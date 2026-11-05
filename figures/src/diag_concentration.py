@@ -7,8 +7,10 @@
   - 예산 포착량(%p): P가 고른 층들의 증가 합(절대값). 10-19: 비중(%)은 모델 안에서만 정규화해서, 손상이 작고 퍼진
     모델(OWLv2: 한 층만 4.1%p로 잡음 0.8%p를 겨우 넘음)에서 한 층이 31%로 부풀려 보였다. P의 효과는 절대량과 순서가 맞는다.
 를 계산하고, 관측된 P의 효과(BRECQ 대비 P만 더한 조건의 짝 Δ LVIS AP, CVPR2027/runs)를 나란히 출력한다.
-그림: figures/sensitivity_maps.{pdf,png}. 여섯 모델의 층별 증가 비중(깊이 순서), P가 고른 층은 파란색,
-YOLO-World에서 G가 대신 다루는 텍스트 융합 conv는 빗금.
+그림: figures/sensitivity_maps.{pdf,png}(본문: 구조 계열마다 하나씩 4개 모델), figures/sensitivity_maps_all.{pdf,png}(부록: 8개).
+층별 증가(깊이 순서), P가 고른 층은 파란색, YOLO-World에서 G가 대신 다루는 텍스트 융합 conv는 빗금.
+11-03: P 표시는 새 규칙(G가 다루는 conv를 빼고 다시 채움, 분모 = 양자화 weight 전체 = run_comparison의 Pg).
+제목의 집중도는 G 대상 conv를 포함해 1.5% 예산(select_protected)이 담는 손상 비중으로, figures/src/concentration_curve.py의 점과 같다.
 사용(저장소 루트): .venv/bin/python figures/src/diag_concentration.py
 """
 from __future__ import annotations
@@ -21,14 +23,18 @@ from diag_w4_sensitivity import select_protected
 PC = os.path.join(ROOT, "configs", "protect_cache")
 BUDGET = 0.015
 KIND_EN = {"CNN, 텍스트 게이트": "CNN, text-gated fusion", "CNN, 게이트 없음": "CNN, no gate",
-           "CNN(YOLO11), 게이트 없음": "CNN (YOLO11), no gate", "ViT, late fusion": "ViT, late fusion"}
+           "CNN(YOLO11), 게이트 없음": "CNN (YOLO11), no gate", "ViT, late fusion": "ViT, late fusion",
+           "DETR, early fusion": "DETR, early fusion"}
+MAIN = ("YOLO-World-S", "YOLOE-v8s", "OWLv2-B/16", "Grounding DINO-T")   # 본문 그림: 구조 계열마다 하나
 MODELS = [  # (표시 이름, 캐시, 구조, G가 대신 다루는 conv)
     ("YOLO-World-S", "yolov8s-world_n200_c256_img640_la16_aqattn_cls.json", "CNN, 텍스트 게이트", {f"{i}.cv2.conv" for i in (12, 15, 19, 22)}),
     ("YOLO-World-S v2", "yolov8s-worldv2_n200_c256_img640_la16_aqattn_cls.json", "CNN, 텍스트 게이트", {f"{i}.cv2.conv" for i in (12, 15, 18, 21)}),
     ("YOLO-World-M", "yolov8m-world_n200_c256_img640_la16_aqattn_cls.json", "CNN, 텍스트 게이트", {f"{i}.cv2.conv" for i in (12, 15, 19, 22)}),
+    ("YOLO-World-L", "yolov8l-world_n200_c256_img640_la16_aqattn_cls.json", "CNN, 텍스트 게이트", {f"{i}.cv2.conv" for i in (12, 15, 19, 22)}),
     ("YOLOE-v8s", "yoloe-v8s-seg_n200_c256_img640_la16_aqattn_cls.json", "CNN, 게이트 없음", set()),
     ("YOLOE-11s", "yoloe-11s-seg_n200_c256_img640_la16_aqattn_cls.json", "CNN(YOLO11), 게이트 없음", set()),
     ("OWLv2-B/16", "owlv2-base-patch16_n200_c256_img960_la16_aqattn_cls_p16.json", "ViT, late fusion", set()),
+    ("Grounding DINO-T", "grounding-dino-tiny_n64_c256_attn8_p16.json", "DETR, early fusion", set()),
 ]
 # 관측된 P 효과: (모델 키, P 조건). YOLOE는 G가 아무것도 하지 않아 GP = P. v2는 P만 단독인 조건이 없다.
 P_COND = {"YOLO-World-S": ("yolov8s-world", "brecq+P"), "YOLO-World-M": ("yolov8m-world", "brecq+P"),
@@ -37,18 +43,34 @@ P_COND = {"YOLO-World-S": ("yolov8s-world", "brecq+P"), "YOLO-World-M": ("yolov8
 T95 = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571}
 
 
-def metrics(rows):
+def block_of(name):
+    """x 눈금용 블록 이름. YOLO/OWLv2는 이름 앞 번호, Grounding DINO는 B(Swin 단계)/E(인코더)/D(디코더) + 층 번호."""
+    import re
+    if name.startswith("model."):
+        for pat, tag in ((r"conv_encoder\.model\.encoder\.layers\.(\d+)", "B"), (r"model\.encoder\.layers\.(\d+)", "E"),
+                         (r"model\.decoder\.layers\.(\d+)", "D")):
+            m = re.search(pat, name)
+            if m:
+                return f"{tag}{m.group(1)}"
+        return "–"
+    return name.split(".")[0]
+
+
+def metrics(rows, gset=frozenset()):
     pos = [max(r["coco"], 0.0) for r in rows]
     tot = sum(pos)
     neg = [r["coco"] for r in rows if r["coco"] < 0]
     noise = math.sqrt(sum(v * v for v in neg) / len(neg)) if neg else float("nan")
     sel, used, total = select_protected(rows, BUDGET, "coco")
     cap = sum(max(r["coco"], 0.0) for r in rows if r["name"] in sel)
+    # 실제 P(새 규칙): G가 다루는 conv를 빼고 다시 채운다. 분모는 전체 행(run_comparison의 Pg와 같은 규칙)
+    psel = select_protected([r for r in rows if r["name"] not in gset], BUDGET, "coco", total=sum(r["mparam"] for r in rows))[0] \
+        if gset else sel
     top = max(rows, key=lambda r: r["coco"])
     return dict(n=len(rows), total=tot, top1=top["coco"] / tot, top_name=top["name"], capture=cap / tot, cap_abs=cap,
                 top_abs=top["coco"],
                 budget_frac=used / total, noise=noise, snr=top["coco"] / noise if noise == noise else float("nan"),
-                sel=sel)
+                sel=sel, psel=set(psel))
 
 
 def paired(A, B):
@@ -86,7 +108,7 @@ def p_effects():
     return out
 
 
-def figure(data):
+def figure(data, stem):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -101,7 +123,7 @@ def figure(data):
         h = [r["coco"] for r in rows]
         if mt["noise"] == mt["noise"]:
             ax.axhspan(-2 * mt["noise"], 2 * mt["noise"], color=GRID, alpha=0.6, linewidth=0, zorder=0)
-        col = [BLUE if r["name"] in mt["sel"] else GRAY for r in rows]
+        col = [BLUE if r["name"] in mt["psel"] else GRAY for r in rows]
         bars = ax.bar(x, h, width=0.8, color=col, edgecolor="#fcfcfb", linewidth=0.4)
         for b, r in zip(bars, rows):
             if r["name"] in gset:
@@ -109,14 +131,14 @@ def figure(data):
         ax.set_xlim(-1, len(rows))
         ax.yaxis.grid(True, color=GRID, linewidth=0.5); ax.set_axisbelow(True)
         ax.set_ylabel("Δ flip (pp)", fontsize=7)
-        ax.set_title(f"{name}  ·  {KIND_EN[kind]}  ·  max {mt['top_abs']:.1f} pp, {BUDGET*100:.1f}% budget captures {mt['cap_abs']:.1f} pp,"
-                     f" noise ±{2*mt['noise']:.1f} pp",
+        ax.set_title(f"{name}  ·  {KIND_EN[kind]}  ·  {BUDGET*100:.1f}% of weights hold {mt['capture']*100:.0f}% of the damage"
+                     f"  ·  noise ±{2*mt['noise']:.1f} pp",
                      loc="left", fontsize=8, color=INK)
         # 블록 경계를 x 눈금으로: 이름 앞의 블록 번호가 바뀌는 곳
-        blk = [r["name"].split(".")[0] for r in rows]
+        blk = [block_of(r["name"]) for r in rows]
         # 눈금: 강조된 층(P 선택, G 대상)이 있는 블록을 먼저, 나머지 블록 시작은 겹치지 않을 때만. 위치는 그 층의 막대 자리.
         gap = max(3, len(rows) // 25)
-        key = [i for i, r in enumerate(rows) if r["name"] in mt["sel"] or r["name"] in gset]
+        key = [i for i, r in enumerate(rows) if r["name"] in mt["psel"] or r["name"] in gset]
         ticks = []
         for i in key:
             if all(blk[i] != blk[j] for j in ticks) and all(abs(i - j) >= 2 for j in ticks):
@@ -127,23 +149,26 @@ def figure(data):
         ticks.sort()
         ax.set_xticks(ticks); ax.set_xticklabels([blk[i] for i in ticks], fontsize=6)
         ti = max(range(len(rows)), key=lambda i: rows[i]["coco"])          # 가장 큰 막대에 층 이름을 직접
-        ax.annotate(rows[ti]["name"].removesuffix(".conv"), (ti, rows[ti]["coco"]), xytext=(4, 0), textcoords="offset points",
+        lab = rows[ti]["name"].removesuffix(".conv")
+        if lab.startswith("model."):                                     # Grounding DINO: 블록 이름 + 마지막 두 마디
+            lab = f"{block_of(lab)} " + ".".join(lab.split(".")[-2:])
+        ax.annotate(lab, (ti, rows[ti]["coco"]), xytext=(4, 0), textcoords="offset points",
                     fontsize=6.5, color=INK, va="center" if rows[ti]["coco"] > 15 else "bottom")
     axes[-1].set_xlabel("block index (input → output)", fontsize=7)
     fig.legend(handles=[Patch(color=BLUE, label="protected by P (1.5% budget)"), Patch(color=GRAY, label="other layers"), Patch(color=GRID, label="noise band (±2σ)"),
                         Patch(facecolor="none", edgecolor=BLUE, hatch="////", label="text-fusion conv handled by G")],
                loc="upper right", ncol=4, fontsize=7, frameon=False, bbox_to_anchor=(1.0, 1.0))
-    fig.tight_layout(rect=(0, 0, 1, 0.97))
+    fig.tight_layout(rect=(0, 0, 1, 1 - 0.18 / fig.get_figheight()))   # 범례 자리: 높이와 무관하게 약 0.18in
     for ext in ("pdf", "png"):
-        fig.savefig(os.path.join(ROOT, "figures", f"sensitivity_maps.{ext}"), dpi=200)
-    print("그림 -> figures/sensitivity_maps.{pdf,png}")
+        fig.savefig(os.path.join(ROOT, "figures", f"{stem}.{ext}"), dpi=200)
+    print(f"그림 -> figures/{stem}.{{pdf,png}}")
 
 
 def main():
     data = []
     for name, f, kind, gset in MODELS:
         rows = json.load(open(os.path.join(PC, f)))
-        data.append((name, kind, rows, metrics(rows), gset))
+        data.append((name, kind, rows, metrics(rows, gset), gset))
     eff = p_effects()
     print("| 모델 | 구조 | 최민감 층 | 최대 증가 (%p) | 잡음 ±2σ (%p) | 예산 1.5% 포착량 (%p) | 포착 비중 | P 효과 W4A8 (Δ LVIS) | P 효과 W4A5 |")
     print("|---|---|---|---|---|---|---|---|---|")
@@ -152,7 +177,8 @@ def main():
         e = eff.get(name, {})
         print(f"| {name} | {kind} | {mt['top_name'].removesuffix('.conv')} | {mt['top_abs']:.1f} | {2*mt['noise']:.2f} | "
               f"{mt['cap_abs']:.1f} | {mt['capture']*100:.0f}% | {fe(e.get('W4A8'))} | {fe(e.get('W4A5'))} |")
-    figure(data)
+    figure([x for x in data if x[0] in MAIN], "sensitivity_maps")
+    figure(data, "sensitivity_maps_all")
 
 
 if __name__ == "__main__":

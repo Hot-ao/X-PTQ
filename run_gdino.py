@@ -15,6 +15,13 @@ two-stage query 선택 뒤라 FP 입력).
     모아 이미지당 상위 1000개, Fixed AP(run_comparison.run_lvis_eval). 이미지당 forward 32번이라 느리다
     (RTX 4000 Ada에서 FP만 4809장 약 15시간 추정) -- --lvis-start/--lvis-cap으로 일부 구간만 쓸 수 있다.
     --save-dets를 주면 조건별 검출 결과와 flip/lost 개수를 json으로 남겨, 나중에 구간들을 합쳐 다시 AP를 낼 수 있다.
+  - LVIS GT flip(11-04, lvis_gtflip): YOLO-World의 Top1_flip(GT 위치, 1203 어휘 전체 top-1)에 맞춘 정의.
+    GT 박스마다 chunk별로 IoU >= 0.5인 query 중 점수 최대를 찾고(11-05 수정), 그 점수가 가장 큰 chunk의
+    클래스를 전체 어휘 top-1로 본다. FP에 짝이 있는 GT만 센다. 양자화 쪽 top-1이 다르면 flip, 짝이 없으면 lost(%).
+  - 11-05: 위 정의는 모든 방법에서 ~75%로 같아 변별력이 없었다(FP 자신이 못 맞히는 GT의 top-1은 chunk 간 점수 비교라 흔들림).
+    lvis_gtflip_c: FP top-1이 GT 클래스와 같은 GT만 분모로 센 flip(FP가 맞히던 것을 양자화 후 틀린 비율).
+    --save-dets에 GT별 기록(gt_rec: image_id, GT 클래스, 전체 top-1 클래스·점수, chunk별 top-1 클래스·점수 목록)을 남겨 다른 조건도 나중에 다시 셀 수 있다.
+    위의 lvis_flip(FP 확신 query, chunk 안 top-1)은 그대로 둔다.
 """
 from __future__ import annotations
 import argparse, copy, glob, json, os, sys, time
@@ -53,21 +60,38 @@ def _match(s0, b0, s1, b1, conf):
     return int(keep.sum()), int(((v >= 0.5) & ~same).sum()), int((v < 0.5).sum())
 
 
+def _gt_best(sc, bx, gt):
+    """GT [G, 4] cxcywh(0~1)마다 IoU >= 0.5인 query 중 점수가 가장 큰 것 -> (IoU [G], 점수 [G], 클래스 [G]).
+    11-05: 처음엔 IoU 최대 query를 썼는데, 900개 query 중 점수 낮은 중복 박스가 뽑혀 top-1이 흔들렸다."""
+    iou = box_iou(box_convert(gt, "cxcywh", "xyxy"), box_convert(bx, "cxcywh", "xyxy"))
+    qm, qc = sc.max(-1)
+    j = torch.where(iou >= 0.5, qm[None], torch.full_like(iou, -1.0)).argmax(-1)
+    return iou.gather(1, j[:, None])[:, 0], qm[j], qc[j]
+
+
 @torch.no_grad()
-def evaluate(models, names, paths, ids, cat_ids, device, topk, chunk_topk=300, conf=0.3):
+def evaluate(models, names, paths, ids, cat_ids, device, topk, chunk_topk=300, conf=0.3, gts=None):
     """models: {이름: GdinoDet}, 'FP32'가 반드시 있어야 한다. 어휘가 chunk 여러 개면 chunk마다 forward해서
     chunk별 상위 chunk_topk를 모은 뒤 이미지당 topk. flip/lost는 chunk마다 잰 것을 더한다.
-    반환: {이름: dict(results, flip_pct, lost_pct, n_conf)}."""
+    gts: {image_id: ([G, 4] xywh 픽셀 GT, [G] 클래스 index)}가 있으면 GT flip(모듈 docstring)도 잰다.
+    반환: {이름: dict(results, flip_pct, lost_pct, n_conf[, gt_flip, gt_lost, n_gt])}."""
     for m in models.values():
         m.set_classes(names)
     fp = models["FP32"]
     offs = np.cumsum([0] + [len(c) for c in fp.chunks])
-    out = {k: dict(results=[], flip=0, lost=0) for k in models}
-    n_conf, t0 = 0, time.time()
+    out = {k: dict(results=[], flip=0, lost=0, gt_flip=0, gt_lost=0, gt_flip_c=0, gt_rec=[]) for k in models}
+    n_conf, n_gt, n_gt_c, t0 = 0, 0, 0, time.time()
     for n, (path, iid) in enumerate(zip(paths, ids)):
         px, side = preprocess(path)
         px = px.to(device)
         per = {k: ([], [], []) for k in models}
+        g = None
+        if gts is not None and len(gts.get(iid, ((),))[0]):
+            W, H = side
+            g = torch.tensor(gts[iid][0], device=device, dtype=torch.float32)
+            gcls = torch.tensor(gts[iid][1], device=device)
+            g = torch.stack([(g[:, 0] + g[:, 2] / 2) / W, (g[:, 1] + g[:, 3] / 2) / H, g[:, 2] / W, g[:, 3] / H], -1)
+            gb = {k: [] for k in models}
         for ci in range(len(fp.chunks)):
             ref = None
             for k, m in models.items():
@@ -76,12 +100,38 @@ def evaluate(models, names, paths, ids, cat_ids, device, topk, chunk_topk=300, c
                 sc, bx = o[:, :-4], o[:, -4:]
                 s, c, b = _dets(sc, bx, side, chunk_topk if len(fp.chunks) > 1 else topk)
                 per[k][0].append(s); per[k][1].append(c + offs[ci]); per[k][2].append(b)
+                if g is not None:
+                    v, mx, cc = _gt_best(sc, bx, g)
+                    gb[k].append((v, mx, cc + int(offs[ci])))
                 if k == "FP32":
                     ref = (sc, bx)
                 else:
                     nc, f, lo = _match(*ref, sc, bx, conf)
                     out[k]["flip"] += f; out[k]["lost"] += lo
             n_conf += _match(*ref, *ref, conf)[0]
+        if g is not None:
+            def top1(lst):     # chunk들 중 IoU >= 0.5이고 점수가 가장 큰 chunk의 클래스, 짝이 없으면 -1
+                v = torch.stack([a for a, _, _ in lst]); mx = torch.stack([b for _, b, _ in lst])
+                cc = torch.stack([c for _, _, c in lst])
+                mx = torch.where(v >= 0.5, mx, torch.full_like(mx, -1.0))
+                best = mx.argmax(0)
+                cls = cc.gather(0, best[None])[0]
+                return torch.where((v >= 0.5).any(0), cls, torch.full_like(cls, -1)), mx.max(0).values
+            t_fp, _ = top1(gb["FP32"])
+            ok = t_fp >= 0
+            okc = t_fp == gcls
+            n_gt += int(ok.sum()); n_gt_c += int(okc.sum())
+            for k in models:
+                t, ts = top1(gb[k])
+                ch = torch.stack([torch.where(v >= 0.5, mx, torch.full_like(mx, -1.0)) for v, mx, _ in gb[k]], 1)
+                cc = torch.stack([c for _, _, c in gb[k]], 1)      # chunk별 top-1 [G, n_chunk]
+                out[k]["gt_rec"].extend([int(iid), int(a), int(b), round(float(c), 4), cl, [round(x, 4) for x in sl]]
+                                        for a, b, c, cl, sl in zip(gcls.tolist(), t.tolist(), ts.tolist(),
+                                                                   cc.tolist(), ch.tolist()))
+                if k != "FP32":
+                    out[k]["gt_lost"] += int((ok & (t < 0)).sum())
+                    out[k]["gt_flip"] += int((ok & (t >= 0) & (t != t_fp)).sum())
+                    out[k]["gt_flip_c"] += int((okc & (t != t_fp)).sum())
         for k, (s, c, b) in per.items():
             s, c, b = np.concatenate(s), np.concatenate(c), np.concatenate(b)
             top = np.argsort(-s)[:topk]
@@ -94,6 +144,11 @@ def evaluate(models, names, paths, ids, cat_ids, device, topk, chunk_topk=300, c
         out[k]["n_conf"] = n_conf
         out[k]["flip_pct"] = 100.0 * out[k]["flip"] / max(n_conf, 1)
         out[k]["lost_pct"] = 100.0 * out[k]["lost"] / max(n_conf, 1)
+        out[k]["n_gt"] = n_gt
+        out[k]["gt_flip_pct"] = 100.0 * out[k]["gt_flip"] / max(n_gt, 1)
+        out[k]["gt_lost_pct"] = 100.0 * out[k]["gt_lost"] / max(n_gt, 1)
+        out[k]["n_gt_c"] = n_gt_c
+        out[k]["gt_flip_c_pct"] = 100.0 * out[k]["gt_flip_c"] / max(n_gt_c, 1)
     return out
 
 
@@ -346,24 +401,32 @@ def main():
         if args.lvis_cap > 0:
             pairs = pairs[:args.lvis_cap]
         lvis_names = load_names("lvis")
+        gts = {}
+        for a in lvis_gt.load_anns(lvis_gt.get_ann_ids(img_ids=[i for _, i in pairs])):
+            e = gts.setdefault(a["image_id"], ([], []))
+            e[0].append(a["bbox"]); e[1].append(a["category_id"] - 1)
         t0 = time.time()
         ev = evaluate(models, lvis_names, [p for p, _ in pairs], [i for _, i in pairs],
-                      list(range(1, len(lvis_names) + 1)), device, topk=1000)
+                      list(range(1, len(lvis_names) + 1)), device, topk=1000, gts=gts)
         if args.save_dets:
             os.makedirs(args.save_dets, exist_ok=True)
             for k, v in ev.items():
                 f = os.path.join(args.save_dets, f"lvis_w{args.w_bits}a{args.a_bits}_s{args.seed}_{k.replace('+', '-')}"
                                                  f"_{args.lvis_start}-{args.lvis_start + len(pairs)}.json")
                 json.dump(dict(image_ids=[i for _, i in pairs], results=v["results"], flip=v["flip"], lost=v["lost"],
-                               n_conf=v["n_conf"]), open(f, "w"))
+                               n_conf=v["n_conf"], gt_flip=v["gt_flip"], gt_lost=v["gt_lost"], n_gt=v["n_gt"],
+                               gt_flip_c=v["gt_flip_c"], n_gt_c=v["n_gt_c"], gt_rec=v["gt_rec"]), open(f, "w"))
                 print(f"  [dets] {f}", flush=True)
         for k, v in ev.items():
             r = run_lvis_eval(lvis_gt, v["results"], [i for _, i in pairs])
             res.setdefault(k, {}).update(lvis=100 * r["AP"], apr=100 * r["APr"], apc=100 * r["APc"], apf=100 * r["APf"],
-                                         lvis_flip=v["flip_pct"], lvis_lost=v["lost_pct"])
+                                         lvis_flip=v["flip_pct"], lvis_lost=v["lost_pct"],
+                                         lvis_gtflip=v["gt_flip_pct"], lvis_gtlost=v["gt_lost_pct"],
+                                         n_gt=v["n_gt"], gt_flip_n=v["gt_flip"], gt_lost_n=v["gt_lost"],
+                                         lvis_gtflip_c=v["gt_flip_c_pct"], n_gt_c=v["n_gt_c"], gt_flip_c_n=v["gt_flip_c"])
         print(f"[eval] LVIS {len(pairs)}장 {time.time() - t0:.0f}s", flush=True)
-    cols = ("coco", "coco_flip", "coco_lost", "lvis", "apr", "apc", "apf", "lvis_flip")
-    print("\n결과 | COCO AP | COCO_flip | COCO_lost | LVIS AP | APr | APc | APf | LVIS_flip")
+    cols = ("coco", "coco_flip", "coco_lost", "lvis", "apr", "apc", "apf", "lvis_flip", "lvis_gtflip", "lvis_gtlost", "lvis_gtflip_c")
+    print("\n결과 | COCO AP | COCO_flip | COCO_lost | LVIS AP | APr | APc | APf | LVIS_flip | LVIS_GTflip | LVIS_GTlost | LVIS_GTflip_c")
     for k, v in res.items():
         print(f"{k} | " + " | ".join(f"{v.get(c, float('nan')):.2f}" for c in cols))
     for k, v in sizes.items():

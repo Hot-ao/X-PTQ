@@ -798,13 +798,16 @@ def main():
                     help="빌드한 조건 모델을 이 폴더에 저장(qmodel_path 이름 + 메타 .json). 예: /data/taeho/cvpr2027_qmodels")
     ap.add_argument("--mcheck-refresh", action="store_true",
                     help="+A: 저장된 M 결정(configs/mcheck_cache)이 있어도 두 후보를 다시 빌드해 검사하고 결정을 덮어쓴다")
+    ap.add_argument("--recon-iters-strong", type=int, default=2000,
+                    help="brecq/qdrop/pdquant 재구성 iters(기본 2000, 원 논문은 20000). 11-04 QDrop iters 확인용")
     ap.add_argument("--load-model", default="",
                     help="빌드 대신 이 폴더에서 같은 이름의 저장 모델을 불러온다(없으면 중단)")
     ap.add_argument("--post-build", default="",
                     help="진단 스크립트 경로. 빌드 직후(평가 전) 실행하고 평가 없이 종료(PTQ_POST_BUILD와 같음)")
     args = ap.parse_args()
-    global MIG_STAT_ALL, MIG_XMAX_FLOOR
+    global MIG_STAT_ALL, MIG_XMAX_FLOOR, RECON_ITERS
     MIG_STAT_ALL = args.mig_stat == "all"
+    RECON_ITERS = args.recon_iters_strong
     MIG_XMAX_FLOOR = args.xmax_floor
     if args.odinw_only:
         args.odinw = True

@@ -448,10 +448,10 @@ def judge(g, res):
     return 1, '미지정', '기타 조건'
 
 
-def pick_ours(res, m, s):
+def pick_ours(res, m, s, seeds=None):
     """'우리 방법' 칸: 새 규칙 GP·GPM을 seed마다 train flip(ρ=1.0)으로 고른다. OWL·GDINO는 고정 조건."""
     def g(c, proto=None):
-        cands = [only_seed(x) for x in res.values() if x['m'] == m and x['s'] == s and x['c'] == c and not x['tags']
+        cands = [only_seed(x, seeds) for x in res.values() if x['m'] == m and x['s'] == s and x['c'] == c and not x['tags']
                  and (x['p'] == proto if proto else is_main(x['p']))]
         cands = [x for x in cands if x]
         return max(cands, key=lambda x: x['end']) if cands else None
@@ -474,7 +474,7 @@ def pick_ours(res, m, s):
         pick[seed] = 'GPM' if use_m else 'GP'
     if not per:
         return (None, None)
-    stats = {k: list(mean_sd([v.get(k) for v in per.values()])) for k in ('coco', 'lvis', 'lvis_flip')}
+    stats = {k: list(mean_sd([v.get(k) for v in per.values()])) for k in ('coco', 'lvis', 'lvis_flip', 'apr')}
     x = dict(m=m, s=s, c='ours', per=per, seeds=sorted(per), stats=stats, end=max(gp['end'], gpm['end']),
              src=sorted(set(gp['src']) | set(gpm['src'])), tags=[], p=gp['p'])
     return (x, ', '.join(f's{k}:{v}' for k, v in pick.items()))
@@ -484,7 +484,7 @@ def cell(x, base=None, note=None):
     if not x:
         return None
     st_ = x['stats']
-    out = dict(lvis=st_.get('lvis', [None])[0], flip=st_.get('lvis_flip', [None])[0], coco=st_.get('coco', [None])[0],
+    out = dict(lvis=st_.get('lvis', [None])[0], apr=st_.get('apr', [None])[0], flip=st_.get('lvis_flip', [None])[0], coco=st_.get('coco', [None])[0],
                sd=st_.get('lvis', [None, None])[1], n=len(x['seeds']), end=x['end'], src=x['src'], note=note,
                old=bool(x['tags']), tags=x['tags'])
     if base:
@@ -494,23 +494,26 @@ def cell(x, base=None, note=None):
     return out
 
 
-MAIN_SEED = 0   # 11-03: 주요 표는 seed 0 하나로 통일한다(결과 분류 탭은 그대로 seed 평균)
+MAIN_SEED = 0          # 11-03: 주요 표는 seed 0 하나로 통일한다(결과 분류 탭은 그대로 seed 평균)
+DRAFT_SEEDS = (0, 1, 2)  # 11-04: 메인 표 안은 seed 0~2 평균(GDINO·OWL처럼 seed 0만 있으면 그것만)
 
 
-def only_seed(x, seed=MAIN_SEED):
-    """결과 묶음 x에서 seed 하나만 남긴 사본. 그 seed가 없으면 None."""
-    if x and x['c'] == 'FP32' and seed not in x['per'] and x['per']:
-        seed = min(x['per'])                         # FP는 seed와 무관
-    if not x or seed not in x['per']:
+def only_seed(x, seeds=None):
+    """결과 묶음 x에서 seeds(기본 seed 0)만 남긴 사본. seed 0이 없으면 None."""
+    seeds = seeds or (MAIN_SEED,)
+    if x and x['c'] == 'FP32' and seeds[0] not in x['per'] and x['per']:
+        seeds = (min(x['per']),)                     # FP는 seed와 무관
+    if not x or seeds[0] not in x['per']:
         return None
-    v = x['per'][seed]
-    stats = {k: [v[k], None] for k in ('coco', 'lvis', 'lvis_flip', 'lvis_lost', 'tf', 'apr') if v.get(k) is not None}
-    return dict(x, per={seed: v}, seeds=[seed], stats=stats)
+    per = {k: x['per'][k] for k in seeds if k in x['per']}
+    stats = {k: list(mean_sd([v.get(k) for v in per.values()])) for k in ('coco', 'lvis', 'lvis_flip', 'lvis_lost', 'tf', 'apr')
+             if any(v.get(k) is not None for v in per.values())}
+    return dict(x, per=per, seeds=sorted(per), stats=stats)
 
 
-def best(res, m, s, c, proto=None):
+def best(res, m, s, c, proto=None, seeds=None):
     """새 규칙(꼬리표 없음)을 먼저, 없으면 기존 규칙을 쓴다(페이지에서 회색으로 표시). 주요 표용이라 seed 0만 본다."""
-    cands = [only_seed(x) for x in res.values() if x['m'] == m and x['s'] == s and x['c'] == c
+    cands = [only_seed(x, seeds) for x in res.values() if x['m'] == m and x['s'] == s and x['c'] == c
              and (x['p'] == proto if proto else is_main(x['p']))
              and not any(t.startswith('P 예산') for t in x['tags'])]
     cands = [x for x in cands if x]
@@ -581,6 +584,38 @@ def fixed_tables(res, pending):
             row['cells'][s] = merge(cell(best(res, S, s, c), b if c != 'brecq' else None), pend(pending, S, s, c))
         t3.append(row)
     return dict(t1=t1, t2=t2, t3=t3, settings=SETTINGS)
+
+
+def main_cell(res, pending, m, s, c):
+    """메인 표 안의 한 칸(seed 0~2 평균). 'ours' = BRECQ 위 seed마다 ρ 선택,
+    'qdrop+ours' = QDrop 위에 seed 0에서 고른 구성(GP/GPM)을 모든 seed에 고정."""
+    S3 = DRAFT_SEEDS
+    b = best(res, m, s, 'brecq', seeds=S3)
+    if c == 'ours':
+        x, note = pick_ours(res, m, s, S3)
+        return merge(cell(x, b, note), pend(pending, m, s, 'brecq+GPM'))
+    if c == 'qdrop+ours':
+        _, note = pick_ours(res, m, s)
+        qc = 'qdrop+' + note.split(':')[-1] if note else 'qdrop+GPM'
+        return merge(cell(best(res, m, s, qc, seeds=S3), best(res, m, s, 'qdrop', seeds=S3), qc), pend(pending, m, s, qc))
+    base = b if c.startswith('brecq+') else best(res, m, s, 'qdrop', seeds=S3) if c.startswith('qdrop+') else None
+    return merge(cell(best(res, m, s, c, seeds=S3), base), pend(pending, m, s, c))
+
+
+def main_drafts(res, pending):
+    """논문 메인 표 후보들(11-03). 구성은 main_drafts.json에 있고, 칸 값은 seed 0~2 평균이다(11-04)."""
+    try:
+        drafts = json.load(open(os.path.join(os.path.dirname(__file__), 'main_drafts.json')))
+    except (OSError, ValueError):
+        return []
+    for d in drafts:
+        conds = [c for _, c in d.get('cols', []) + d.get('rows', [])]
+        d['names'] = {m: MODEL_NAME.get(m, m) for m in d['models']}
+        d['fp'] = {m: cell(next((best(res, m, s, 'FP32') for s in SETTINGS if best(res, m, s, 'FP32')), None))
+                   for m in d['models']}
+        d['cells'] = {f'{m}|{s}|{c}': main_cell(res, pending, m, s, c)
+                      for m in d['models'] for s in d['bits'] for c in conds}
+    return drafts
 
 
 def merge(c, p):
@@ -710,7 +745,7 @@ def main():
         g['name'] = MODEL_NAME.get(g['m'], g['m'])
     queues, pending = queue_details()
     data = dict(generated=time.strftime('%Y-%m-%d %H:%M'), now=round(time.time()), n_logs=n_ok, n_files=n_files,
-                fixed=fixed_tables(res, pending), queues=queues, gpus=gpu_status(), tables=TABLES, table_desc=TABLE_DESC,
+                fixed=fixed_tables(res, pending), drafts=main_drafts(res, pending), queues=queues, gpus=gpu_status(), tables=TABLES, table_desc=TABLE_DESC,
                 models=[m for m, _ in MODELS], settings=SETTINGS,
                 results=sorted([{k: v for k, v in g.items() if k != 'per'} for g in res.values()],
                                key=lambda g: -g['end']))
