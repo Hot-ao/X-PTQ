@@ -17,6 +17,7 @@ G = ('#dff1e3', '#2c7d4d')        # 게이트 교환
 P = ('#ece2f6', '#6a3fa0')        # 보호
 M = ('#d8eef2', '#1c7688')        # 이전
 R = ('#eceef0', '#59626c')        # 재구성
+D = ('#fbf1d3', '#8a6d0b')        # 진단(11-03: 진단 중심 구성에 맞춰 단계 띠 맨 앞에 추가)
 BAD = '#c0392b'
 
 fig = plt.figure(figsize=(14, 7.4))
@@ -54,18 +55,21 @@ def title(x, y, s):
 
 
 # ---------------------------------------------------------------- 단계 띠 (빌드 순서)
-STEPS = [('G', 'Gate commutation', 'FP-equivalent rewrite of C2fAttn · +0 bits', G),
-         ('P', 'Protection', 'leak-free sensitivity → 3 convs keep W8 · +0.3% size', P),
-         ('M', 'Tied scale migration', 'shared per-channel $s$ · kept only if pre-check passes', M),
+# 11-03: P는 새 규칙(G가 다루는 conv를 빼고 1.5% 예산을 다시 채움, S에서 9개 conv, weight 1.59%, 크기 +1.6%)
+STEPS = [('D', 'Leak-free diagnosis', 'per-layer flip on calibration side · picks G/P/M', D),
+         ('G', 'Gate commutation', 'FP-equivalent rewrite of C2fAttn · +0 bits', G),
+         ('P', 'Protection', 'diagnosed convs keep W8 · +1.6% size', P),
+         ('M', 'Tied scale migration', 'shared per-channel $s$ · on only if check passes', M),
          ('R', 'Block reconstruction', 'BRECQ / QDrop, unchanged', R)]
+SW, SG = 26.0, 1.75                     # 단계 상자 폭, 간격
 for i, (k, name, sub, c) in enumerate(STEPS):
-    x = 2.5 + i * 34.4
-    box(x, 67.2, 31.8, 5.6, c=c, lw=1.1, r=0.9)
-    badge(x + 3.0, 70.0, k, c, r=1.7, fs=9)
-    ax.text(x + 5.6, 71.0, name, ha='left', va='center', fontsize=8.5, weight='bold', color=INK, zorder=5)
-    ax.text(x + 5.6, 68.75, sub, ha='left', va='center', fontsize=6.3, color=MUTED, zorder=5)
-    if i < 3:
-        arrow([(x + 32.0, 70.0), (x + 34.2, 70.0)], lw=1.2)
+    x = 2.5 + i * (SW + SG)
+    box(x, 67.2, SW, 5.6, c=c, lw=1.1, r=0.9)
+    badge(x + 2.8, 70.0, k, c, r=1.6, fs=9)
+    ax.text(x + 5.2, 71.0, name, ha='left', va='center', fontsize=8.3, weight='bold', color=INK, zorder=5)
+    ax.text(x + 5.2, 68.75, sub, ha='left', va='center', fontsize=5.9, color=MUTED, zorder=5)
+    if i < len(STEPS) - 1:
+        arrow([(x + SW + 0.15, 70.0), (x + SW + SG - 0.15, 70.0)], lw=1.2)
 
 # ---------------------------------------------------------------- (a) 전체 구조
 title(2.5, 64.3, '(a) Where each step acts in YOLO-World')
@@ -75,13 +79,13 @@ ax.text(13.2, 59.4, 'Backbone', fontsize=7.5, weight='bold', color=MUTED, va='ce
 names = ['Conv', 'Conv', 'C2f', 'Conv', 'C2f', 'Conv', 'C2f', 'Conv', 'C2f', 'SPPF']
 for i, n in enumerate(names):
     x = 13.2 + i * 5.2
-    prot = i in (1, 2, 4)
+    prot = i in (1, 2, 4, 6)
     box(x, 50.0, 4.4, 7.4, f'{n}\n{i}', c=P if prot else IMG, fs=6.6, lw=1.4 if prot else 0.9)
     if prot:
         badge(x + 4.0, 57.2, 'P', P)
     if i < 9:
         arrow([(x + 4.4, 53.7), (x + 5.2, 53.7)], lw=0.8, head=False)
-ax.text(24.2, 48.7, 'W8 kept for convs 1, 2.cv2, 4.cv1', fontsize=6.2, color=P[1], ha='center', va='center', style='italic')
+ax.text(29.4, 48.7, 'W8 kept for 9 convs in blocks 1, 2, 4, 6 (1.6% of weights)', fontsize=6.2, color=P[1], ha='center', va='center', style='italic')
 
 box(69.0, 47.6, 38.0, 13.2, c=('#f6f8fb', '#9aa7b8'), lw=0.9, z=1)
 ax.text(70.2, 59.4, 'Neck (text–image fusion)', fontsize=7.5, weight='bold', color=MUTED, va='center')

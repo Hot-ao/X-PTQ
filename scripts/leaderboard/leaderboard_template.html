@@ -3,323 +3,343 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="refresh" content="300">
-<title>PromptCal-PTQ 리더보드</title>
+<title>CVPR2027 실험 현황</title>
 <style>
 :root{
-  --bg:#f7f8fa; --panel:#ffffff; --text:#1c2330; --muted:#667085; --line:#e4e7ec;
-  --accent:#2f6fde; --accent-soft:#e8f0fd; --good:#137a43; --good-soft:#e3f5eb;
-  --bad:#b42318; --bad-soft:#fdecea; --warn:#a15c07; --warn-soft:#fef4e2; --ours:#f3f0ff;
-  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --bg:#f6f7f9; --panel:#ffffff; --text:#1b2230; --muted:#667085; --line:#e3e6eb; --line2:#eef0f3;
+  --accent:#2f6fde; --accent-soft:#e9f0fd; --good:#137a43; --good-soft:#e4f5ec; --bad:#b42318; --bad-soft:#fdecea;
+  --warn:#9a5b06; --warn-soft:#fdf3e1; --old:#98a2b3; --ours:#f4f1ff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#0f1218; --panel:#171b23; --text:#e6e9ef; --muted:#98a2b3; --line:#2a303b;
-    --accent:#6a9cff; --accent-soft:#1c2a45; --good:#4fc27f; --good-soft:#15301f;
-    --bad:#ff7b6e; --bad-soft:#3a1915; --warn:#f2b45a; --warn-soft:#3a2a12; --ours:#211d33;
+    --bg:#0f1218; --panel:#171b23; --text:#e6e9ef; --muted:#98a2b3; --line:#2a303b; --line2:#202631;
+    --accent:#6a9cff; --accent-soft:#1c2a45; --good:#4fc27f; --good-soft:#15301f; --bad:#ff7b6e; --bad-soft:#3a1915;
+    --warn:#f2b45a; --warn-soft:#3a2a12; --old:#667085; --ours:#211d33;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#0f1218; --panel:#171b23; --text:#e6e9ef; --muted:#98a2b3; --line:#2a303b;
-  --accent:#6a9cff; --accent-soft:#1c2a45; --good:#4fc27f; --good-soft:#15301f;
-  --bad:#ff7b6e; --bad-soft:#3a1915; --warn:#f2b45a; --warn-soft:#3a2a12; --ours:#211d33;
+  --bg:#0f1218; --panel:#171b23; --text:#e6e9ef; --muted:#98a2b3; --line:#2a303b; --line2:#202631;
+  --accent:#6a9cff; --accent-soft:#1c2a45; --good:#4fc27f; --good-soft:#15301f; --bad:#ff7b6e; --bad-soft:#3a1915;
+  --warn:#f2b45a; --warn-soft:#3a2a12; --old:#667085; --ours:#211d33;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif}
-header{padding:20px 24px 8px;max-width:1400px;margin:0 auto}
-h1{font-size:20px;margin:0 0 4px}
-.sub{color:var(--muted);font-size:13px}
-main{max-width:1400px;margin:0 auto;padding:0 24px 40px}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:14px 0}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
-.card b{display:block;font-size:20px}
-.card span{color:var(--muted);font-size:12px}
+header{max-width:1400px;margin:0 auto;padding:18px 16px 6px;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+h1{font-size:19px;margin:0}
+.sub{color:var(--muted);font-size:12.5px}
+nav{max-width:1400px;margin:0 auto;padding:6px 16px;display:flex;gap:6px;flex-wrap:wrap;position:sticky;top:0;background:var(--bg);z-index:5;border-bottom:1px solid var(--line)}
+nav button,.subtabs button{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:8px;padding:6px 12px;cursor:pointer;font:inherit}
+nav button.on,.subtabs button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+main{max-width:1400px;margin:0 auto;padding:10px 16px 40px}
+section{display:none} section.on{display:block}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:12px 0}
-.panel h2{font-size:15px;margin:0 0 8px}
-.job{display:flex;align-items:center;gap:10px;margin:6px 0;flex-wrap:wrap}
-.bar{flex:1;min-width:160px;height:8px;background:var(--line);border-radius:4px;overflow:hidden}
-.bar i{display:block;height:100%;background:var(--accent)}
-.chip{display:inline-block;font-size:12px;padding:1px 8px;border-radius:10px;background:var(--accent-soft);color:var(--accent);margin:2px 4px 2px 0;font-family:var(--mono)}
-.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:end;position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--line)}
-.filters label{display:flex;flex-direction:column;font-size:12px;color:var(--muted);gap:3px}
-select,input{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 8px}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
-.seg button{font:inherit;border:0;background:var(--panel);color:var(--text);padding:5px 10px;cursor:pointer}
-.seg button.on{background:var(--accent);color:#fff}
-.tabs{display:flex;gap:6px;margin:14px 0 4px}
-.tabs button{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--text);padding:6px 12px;border-radius:6px;cursor:pointer}
-.tabs button.on{border-color:var(--accent);color:var(--accent)}
-.group{background:var(--panel);border:1px solid var(--line);border-radius:10px;margin:14px 0;overflow:hidden}
-.ghead{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;padding:10px 14px;border-bottom:1px solid var(--line)}
-.ghead h3{margin:0;font-size:15px}
-.ghead .fp{color:var(--muted);font-size:12px;margin-left:auto}
-.tw{overflow-x:auto}
+.panel h2{font-size:15px;margin:0 0 4px}
+.panel .desc{color:var(--muted);font-size:12.5px;margin:0 0 10px}
+.scroll{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:13px}
-th,td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
-th{position:sticky;top:0;background:var(--panel);color:var(--muted);font-weight:600;cursor:pointer;user-select:none}
-th:hover{color:var(--text)}
-th.l,td.l{text-align:left}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line2);text-align:left;vertical-align:top;white-space:nowrap}
+th{color:var(--muted);font-weight:600;font-size:12px;background:var(--panel);position:sticky;top:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 tr.ours td{background:var(--ours)}
-td.best{font-weight:700;color:var(--good)}
-.sd{color:var(--muted);font-size:11px;margin-left:2px}
-.pos{color:var(--good)} .neg{color:var(--bad)} .ns{color:var(--muted)}
-.warn{display:inline-block;font-size:11px;padding:0 6px;border-radius:8px;background:var(--warn-soft);color:var(--warn);margin-left:6px}
-.rank{color:var(--muted);font-family:var(--mono)}
-.mono{font-family:var(--mono)}
-.empty{color:var(--muted);padding:20px;text-align:center}
-.legend{font-size:12px;color:var(--muted);margin:6px 0}
-#theme{margin-left:auto}
-@media (max-width:640px){header,main{padding-left:16px;padding-right:16px}.ghead .fp{margin-left:0}}
+.grid td{min-width:112px}
+.grid.main td{min-width:68px;padding:4px 8px}
+.grid.main .mc .v{font-size:14px}
+.grid.main tr.bt td{border-top:2px solid var(--line)}
+.grid.main .dd{font-size:11px}
+.grid.main tr.pair td{border-top:1px dashed var(--line)}
+.grid.main .cfgh{font-weight:400;font-size:11.5px;font-family:var(--mono)}
+.grid.main td.bitc{vertical-align:middle;font-weight:600;font-variant-numeric:tabular-nums}
+.grid.main tr.blk td{background:var(--line2);font-weight:600}
+.grid.main td.oc,.grid.main th.oc{background:var(--ours)}
+.grid.main .oc .v{font-weight:700}
+.grid.main .gl,.grid.main th.grp{border-left:2px solid var(--line)}
+.grid.main th.grp{text-align:center}
+.v{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+.s{color:var(--muted);font-size:11.5px;font-variant-numeric:tabular-nums}
+.old .v{color:var(--old);font-weight:500}
+.dpos{color:var(--good)} .dneg{color:var(--bad)}
+.badge{display:inline-block;border-radius:6px;padding:0 6px;font-size:11.5px;line-height:18px;border:1px solid transparent}
+.b-run{background:var(--accent-soft);color:var(--accent)}
+.b-wait{border:1px dashed var(--muted);color:var(--muted)}
+.b-done{background:var(--good-soft);color:var(--good)}
+.b-fail{background:var(--bad-soft);color:var(--bad)}
+.b-stop,.b-hold{background:var(--line2);color:var(--muted)}
+.b-old{background:var(--warn-soft);color:var(--warn)}
+.b-new{background:var(--accent);color:#fff}
+.cards{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 10px;min-width:120px}
+.card b{font-size:13px} .card .s{display:block}
+.meter{height:5px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:4px}
+.meter i{display:block;height:100%;background:var(--accent)}
+details>summary{cursor:pointer;list-style:none}
+details>summary::-webkit-details-marker{display:none}
+.qhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.qhead .bar{flex:1;min-width:140px;height:8px;background:var(--line);border-radius:4px;overflow:hidden;display:flex}
+.bar .d{background:var(--good)} .bar .r{background:var(--accent)}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.tools input,.tools select,td select{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 8px}
+.tools button{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:6px;padding:4px 10px;cursor:pointer}
+.subtabs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.subtabs button .c{opacity:.75;margin-left:4px}
+.star{color:var(--warn);letter-spacing:-1px}
+.legend{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin:4px 0 0}
+.mono{font-family:var(--mono);font-size:12px}
+.muted{color:var(--muted)}
+@media (max-width:640px){ header,nav,main{padding-left:16px;padding-right:16px} th,td{padding:5px 6px} }
 </style>
 </head>
 <body>
 <header>
-  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-    <h1>PromptCal-PTQ 실험 리더보드</h1>
-    <div class="seg" id="theme"><button data-t="auto" class="on">자동</button><button data-t="light">라이트</button><button data-t="dark">다크</button></div>
-  </div>
-  <div class="sub" id="sub"></div>
+  <h1>CVPR2027 실험 현황</h1>
+  <span class="sub" id="gen"></span>
 </header>
+<nav id="nav">
+  <button data-s="queue">실험 대기열</button>
+  <button data-s="fixed">주요 표</button>
+  <button data-s="drafts">메인 표 안</button>
+  <button data-s="tables">결과 분류</button>
+</nav>
 <main>
-  <div class="cards" id="cards"></div>
-  <div class="panel" id="running"></div>
-
-  <div class="filters">
-    <label>모델<select id="f-model"></select></label>
-    <label>프로토콜<select id="f-proto"></select></label>
-    <label>설정<select id="f-setting"></select></label>
-    <label>조건 검색<input id="f-q" placeholder="예: GPM, qdrop" size="14"></label>
-    <label>최소 seed<select id="f-n"><option selected>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label>
-    <label>Δ 기준<span class="seg" id="f-base"><button data-b="brecq" class="on">BRECQ</button><button data-b="base">같은 기반</button></span></label>
-    <label>기간(실행 시작 시각)<select id="f-period"><option value="all">전체</option><option value="1">최근 24시간</option><option value="3">최근 3일</option><option value="7">최근 7일</option><option value="custom">직접 지정</option></select></label>
-    <label id="l-from" hidden>시작<input type="date" id="f-from"></label>
-    <label id="l-to" hidden>끝<input type="date" id="f-to"></label>
-  </div>
-
-  <div class="tabs"><button data-v="groups" class="on">설정별 리더보드</button><button data-v="flat">전체 순위</button></div>
-  <div class="legend">LVIS AP·APr은 점(×100). 평균 <span class="sd">± 표준편차</span>. Δ는 같은 seed끼리의 짝 차이 평균 ± 95% CI(초록 = 개선, 회색 = CI가 0을 포함). flip·lost는 낮을수록 좋다. 보라색 행은 우리 방법(G/P/M 접미사). <span class="warn">⚠ seed</span>는 같은 조건의 다른 seed보다 COCO AP가 5점 넘게 낮은 붕괴 seed.</div>
-  <div id="view"></div>
+  <section id="queue"></section>
+  <section id="fixed"></section>
+  <section id="drafts"></section>
+  <section id="tables"></section>
 </main>
 <script>
-const DATA = /*__DATA__*/null;
-const $ = s => document.querySelector(s);
-const state = {model:null, proto:null, setting:'전체', q:'', n:1, base:'brecq', view:'groups', sort:{}, period:'all', from:'', to:''};
-const KEYS = ['coco','lvis','apr','apc','apf','lvis_flip','lvis_lost','heval_ap','heval_flip','top1','lost'];
-const T95 = {1:12.706,2:4.303,3:3.182,4:2.776,5:2.571,6:2.447,7:2.365,8:2.306,9:2.262};
-let G = [], NREC = 0;
-function periodRange(){
-  if(state.period==='all') return [-Infinity, Infinity];
-  if(state.period==='custom'){
-    const lo = state.from ? new Date(state.from+'T00:00:00').getTime()/1000 : -Infinity;
-    const hi = state.to ? new Date(state.to+'T23:59:59').getTime()/1000 : Infinity;
-    return [lo, hi];
-  }
-  return [DATA.now - (+state.period)*86400, Infinity];
-}
-const mean = a => a.reduce((x,y)=>x+y,0)/a.length;
-const sdev = a => { if(a.length<2) return null; const m=mean(a); return Math.sqrt(a.reduce((x,y)=>x+(y-m)**2,0)/(a.length-1)); };
-function paired(A, B, k){
-  const ss = Object.keys(A).filter(s=>B && s in B && A[s][k]!=null && B[s][k]!=null);
-  if(!ss.length) return null;
-  const x = ss.map(s=>A[s][k]-B[s][k]); const m = mean(x), sd = sdev(x);
-  return {m, ci: sd!=null ? (T95[x.length-1]||1.96)*sd/Math.sqrt(x.length) : null, n:x.length};
-}
-// make_leaderboard.py의 build_groups와 같은 규칙으로, 기간 안의 기록만 써서 다시 집계한다.
-function aggregate(){
-  const [lo, hi] = periodRange();
-  const latest = new Map();
-  for(const r of DATA.records){ if(r.t<lo || r.t>hi) continue;
-    const k = [r.m,r.p,r.s,r.c,r.seed].join('|'); const c = latest.get(k); if(!c || r.t>=c.t) latest.set(k, r); }
-  NREC = latest.size;
-  const fp = {}, by = new Map();
-  for(const r of latest.values()){
-    if(r.c==='FP32'){ if(!fp[r.m] || r.t>=fp[r.m].t) fp[r.m] = r; continue; }
-    const gk = [r.m,r.p,r.s].join('|'); if(!by.has(gk)) by.set(gk, {model:r.m, protocol:r.p, setting:r.s, conds:{}});
-    const g = by.get(gk); (g.conds[r.c] = g.conds[r.c] || {})[r.seed] = r;
-  }
-  G = [...by.values()].map(g=>{
-    const V = c => Object.fromEntries(Object.entries(g.conds[c]||{}).map(([s,r])=>[s,r.v]));
-    const base_b = g.conds.brecq ? V('brecq') : null;
-    const rows = Object.keys(g.conds).map(cond=>{
-      const recs = g.conds[cond], seeds = Object.keys(recs).map(Number).sort((a,b)=>a-b), A = V(cond);
-      const row = {cond, seeds, n:seeds.length, stats:{}, per_seed:{}};
-      KEYS.forEach(k=>{ const v = seeds.map(s=>recs[s].v[k]).filter(x=>x!=null); if(v.length) row.stats[k] = [mean(v), sdev(v)]; });
-      seeds.forEach(s=>{ row.per_seed[s] = {coco:recs[s].v.coco, lvis:recs[s].v.lvis, lvis_flip:recs[s].v.lvis_flip}; });
-      const cocos = seeds.map(s=>recs[s].v.coco).filter(x=>x!=null).sort((a,b)=>a-b);
-      const med = cocos.length ? (cocos.length%2 ? cocos[(cocos.length-1)/2] : (cocos[cocos.length/2-1]+cocos[cocos.length/2])/2) : null;
-      row.collapse = cocos.length>=3 ? seeds.filter(s=>recs[s].v.coco!=null && recs[s].v.coco < med-5) : [];
-      const rs = seeds.map(s=>recs[s]);
-      { const f = rs.find(r=>r.size!=null); row.size = f ? f.size : null; }
-      const b = rs.map(r=>r.build).filter(x=>x); row.build_min = b.length ? mean(b)/60 : null;
-      row.src = [...new Set(rs.map(r=>r.src))].sort();
-      row.t_range = [Math.min(...rs.map(r=>r.t)), Math.max(...rs.map(r=>r.t))];
-      const bn = cond.includes('+') ? cond.split('+')[0] : null;
-      row.d_brecq = (base_b && cond!=='brecq') ? Object.fromEntries(['coco','lvis','lvis_flip'].map(k=>[k, paired(A, base_b, k)])) : {};
-      const bb = (bn && bn!=='brecq' && g.conds[bn]) ? V(bn) : null;
-      row.d_base = bb ? Object.fromEntries(['coco','lvis','lvis_flip'].map(k=>[k, paired(A, bb, k)])) : row.d_brecq;
-      row.base_name = bb ? bn : (Object.keys(row.d_brecq).length ? 'brecq' : null);
-      return row;
-    });
-    return {model:g.model, protocol:g.protocol, setting:g.setting, rows, fp: fp[g.model] ? fp[g.model].v : null};
-  });
-}
-const fdate = s => { const d = new Date(s*1000); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
-const COLS = [
-  {k:'coco', t:'COCO AP', hi:true}, {k:'lvis', t:'LVIS AP', hi:true}, {k:'apr', t:'APr', hi:true},
-  {k:'lvis_flip', t:'LVIS_flip (%)', hi:false}, {k:'lvis_lost', t:'LVIS_lost', hi:false, d:0},
-];
-const fmt = (v, d=2) => v==null ? '–' : Number(v).toFixed(d);
-const isOurs = c => /\+[GPMA]/.test(c) && !/\+[RH]$/.test(c);
+const D = /*__DATA__*/null;
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('lb.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('lb.' + k, JSON.stringify(v)); } catch (e) {} }
+};
+const pad = n => String(n).padStart(2, '0');
+const ts = t => { if (!t) return ''; const d = new Date(t * 1000); return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const dur = s => s < 3600 ? `${Math.round(s / 60)}분` : `${(s / 3600).toFixed(1)}시간`;
+const f2 = v => v == null ? '–' : v.toFixed(2);
+const recent = t => t && D.now - t < 86400;
 
-function theme(t){ if(t==='auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t);
-  document.querySelectorAll('#theme button').forEach(b=>b.classList.toggle('on', b.dataset.t===t)); try{localStorage.setItem('lb-theme',t)}catch(e){} }
-document.querySelectorAll('#theme button').forEach(b=>b.onclick=()=>theme(b.dataset.t));
-try{ theme(localStorage.getItem('lb-theme')||'auto') }catch(e){}
+$('#gen').textContent = `생성 ${D.generated} · 로그 ${D.n_logs}개 · 10분마다 갱신`;
 
-function header(){
-  const [lo, hi] = periodRange();
-  const ptxt = state.period==='all' ? '전체 기간' : `${isFinite(lo)?fdate(lo):'처음'} ~ ${isFinite(hi)?fdate(hi):'지금'}`;
-  $('#sub').textContent = `생성 ${DATA.generated} (10분마다 자동 갱신) · 기간 ${ptxt} · 로그 ${DATA.n_logs}/${DATA.n_files}개 · 읽는 곳 ${DATA.roots.join(', ')}`;
-  const models = new Set(G.map(g=>g.model)), protos = new Set(G.map(g=>g.protocol));
-  const runs = DATA.running.reduce((a,r)=>a+r.running.length,0);
-  $('#cards').innerHTML = [
-    [NREC,'기간 안의 결과(조건 × seed)'],[G.length,'모델 × 프로토콜 × 설정'],[models.size,'모델'],[protos.size,'프로토콜'],[runs,'진행 중 작업']
-  ].map(([b,s])=>`<div class="card"><b>${b}</b><span>${s}</span></div>`).join('');
-  if(!DATA.running.length){ $('#running').innerHTML = '<h2>진행 중 실험</h2><div class="sub">진행 중인 대기열이 없다.</div>'; return; }
-  $('#running').innerHTML = '<h2>진행 중 실험</h2>' + DATA.running.map(r=>{
-    const pct = r.total ? Math.round(100*r.done/r.total) : 0;
-    const st = r.state || '진행';
-    return `<div class="job"><span class="chip">${st}</span><span class="mono" style="min-width:150px">${r.dir}</span><div class="bar"><i style="width:${pct}%"></i></div>
-      <span class="sub">${r.done}/${r.total != null ? r.total : '?'} 완료${r.failed ? ` · 실패 ${r.failed}` : ''}</span><div style="width:100%">${r.running.map(j=>`<span class="chip" title="${j.info}">${j.tag}${j.gpu ? ` · ${j.gpu}` : ''}${j.elapsed ? ` · ${j.elapsed}` : ''}</span>`).join('')}</div></div>`;
-  }).join('');
+// ---------- 탭 ----------
+function show(s) {
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.s === s));
+  document.querySelectorAll('main section').forEach(x => x.classList.toggle('on', x.id === s));
+  store.set('tab', s);
+}
+$('#nav').addEventListener('click', e => { if (e.target.dataset.s) show(e.target.dataset.s); });
+
+// ---------- 대기열 ----------
+const STATE = {'진행': 'b-run', '대기': 'b-wait', '완료': 'b-done', '실패': 'b-fail', '정지': 'b-stop', '보류': 'b-hold'};
+function renderQueue() {
+  let h = '';
+  if (D.gpus.length) {
+    h += '<div class="panel"><h2>GPU</h2><div class="cards">' + D.gpus.map(g => {
+      const mem = +g.mem / +g.tot * 100;
+      return `<div class="card"><b>GPU ${esc(g.i)}</b><span class="s">${esc(g.name.replace('NVIDIA ', ''))}</span>
+        <span class="s">사용률 ${esc(g.util)}% · 메모리 ${(+g.mem / 1024).toFixed(1)}/${(+g.tot / 1024).toFixed(0)} GB</span>
+        <div class="meter"><i style="width:${+g.util}%"></i></div></div>`;
+    }).join('') + '</div><p class="desc">본인 작업은 GPU 5·6·7. 다른 사용자 프로세스 여부는 작업자가 시작 전에 확인한다.</p></div>';
+  }
+  for (const q of D.queues) {
+    const tot = q.jobs.length, n = q.n;
+    const summary = Object.entries(n).filter(([, v]) => v).map(([k, v]) => `<span class="badge ${STATE[k]}">${k} ${v}</span>`).join(' ');
+    const rows = q.jobs.map(j => {
+      const time = j.done ? `${ts(j.done)} <span class="s">(${dur(j.done - j.start)})</span>`
+        : j.start && j.state === '진행' ? `<span class="s">시작 ${ts(j.start)} · ${dur(D.now - j.start)} 경과</span>` : '';
+      return `<tr><td><span class="badge ${STATE[j.state]}">${j.state}</span></td><td class="mono">${esc(j.tag)}</td>
+        <td>${esc(j.model)}</td><td>${esc(j.setting)}</td><td class="mono">${esc(j.conds)}</td><td>${esc(j.seed)}</td>
+        <td>${j.gpu ? 'GPU ' + esc(j.gpu) : ''}</td><td>${time}</td><td class="s">${esc(j.extra)}</td></tr>`;
+    }).join('');
+    h += `<details class="panel" ${q.active ? 'open' : ''}><summary><div class="qhead"><h2>${esc(q.dir)}</h2>${summary}
+      <div class="bar"><span class="d" style="width:${n['완료'] / tot * 100}%"></span><span class="r" style="width:${n['진행'] / tot * 100}%"></span></div>
+      <span class="s">마지막 움직임 ${ts(q.last)}</span></div></summary>
+      <div class="scroll"><table><thead><tr><th>상태</th><th>태그</th><th>모델</th><th>비트</th><th>조건</th><th>seed</th><th>GPU</th><th>종료 (소요)</th><th>비고</th></tr></thead>
+      <tbody>${rows}</tbody></table></div></details>`;
+  }
+  if (!D.queues.length) h += '<div class="panel">최근 3일 안에 움직인 대기열이 없다.</div>';
+  $('#queue').innerHTML = h;
 }
 
-const LS_KEY = 'lb-state-v1';
-function saveState(){ try{ localStorage.setItem(LS_KEY, JSON.stringify({model:state.model, proto:state.proto, setting:state.setting,
-  q:state.q, n:state.n, base:state.base, view:state.view, sort:state.sort, period:state.period, from:state.from, to:state.to})); }catch(e){} }
-function loadState(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); }catch(e){ return null; } }
-function fillFilters(){
-  const models = [...new Set(G.map(g=>g.model))].sort();
-  const protos = [...new Set(G.map(g=>g.protocol))].sort((a,b)=> (b.startsWith('확정')-a.startsWith('확정')) || a.localeCompare(b));
-  $('#f-model').innerHTML = ['전체',...models].map(m=>`<option>${m}</option>`).join('');
-  $('#f-proto').innerHTML = ['전체',...protos].map(m=>`<option>${m}</option>`).join('');
-  state.model = models.includes('yolov8s-world') ? 'yolov8s-world' : '전체';
-  state.proto = protos.find(p=>p.startsWith('확정')) || '전체';
-  // 자동 새로고침(파일 갱신)이 돼도 보던 화면을 유지: 저장된 선택이 지금 데이터에 있으면 복원한다.
-  const sv = loadState();
-  if(sv){
-    if(sv.model==='전체' || models.includes(sv.model)) state.model = sv.model;
-    if(sv.proto==='전체' || protos.includes(sv.proto)) state.proto = sv.proto;
-    if(typeof sv.q==='string') state.q = sv.q;
-    if([1,2,3,4,5,6].includes(sv.n)) state.n = sv.n;
-    if(['brecq','base'].includes(sv.base)) state.base = sv.base;
-    if(['groups','flat'].includes(sv.view)) state.view = sv.view;
-    if(sv.sort && typeof sv.sort==='object') state.sort = sv.sort;
+// ---------- 주요 표 ----------
+function cellHTML(c, opt = {}) {
+  if (!c) return '<span class="muted">–</span>';
+  if (c.lvis == null && c.pending) return `<span class="badge ${c.pending.startsWith('진행') ? 'b-run' : 'b-wait'}">${esc(c.pending)}</span>`;
+  const d = c.d ? `<span class="${c.d[0] >= 0 ? 'dpos' : 'dneg'}">${c.d[0] >= 0 ? '+' : ''}${c.d[0].toFixed(2)}</span>` : '';
+  const tip = [`종료 ${ts(c.end)}`, `seed ${c.n}개`, c.src && c.src.join(', '), c.note && `선택: ${c.note}`,
+    c.tags && c.tags.length && `기존 규칙: ${c.tags.join(', ')}`].filter(Boolean).join('\n');
+  return `<div class="${c.old ? 'old' : ''}" title="${esc(tip)}"><span class="v">${f2(c.lvis)}</span>${opt.apr && c.apr != null ? `<span class="muted"> / ${f2(c.apr)}</span>` : ''}
+    ${recent(c.end) ? '<span class="badge b-new">new</span>' : ''}
+    <div class="s">${c.flip != null ? 'flip ' + c.flip.toFixed(1) + '%' : ''}${opt.noN ? '' : ' · n=' + c.n}${d ? ' · Δ ' + d : ''}</div>
+    ${c.pending ? `<div><span class="badge ${c.pending.startsWith('진행') ? 'b-run' : 'b-wait'}">${esc(c.pending.split(' · ')[0])}</span></div>` : ''}</div>`;
+}
+function renderFixed() {
+  const F = D.fixed;
+  const S1 = F.settings;
+  let h = `<div class="legend"><span>값 = LVIS AP (seed 0), 아래 줄 = LVIS flip · BRECQ 대비 Δ (seed 0)</span>
+    <span><b style="color:var(--old)">회색</b> = 기존 P·M 규칙 결과 (새 규칙 재실험 전)</span>
+    <span><span class="badge b-wait">대기</span> <span class="badge b-run">진행</span> = 대기열에 같은 실험이 있음</span>
+    <span>칸에 마우스를 올리면 종료 시각·출처</span></div>`;
+  h += `<div class="panel"><h2>표 A · YOLO-World-S 주 결과</h2>
+    <p class="desc">Ours(ρ=1.0 선택) = calibration 밖 train flip이 GPM ≤ GP이면 GPM, 아니면 GP (seed 0, 새 규칙).</p>
+    <div class="scroll"><table class="grid"><thead><tr><th>방법</th>${S1.map(s => `<th>${s}</th>`).join('')}</tr></thead><tbody>` +
+    F.t1.map(r => `<tr class="${r.cond === 'ours' || r.cond === 'qdrop+GPM' ? 'ours' : ''}"><td>${esc(r.label)}</td>${S1.map(s => `<td>${cellHTML(r.cells[s])}</td>`).join('')}</tr>`).join('') +
+    '</tbody></table></div></div>';
+  const S2 = ['W8A8', 'W4A8', 'W4A5', 'W4A4'];
+  h += `<div class="panel"><h2>표 B · 모델별 (BRECQ → Ours)</h2>
+    <p class="desc">YOLO 계열 Ours는 표 A와 같은 선택 규칙, OWLv2는 W8A8 M / 그 외 PM, Grounding DINO는 PM. Grounding DINO는 LVIS 일부 이미지로만 평가.</p>
+    <div class="scroll"><table class="grid"><thead><tr><th>모델</th>${S2.map(s => `<th>${s}</th>`).join('')}</tr></thead><tbody>` +
+    F.t2.map(r => `<tr><td>${esc(r.label)}</td>${S2.map(s => {
+      const c = r.cells[s];
+      if (!c) return '<td><span class="muted">–</span></td>';
+      return `<td><div class="s">FP ${f2(c.fp && c.fp.lvis)} · BRECQ ${f2(c.brecq && c.brecq.lvis)}${c.qdrop ? ' · QDrop ' + f2(c.qdrop.lvis) : ''}${c.proto ? ' · ' + esc(c.proto) : ''}</div>${cellHTML(c.ours)}</td>`;
+    }).join('')}</tr>`).join('') + '</tbody></table></div></div>';
+  const S3 = ['W4A8', 'W4A5', 'W4A4'];
+  h += `<div class="panel"><h2>표 C · YOLO-World-S ablation</h2>
+    <p class="desc">G 게이트 교환, P 보호(1.5%), M 이전, R 무작위 보호, H HAWQ식 보호, S SmoothQuant, W AWQ.</p>
+    <div class="scroll"><table class="grid"><thead><tr><th>조건</th>${S3.map(s => `<th>${s}</th>`).join('')}</tr></thead><tbody>` +
+    F.t3.map(r => `<tr class="${r.cond === 'brecq+GPM' ? 'ours' : ''}"><td class="mono">${esc(r.label)}</td>${S3.map(s => `<td>${cellHTML(r.cells[s])}</td>`).join('')}</tr>`).join('') +
+    '</tbody></table></div></div>';
+  $('#fixed').innerHTML = h;
+}
+
+// ---------- 메인 표 안 ----------
+function mainCell(c, delta) {
+  if (!c) return '<span class="muted">–</span>';
+  if (c.lvis == null && c.pending) return `<span class="badge ${c.pending.startsWith('진행') ? 'b-run' : 'b-wait'}">${esc(c.pending.split(' · ')[0])}</span>`;
+  const d = c.d ? `<span class="${c.d[0] >= 0 ? 'dpos' : 'dneg'}">${c.d[0] >= 0 ? '+' : ''}${c.d[0].toFixed(1)}</span>` : '';
+  const tip = [`종료 ${ts(c.end)}`, c.src && c.src.join(', '), c.note && `조건: ${c.note}`, c.n && `seed ${c.n}개${c.sd != null ? ` · AP sd ${c.sd.toFixed(2)}` : ''}`, c.apr != null && `APr ${f2(c.apr)}`, c.flip != null && `LVIS flip ${c.flip.toFixed(1)}%`,
+    c.tags && c.tags.length && `기존 규칙: ${c.tags.join(', ')}`].filter(Boolean).join('\n');
+  return `<div class="mc ${c.old ? 'old' : ''}" title="${esc(tip + (d ? '\n기반 대비 ΔAP ' + c.d[0].toFixed(2) : ''))}"><span class="v">${f2(c.lvis)}</span><span class="s">${c.flip != null ? ` (${c.flip.toFixed(1)})` : ''}</span>${delta && c.d ? ` <span class="dd ${c.d[0] >= 0 ? 'dpos' : 'dneg'}">${c.d[0] >= 0 ? '+' : ''}${c.d[0].toFixed(1)}</span>` : ''}${recent(c.end) ? ' <span class="badge b-new">new</span>' : ''}</div>`;
+}
+const isOurs = c => c === 'ours' || c.endsWith('+ours');
+// 모델별 Ours 구성: ρ 검사 선택(GP/GPM)을 비트마다 모아 보여준다. YOLOE는 텍스트 게이트가 없어 G를 뺀다.
+function oursCfg(d, m) {
+  const noG = !m.startsWith('yolov8');
+  const per = d.bits.map(s => {
+    const c = d.cells[`${m}|${s}|ours`];
+    let k = c && c.note ? [...new Set(c.note.split(', ').map(t => t.split(':').pop()))].join('/') : null;   // seed마다 다르면 GP/GPM
+    if (k && noG) k = k.replace('G', '');
+    return [s.replace(/^W(\d+)A(\d+)$/, '$1/$2'), k];
+  }).filter(([, k]) => k);
+  if (!per.length) return '–';
+  return new Set(per.map(([, k]) => k)).size === 1 ? per[0][1] : per.map(([b, k]) => `${k} (${b})`).join(' · ');
+}
+function draftHTML(d) {
+  const K = (m, s, c) => d.cells[`${m}|${s}|${c}`];
+  let body, head;
+  if (d.layout === 'model-rows') {
+    head = `<tr><th rowspan="2">모델</th><th rowspan="2">FP32</th>${d.bits.map(s => `<th colspan="${d.cols.length}" class="grp">${s}</th>`).join('')}</tr>
+      <tr>${d.bits.map(() => d.cols.map(([l, c], i) => `<th class="${isOurs(c) ? 'oc' : ''} ${i === 0 ? 'gl' : ''}">${esc(l)}</th>`).join('')).join('')}</tr>`;
+    body = d.models.map(m => `<tr><td>${esc(d.names[m])}</td><td>${mainCell(d.fp[m])}</td>${d.bits.map(s => d.cols.map(([l, c], i) =>
+      `<td class="${isOurs(c) ? 'oc' : ''} ${i === 0 ? 'gl' : ''}">${mainCell(K(m, s, c))}</td>`).join('')).join('')}</tr>`).join('');
+  } else if (d.layout === 'bit-col') {
+    head = `<tr><th>방법</th><th>W/A</th>${d.models.map(m => `<th>${esc(d.names[m])}<div class="cfgh">Ours: ${esc(oursCfg(d, m))}</div></th>`).join('')}</tr>`;
+    body = `<tr><td>FP32</td><td>32/32</td>${d.models.map(m => `<td>${mainCell(d.fp[m])}</td>`).join('')}</tr>` +
+      d.bits.map(s => d.rows.map(([l, c], i) => `<tr class="${i === 0 ? 'bt' : d.delta && i > 0 && !isOurs(c) ? 'pair' : ''}"><td class="${isOurs(c) ? 'oc' : ''}">${esc(l)}</td>
+        ${i === 0 ? `<td rowspan="${d.rows.length}" class="bitc">${s.replace(/^W(\d+)A(\d+)$/, '$1/$2')}</td>` : ''}${d.models.map(m => `<td class="${isOurs(c) ? 'oc' : ''}">${mainCell(K(m, s, c), d.delta && isOurs(c))}</td>`).join('')}</tr>`).join('')).join('');
+  } else {
+    head = `<tr><th>방법</th>${d.models.map(m => `<th>${esc(d.names[m])}</th>`).join('')}</tr>`;
+    body = `<tr><td>FP32</td>${d.models.map(m => `<td>${mainCell(d.fp[m])}</td>`).join('')}</tr>` +
+      d.bits.map(s => `<tr class="blk"><td colspan="${d.models.length + 1}">${s}</td></tr>` + d.rows.map(([l, c]) =>
+        `<tr><td class="${isOurs(c) ? 'oc' : ''}">${esc(l)}</td>${d.models.map(m => `<td class="${isOurs(c) ? 'oc' : ''}">${mainCell(K(m, s, c))}</td>`).join('')}</tr>`).join('')).join('');
   }
-  $('#f-period').value = state.period; $('#f-from').value = state.from; $('#f-to').value = state.to;
-  const showCustom = () => { $('#l-from').hidden = $('#l-to').hidden = state.period!=='custom'; };
-  showCustom();
-  const repick = () => { saveState(); aggregate(); header(); refreshSettings(state.setting); render(); };
-  $('#f-period').onchange = e=>{ state.period = e.target.value; showCustom(); repick(); };
-  $('#f-from').onchange = e=>{ state.from = e.target.value; repick(); };
-  $('#f-to').onchange = e=>{ state.to = e.target.value; repick(); };
-  $('#f-model').value = state.model; $('#f-proto').value = state.proto;
-  $('#f-q').value = state.q; $('#f-n').value = String(state.n);
-  document.querySelectorAll('#f-base button').forEach(x=>x.classList.toggle('on', x.dataset.b===state.base));
-  document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on', x.dataset.v===state.view));
-  refreshSettings(sv && sv.setting);
-  $('#f-model').onchange = e=>{state.model=e.target.value; refreshSettings(); render()};
-  $('#f-proto').onchange = e=>{state.proto=e.target.value; refreshSettings(); render()};
-  $('#f-setting').onchange = e=>{state.setting=e.target.value; render()};
-  $('#f-q').oninput = e=>{state.q=e.target.value.toLowerCase(); render()};
-  $('#f-n').onchange = e=>{state.n=+e.target.value; render()};
-  document.querySelectorAll('#f-base button').forEach(b=>b.onclick=()=>{state.base=b.dataset.b;
-    document.querySelectorAll('#f-base button').forEach(x=>x.classList.toggle('on',x===b)); render()});
-  document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{state.view=b.dataset.v;
-    document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b)); render()});
+  return `<div class="panel"><h2>${esc(d.name)}</h2><p class="desc">${esc(d.desc || '')}</p>
+    <div class="scroll"><table class="grid main"><thead>${head}</thead><tbody>${body}</tbody></table></div></div>`;
 }
-function refreshSettings(wanted){
-  const ord = s => { const m = s.match(/W(\d+)A(\d+)/); return m ? -(+m[1]*100 + +m[2]) : 0; };
-  const sets = [...new Set(groupsFiltered(false).map(g=>g.setting))].sort((a,b)=>ord(a)-ord(b));
-  $('#f-setting').innerHTML = ['전체',...sets].map(s=>`<option>${s}</option>`).join('');
-  if(wanted && (wanted==='전체' || sets.includes(wanted))) state.setting = wanted;
-  if(!sets.includes(state.setting)) state.setting='전체';
-  $('#f-setting').value = state.setting;
+function renderDrafts() {
+  const ids = D.drafts.map(d => d.id);
+  let on = store.get('drafts_on', ids.slice(0, 1)).filter(i => ids.includes(i));
+  if (!on.length) on = ids.slice(0, 1);
+  let h = `<div class="panel"><h2>메인 표 안</h2>
+    <p class="desc">논문 표 1 후보를 나란히 비교한다. 위 버튼으로 보고 싶은 안을 여러 개 켤 수 있다. 칸 = LVIS minival AP (LVIS flip %), seed 0~2 평균(GDINO·OWL은 seed 0). Ours는 seed마다 ρ로 고르고, QDrop+Ours는 seed 0에서 고른 구성을 고정한다. APr과 기반(BRECQ/QDrop) 대비 ΔAP는 칸에 마우스를 올리면 보인다. Ours 구성: G 게이트 교환, P W8 보호, M scale 이전 (YOLOE는 텍스트 게이트가 없어 G 없음).
+    +Ours = ρ=1.0 검사로 GP/GPM 선택, QDrop 쪽도 같은 선택. 칸에 마우스를 올리면 조건·flip. 안은 <span class="mono">scripts/leaderboard/main_drafts.json</span>에서 추가·수정한다.</p>
+    <div class="subtabs" id="dtabs">${D.drafts.map(d => `<button data-d="${esc(d.id)}" class="${on.includes(d.id) ? 'on' : ''}">${esc(d.name)}</button>`).join('')}</div></div>` +
+    D.drafts.filter(d => on.includes(d.id)).map(draftHTML).join('');
+  $('#drafts').innerHTML = h;
+  $('#dtabs').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const i = b.dataset.d;
+    store.set('drafts_on', on.includes(i) ? on.filter(x => x !== i) : ids.filter(x => on.includes(x) || x === i));
+    renderDrafts();
+  };
 }
-function groupsFiltered(useSetting=true){
-  return G.filter(g=>(state.model==='전체'||g.model===state.model)&&(state.proto==='전체'||g.protocol===state.proto)
-    &&(!useSetting||state.setting==='전체'||g.setting===state.setting));
-}
-function rowsOf(g){ return g.rows.filter(r=>r.n>=state.n && (!state.q || r.cond.toLowerCase().includes(state.q))); }
-function dget(d, dflt){ return d ? d.m : dflt; }
-function delta(r,k){ const d = (state.base==='base' ? r.d_base : r.d_brecq)||{}; return d[k]; }
-function dcell(d, lowerBetter){
-  if(!d) return '<td class="ns">–</td>';
-  const sig = d.ci!=null && Math.abs(d.m) > d.ci;
-  const good = lowerBetter ? d.m<0 : d.m>0;
-  const cls = !sig ? 'ns' : (good ? 'pos' : 'neg');
-  return `<td class="${cls}" title="공통 seed ${d.n}개">${d.m>0?'+':''}${fmt(d.m)}${d.ci!=null?`<span class="sd">± ${fmt(d.ci)}</span>`:''}</td>`;
-}
-function sortRows(rows, key, dir){
-  const val = r => key==='cond' ? r.cond : key==='n' ? r.n : key==='size' ? (r.size != null ? r.size : -1)
-    : key==='dl' ? dget(delta(r,'lvis'), -1e9) : key==='df' ? dget(delta(r,'lvis_flip'), 1e9) : (r.stats[key] ? r.stats[key][0] : -1e9);
-  return rows.slice().sort((a,b)=>{ const x=val(a), y=val(b); return (x>y?1:x<y?-1:0)*dir; });
-}
-function tableHTML(rows, gid, withGroup){
-  const s = state.sort[gid] || {key:'lvis', dir:-1};
-  rows = sortRows(rows, s.key, s.dir);
-  const best = {};
-  COLS.forEach(c=>{ const v = rows.map(r=>r.stats[c.k] ? r.stats[c.k][0] : null).filter(x=>x!=null && rows.length>1);
-    if(v.length) best[c.k] = c.hi ? Math.max(...v) : Math.min(...v); });
-  const arrow = k => s.key===k ? (s.dir>0?' ▲':' ▼') : '';
-  const bname = state.base==='base' ? '기반' : 'BRECQ';
-  let h = `<div class="tw"><table><thead><tr><th class="l">#</th>${withGroup?'<th class="l">모델 · 설정 · 프로토콜</th>':''}
-    <th class="l" data-k="cond">조건${arrow('cond')}</th><th data-k="n">seed${arrow('n')}</th><th data-k="size">크기 MiB${arrow('size')}</th>`
-    + COLS.map(c=>`<th data-k="${c.k}">${c.t}${arrow(c.k)}</th>`).join('')
-    + `<th data-k="dl">Δ LVIS vs ${bname}${arrow('dl')}</th><th data-k="df">Δ flip vs ${bname}${arrow('df')}</th><th>빌드(분)</th></tr></thead><tbody>`;
-  rows.forEach((r,i)=>{
-    const seedTip = Object.entries(r.per_seed).map(([s,v])=>`seed ${s}: COCO ${fmt(v.coco)} / LVIS ${fmt(v.lvis)} / flip ${fmt(v.lvis_flip)}`).join('\n');
-    h += `<tr class="${isOurs(r.cond)?'ours':''}"><td class="l rank">${i+1}</td>${withGroup?`<td class="l">${r._g}</td>`:''}
-      <td class="l mono">${r.cond}${r.collapse.length?`<span class="warn" title="붕괴 seed">⚠ seed ${r.collapse.join(',')}</span>`:''}</td>
-      <td title="${seedTip}\n실행 ${fdate(r.t_range[0])} ~ ${fdate(r.t_range[1])}\n${r.src.join(' ')}">${r.n} <span class="sd">(${r.seeds.join(',')})</span></td><td>${fmt(r.size)}</td>`
-      + COLS.map(c=>{ const st=r.stats[c.k]; if(!st) return '<td class="ns">–</td>';
-          const d = c.d != null ? c.d : 2; return `<td class="${best[c.k]!=null && Math.abs(st[0]-best[c.k])<1e-9?'best':''}">${fmt(st[0],d)}${st[1]!=null?`<span class="sd">± ${fmt(st[1],d)}</span>`:''}</td>`; }).join('')
-      + dcell(delta(r,'lvis'), false) + dcell(delta(r,'lvis_flip'), true)
-      + `<td class="sd">${r.build_min!=null?fmt(r.build_min,0):'–'}</td></tr>`;
-  });
-  return h + '</tbody></table></div>';
-}
-function bindSort(root, gid){
-  root.querySelectorAll('th[data-k]').forEach(th=>th.onclick=()=>{
-    const k = th.dataset.k, cur = state.sort[gid] || {key:'lvis',dir:-1};
-    const lowFirst = ['lvis_flip','lvis_lost','df','cond'].includes(k);
-    state.sort[gid] = cur.key===k ? {key:k, dir:-cur.dir} : {key:k, dir: lowFirst?1:-1};
-    render();
-  });
-}
-function render(){
-  saveState();
-  const v = $('#view'); const gs = groupsFiltered();
-  const ord = s => { const m = s.match(/W(\d+)A(\d+)/); return m ? -(+m[1]*100 + +m[2]) : 0; };
-  gs.sort((a,b)=> a.model.localeCompare(b.model) || ord(a.setting)-ord(b.setting) || a.protocol.localeCompare(b.protocol));
-  if(!gs.length){ v.innerHTML = '<div class="empty">조건에 맞는 결과가 없다.</div>'; return; }
-  if(state.view==='flat'){
-    const rows = gs.flatMap(g=>rowsOf(g).map(r=>Object.assign({}, r, {_g:`${g.model} · ${g.setting} · ${g.protocol}`})));
-    v.innerHTML = `<div class="group">${tableHTML(rows,'__flat',true)}</div>`; bindSort(v,'__flat'); return;
+
+// ---------- 결과 분류 ----------
+let assign = store.get('assign', {});
+let cur = store.get('tbl', '주요지표');
+const tblOf = g => assign[g.key] || g.tbl;
+function renderTables() {
+  const counts = {};
+  D.results.forEach(g => { const t = tblOf(g); counts[t] = (counts[t] || 0) + 1; });
+  const tabs = [...D.tables, '전체'];
+  const flt = store.get('flt', {q: '', m: '', recent: false, sort: 'end'});
+  let h = `<div class="panel"><h2>결과 분류</h2>
+    <p class="desc">결과 하나 = 모델 × 프로토콜 × 비트 × 조건 × 규칙 (seed 평균). 중요도와 기본 표는 자동 판단이고, 오른쪽 선택 상자로 표를 바꿀 수 있다.
+    바꾼 배정은 이 브라우저에 저장된다. 모두에게 기본값으로 쓰려면 "배정 복사"로 JSON을 복사해 <span class="mono">scripts/leaderboard/table_assign.json</span>에 넣는다.</p>
+    <div class="subtabs" id="subtabs">${tabs.map(t => `<button data-t="${esc(t)}" class="${t === cur ? 'on' : ''}" title="${esc(D.table_desc[t] || '모든 결과')}">${esc(t)}<span class="c">${t === '전체' ? D.results.length : (counts[t] || 0)}</span></button>`).join('')}</div>
+    <p class="desc" style="margin:2px 0 0">${esc(D.table_desc[cur] || '모든 결과')}</p>
+    <div class="tools">
+      <input id="q" placeholder="검색 (조건, 비트, 출처…)" value="${esc(flt.q)}">
+      <select id="fm"><option value="">모든 모델</option>${D.models.map(m => `<option ${flt.m === m ? 'selected' : ''} value="${m}">${m}</option>`).join('')}</select>
+      <select id="fs"><option value="end" ${flt.sort === 'end' ? 'selected' : ''}>종료 최신순</option><option value="imp" ${flt.sort === 'imp' ? 'selected' : ''}>중요도순</option><option value="model" ${flt.sort === 'model' ? 'selected' : ''}>모델·비트순</option></select>
+      <label><input type="checkbox" id="fr" ${flt.recent ? 'checked' : ''}> 최근 24시간</label>
+      <button id="exp">배정 복사 (JSON)</button><button id="rst">배정 초기화</button><span class="s" id="msg"></span>
+    </div><div class="scroll"><table><thead><tr><th>종료</th><th>중요도</th><th>모델</th><th>비트</th><th>조건</th><th>규칙·프로토콜</th><th class="num">seed</th>
+    <th class="num">COCO AP</th><th class="num">LVIS AP</th><th class="num">Δ vs BRECQ</th><th class="num">LVIS flip</th><th class="num">train flip</th><th>판단 근거</th><th>출처</th><th>표</th></tr></thead><tbody id="rows"></tbody></table></div></div>`;
+  $('#tables').innerHTML = h;
+  const order = Object.fromEntries(D.models.map((m, i) => [m, i]));
+  const sorder = Object.fromEntries(D.settings.map((s, i) => [s, i]));
+  function rows() {
+    const q = $('#q').value.trim().toLowerCase(), fm = $('#fm').value, fr = $('#fr').checked, fs = $('#fs').value;
+    store.set('flt', {q, m: fm, recent: fr, sort: fs});
+    let L = D.results.filter(g => (cur === '전체' || tblOf(g) === cur) && (!fm || g.m === fm) && (!fr || recent(g.end))
+      && (!q || [g.name, g.s, g.c, g.p, g.src.join(' '), g.tags.join(' '), g.why].join(' ').toLowerCase().includes(q)));
+    if (fs === 'imp') L.sort((a, b) => b.imp - a.imp || b.end - a.end);
+    else if (fs === 'model') L.sort((a, b) => (order[a.m] ?? 99) - (order[b.m] ?? 99) || (sorder[a.s] ?? 9) - (sorder[b.s] ?? 9) || a.c.localeCompare(b.c));
+    else L.sort((a, b) => b.end - a.end);
+    const st = g => g.stats || {};
+    $('#rows').innerHTML = L.slice(0, 600).map(g => {
+      const s = st(g), d = g.d && g.d.lvis;
+      const proto = (g.p.startsWith('확정') ? '' : g.p) + (g.tags.length ? (g.p.startsWith('확정') ? '' : ' · ') : '');
+      return `<tr><td>${ts(g.end)} ${recent(g.end) ? '<span class="badge b-new">new</span>' : ''}</td>
+        <td class="star" title="${g.imp === 3 ? '높음' : g.imp === 2 ? '중간' : '낮음'}">${'★'.repeat(g.imp)}<span class="muted">${'☆'.repeat(3 - g.imp)}</span></td>
+        <td>${esc(g.name)}</td><td>${esc(g.s)}</td><td class="mono">${esc(g.c)}</td>
+        <td>${esc(proto)}${g.tags.map(t => `<span class="badge b-old">${esc(t)}</span> `).join('')}</td>
+        <td class="num">${g.seeds.length}</td>
+        <td class="num">${f2(s.coco && s.coco[0])}</td>
+        <td class="num"><b>${f2(s.lvis && s.lvis[0])}</b>${s.lvis && s.lvis[1] != null ? `<span class="s"> ±${s.lvis[1].toFixed(2)}</span>` : ''}</td>
+        <td class="num ${d ? (d.m >= 0 ? 'dpos' : 'dneg') : ''}">${d ? (d.m >= 0 ? '+' : '') + d.m.toFixed(2) + (d.ci != null ? `<span class="s"> ±${d.ci.toFixed(2)}</span>` : '') : ''}</td>
+        <td class="num">${s.lvis_flip ? s.lvis_flip[0].toFixed(2) : ''}</td>
+        <td class="num">${s.tf ? s.tf[0].toFixed(2) : ''}</td>
+        <td class="s">${esc(g.why)}</td><td class="s mono">${esc(g.src.map(x => x.replace(/^runs\//, '')).join(' '))}</td>
+        <td><select data-k="${esc(g.key)}">${D.tables.map(t => `<option ${tblOf(g) === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></td></tr>`;
+    }).join('') || '<tr><td colspan="15" class="muted">해당 결과 없음</td></tr>';
   }
-  v.innerHTML = gs.map((g,i)=>{
-    const rows = rowsOf(g); if(!rows.length) return '';
-    const fp = g.fp ? `FP32: COCO ${fmt(g.fp.coco)} · LVIS ${fmt(g.fp.lvis)} · APr ${fmt(g.fp.apr)}` : '';
-    const gid = `${g.model}|${g.protocol}|${g.setting}`;
-    return `<section class="group" data-gid="${gid}"><div class="ghead"><h3>${g.model} · ${g.setting}</h3><span class="chip">${g.protocol}</span><span class="fp">${fp}</span></div>${tableHTML(rows,gid,false)}</section>`;
-  }).join('');
-  v.querySelectorAll('section.group').forEach(sec=>bindSort(sec, sec.dataset.gid));
+  rows();
+  ['q', 'fm', 'fs', 'fr'].forEach(id => $('#' + id).addEventListener(id === 'q' ? 'input' : 'change', rows));
+  $('#subtabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { cur = b.dataset.t; store.set('tbl', cur); renderTables(); } });
+  $('#rows').addEventListener('change', e => {
+    const k = e.target.dataset.k; if (!k) return;
+    const g = D.results.find(x => x.key === k);
+    if (e.target.value === g.tbl) delete assign[k]; else assign[k] = e.target.value;
+    store.set('assign', assign); renderTables();
+  });
+  $('#exp').onclick = () => {
+    const all = {}; D.results.forEach(g => { if (assign[g.key]) all[g.key] = assign[g.key]; });
+    const txt = JSON.stringify(all, null, 1);
+    (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(
+      () => $('#msg').textContent = `${Object.keys(all).length}개 배정을 복사했다`,
+      () => { prompt('복사해서 table_assign.json에 붙여 넣기', txt); });
+  };
+  $('#rst').onclick = () => { if (confirm('이 브라우저에 저장한 표 배정을 모두 지울까?')) { assign = {}; store.set('assign', assign); renderTables(); } };
 }
-(()=>{ const sv = loadState(); if(sv){ if(['all','1','3','7','custom'].includes(sv.period)) state.period = sv.period;
-  if(typeof sv.from==='string') state.from = sv.from; if(typeof sv.to==='string') state.to = sv.to; } })();
-aggregate(); header(); fillFilters(); render();
-try{ const y = +sessionStorage.getItem('lb-scroll'); if(y) window.scrollTo(0, y); }catch(e){}
-window.addEventListener('scroll', ()=>{ try{ sessionStorage.setItem('lb-scroll', String(window.scrollY)); }catch(e){} }, {passive:true});
+
+renderQueue(); renderFixed(); renderDrafts(); renderTables();
+show(store.get('tab', 'queue'));
+// 10분마다 다시 읽는다(선택한 탭·필터·배정은 브라우저에 남는다)
+setTimeout(() => location.reload(), 600000);
 </script>
 </body>
 </html>

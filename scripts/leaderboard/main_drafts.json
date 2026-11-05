@@ -1,0 +1,271 @@
+[
+ {
+  "id": "G",
+  "name": "G · F + W8A8·W4A4 (전체 비트)",
+  "desc": "E와 같은 배치. 비교 단위는 BRECQ 대 QDrop이 아니라 각 기준선과 그 위에 Ours를 얹은 것이다. +Ours 칸 오른쪽 숫자 = 같은 기준선 대비 ΔAP(seed 짝 평균). 재구성 설정은 모두 같다: block 단위 2,000 iters/block, batch 1, calibration 256장(QDrop drop 확률 0.5). 기준선 사이에 줄을 그어 짝을 나눈다. F에 W8A8과 W4A4 묶음을 더한 안. W8A8·W4A4는 seed 0만 있는 칸이 많다(칸 툴팁의 seed 수 확인).",
+  "layout": "bit-col",
+  "models": [
+   "yolov8s-world",
+   "yolov8s-worldv2",
+   "yolov8m-world",
+   "yolov8l-world",
+   "yoloe-v8s-seg",
+   "yoloe-11s-seg"
+  ],
+  "bits": [
+   "W8A8",
+   "W4A8",
+   "W4A5",
+   "W4A4"
+  ],
+  "rows": [
+   [
+    "BRECQ",
+    "brecq"
+   ],
+   [
+    "+ Ours",
+    "ours"
+   ],
+   [
+    "QDrop",
+    "qdrop"
+   ],
+   [
+    "+ Ours",
+    "qdrop+ours"
+   ]
+  ],
+  "delta": true
+ },
+ {
+  "id": "F",
+  "name": "F · 기준선 → +Ours 짝 비교 (Δ 표시)",
+  "desc": "E와 같은 배치. 비교 단위는 BRECQ 대 QDrop이 아니라 각 기준선과 그 위에 Ours를 얹은 것이다. +Ours 칸 오른쪽 숫자 = 같은 기준선 대비 ΔAP(seed 짝 평균). 재구성 설정은 모두 같다: block 단위 2,000 iters/block, batch 1, calibration 256장(QDrop drop 확률 0.5). 기준선 사이에 줄을 그어 짝을 나눈다.",
+  "layout": "bit-col",
+  "models": [
+   "yolov8s-world",
+   "yolov8s-worldv2",
+   "yolov8m-world",
+   "yolov8l-world",
+   "yoloe-v8s-seg",
+   "yoloe-11s-seg"
+  ],
+  "bits": [
+   "W4A8",
+   "W4A5"
+  ],
+  "rows": [
+   [
+    "BRECQ",
+    "brecq"
+   ],
+   [
+    "+ Ours",
+    "ours"
+   ],
+   [
+    "QDrop",
+    "qdrop"
+   ],
+   [
+    "+ Ours",
+    "qdrop+ours"
+   ]
+  ],
+  "delta": true
+ },
+ {
+  "id": "E",
+  "name": "E · 모델 열, 방법 행, 2열 비트",
+  "desc": "열 = 모델, 행 = 방법, 2열 = 비트(W/A). 1행 FP32, W4A8 / W4A5 묶음마다 BRECQ, +Ours, QDrop, +Ours, 모델 이름 아래 = 모델별 Ours 구성(ρ 검사 선택, QDrop 쪽도 같음). W8A8은 부록, W4A6·W4A4는 S 비트 sweep 그림.",
+  "layout": "bit-col",
+  "models": [
+   "yolov8s-world",
+   "yolov8s-worldv2",
+   "yolov8m-world",
+   "yolov8l-world",
+   "yoloe-v8s-seg",
+   "yoloe-11s-seg"
+  ],
+  "bits": [
+   "W4A8",
+   "W4A5"
+  ],
+  "rows": [
+   [
+    "BRECQ",
+    "brecq"
+   ],
+   [
+    "+Ours",
+    "ours"
+   ],
+   [
+    "QDrop",
+    "qdrop"
+   ],
+   [
+    "+Ours",
+    "qdrop+ours"
+   ]
+  ]
+ },
+ {
+  "id": "A",
+  "name": "A · 비트 열 묶음 + 기반별 plug-in",
+  "desc": "행 = 모델, 열 = 비트 묶음 x (BRECQ, +Ours, QDrop, +Ours). 11-03 사용자 제안 구조.",
+  "layout": "model-rows",
+  "models": [
+   "yolov8s-world",
+   "yolov8s-worldv2",
+   "yolov8m-world",
+   "yolov8l-world",
+   "yoloe-v8s-seg",
+   "yoloe-11s-seg"
+  ],
+  "bits": [
+   "W4A8",
+   "W4A5"
+  ],
+  "cols": [
+   [
+    "BRECQ",
+    "brecq"
+   ],
+   [
+    "+Ours",
+    "ours"
+   ],
+   [
+    "QDrop",
+    "qdrop"
+   ],
+   [
+    "+Ours",
+    "qdrop+ours"
+   ]
+  ]
+ },
+ {
+  "id": "B",
+  "name": "B · 방법 행, 비트 행 묶음",
+  "desc": "행 = 비트 묶음 x 방법, 열 = 모델. QDrop·RepQ-ViT 같은 전통적 배치. plug-in은 행으로.",
+  "layout": "method-rows",
+  "models": [
+   "yolov8s-world",
+   "yolov8s-worldv2",
+   "yolov8m-world",
+   "yolov8l-world",
+   "yoloe-v8s-seg",
+   "yoloe-11s-seg"
+  ],
+  "bits": [
+   "W4A8",
+   "W4A5"
+  ],
+  "rows": [
+   [
+    "RTN",
+    "naive"
+   ],
+   [
+    "BRECQ",
+    "brecq"
+   ],
+   [
+    "QDrop",
+    "qdrop"
+   ],
+   [
+    "BRECQ + Ours",
+    "ours"
+   ],
+   [
+    "QDrop + Ours",
+    "qdrop+ours"
+   ]
+  ]
+ },
+ {
+  "id": "C",
+  "name": "C · A + W8A8",
+  "desc": "A에 W8A8 묶음을 더한 것. 열이 13개라 넓다.",
+  "layout": "model-rows",
+  "models": [
+   "yolov8s-world",
+   "yolov8s-worldv2",
+   "yolov8m-world",
+   "yolov8l-world",
+   "yoloe-v8s-seg",
+   "yoloe-11s-seg"
+  ],
+  "bits": [
+   "W8A8",
+   "W4A8",
+   "W4A5"
+  ],
+  "cols": [
+   [
+    "BRECQ",
+    "brecq"
+   ],
+   [
+    "+Ours",
+    "ours"
+   ],
+   [
+    "QDrop",
+    "qdrop"
+   ],
+   [
+    "+Ours",
+    "qdrop+ours"
+   ]
+  ]
+ },
+ {
+  "id": "D",
+  "name": "D · A + SmoothQuant/AWQ",
+  "desc": "BRECQ 기반에 이전 규칙 기준선(SQ, AWQ)을 나란히 둔 것. SQ/AWQ는 S·M에만 있다.",
+  "layout": "model-rows",
+  "models": [
+   "yolov8s-world",
+   "yolov8s-worldv2",
+   "yolov8m-world",
+   "yolov8l-world",
+   "yoloe-v8s-seg",
+   "yoloe-11s-seg"
+  ],
+  "bits": [
+   "W4A8",
+   "W4A5"
+  ],
+  "cols": [
+   [
+    "BRECQ",
+    "brecq"
+   ],
+   [
+    "+SQ",
+    "brecq+S"
+   ],
+   [
+    "+AWQ",
+    "brecq+W"
+   ],
+   [
+    "+Ours",
+    "ours"
+   ],
+   [
+    "QDrop",
+    "qdrop"
+   ],
+   [
+    "+Ours",
+    "qdrop+ours"
+   ]
+  ]
+ }
+]
