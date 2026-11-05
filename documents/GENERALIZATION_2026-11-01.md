@@ -2,7 +2,7 @@
 
 작성: 2026-11-01
 
-일반화 주장을 위해 돌린 실험을 축별로 모은 문서다. GDINO는 [`GDINO_CHANGES.md`](GDINO_CHANGES.md)와 [`PROGRESS.md`](PROGRESS.md)에 따로 있다.
+일반화 주장을 위해 돌린 실험을 축별로 모은 문서다. GDINO는 [`GDINO_CHANGES.md`](../docs/GDINO_CHANGES.md)와 [`PROGRESS.md`](../docs/PROGRESS.md)에 따로 있다.
 
 - 수치 출처: [`../docs/RESULTS.md`](../docs/RESULTS.md), [`../docs/PAPER_DIRECTION.md`](../docs/PAPER_DIRECTION.md), [`METHOD_SCENARIO.md`](METHOD_SCENARIO.md)
 - 표기

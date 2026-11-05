@@ -12,7 +12,8 @@
 | 10-27~28 변경 사항 (코드·데이터·실험) | [`docs/UPDATE_2026-10-28.md`](docs/UPDATE_2026-10-28.md) |
 | 왜 이렇게 됐는지 (시도와 기각 기록) | [`docs/HISTORY.md`](docs/HISTORY.md) |
 | 논문 구성과 남은 일 | [`docs/PAPER_OUTLINE.md`](docs/PAPER_OUTLINE.md)(v1, 방법 중심), [`docs/PAPER_OUTLINE_v2_diagnosis.md`](docs/PAPER_OUTLINE_v2_diagnosis.md)(v2, 진단 중심) |
-| 논문 관련 문서 (시나리오, 현황 정리, 변경 경위; **10-31부터 새 논문 문서는 모두 여기에 둔다**) | [`documents/`](documents/) — [`STATUS_2026-10-31.md`](documents/STATUS_2026-10-31.md), [`METHOD_SCENARIO.md`](documents/METHOD_SCENARIO.md)(원본), [`METHOD_SCENARIO_2026-11-01.md`](documents/METHOD_SCENARIO_2026-11-01.md)(**작업본: 시나리오 수정은 여기서 한다**), [`GDINO_CHANGES.md`](documents/GDINO_CHANGES.md), [`PROGRESS.md`](documents/PROGRESS.md), [`GENERALIZATION_2026-11-01.md`](documents/GENERALIZATION_2026-11-01.md) |
+| 논문 작성에 직접 쓰는 문서 (시나리오, 논문 방향·구성, 결과 정리, 그림 배치) | [`documents/`](documents/) — [`METHOD_SCENARIO_2026-11-01.md`](documents/METHOD_SCENARIO_2026-11-01.md)(**시나리오 작업본**), [`METHOD_SCENARIO.md`](documents/METHOD_SCENARIO.md)(원본), [`PAPER_DIRECTION_2026-11-02.md`](documents/PAPER_DIRECTION_2026-11-02.md), [`PAPER_OUTLINE_2026-11-03.md`](documents/PAPER_OUTLINE_2026-11-03.md), [`RESULTS_2026-11-04.md`](documents/RESULTS_2026-11-04.md), [`FIGURE_METHOD_PLACEMENT_2026-11-04.md`](documents/FIGURE_METHOD_PLACEMENT_2026-11-04.md), [`GENERALIZATION_2026-11-01.md`](documents/GENERALIZATION_2026-11-01.md), [`STATUS_2026-10-31.md`](documents/STATUS_2026-10-31.md) |
+| 실험·개발 기록 (변경 경위, 진행 기록) | [`docs/GDINO_CHANGES.md`](docs/GDINO_CHANGES.md), [`docs/PROGRESS.md`](docs/PROGRESS.md), [`docs/RESULTS_NEW_PM_2026-11-02.md`](docs/RESULTS_NEW_PM_2026-11-02.md) |
 | 실험 현황 한눈에 | `results/LEADERBOARD.html`, `results/leaderboard.csv` |
 | 쓰지 않게 된 파일 | [`archive/README.md`](archive/README.md) |
 
