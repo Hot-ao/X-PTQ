@@ -1,5 +1,7 @@
 # 연구 시나리오: 개방 어휘 객체 검출기의 저비트 사후 양자화
 
+> **11-11 seed 0 전환:** 논문 결과는 이제 seed 0 한 번 실행 값으로 쓴다(정수 가속기 실험과 같은 기준). 이 문서의 seed 평균·신뢰구간 수치는 작성 당시 기록으로 남긴다. 논문에 옮길 수치는 [RESULTS_FINAL_1seed.md](RESULTS_FINAL_1seed.md)(seed 0)와 [DRAFT_PATCH_2026-11-10.md](DRAFT_PATCH_2026-11-10.md)를 쓴다. 3 seed 평균은 [RESULTS_FINAL_3seed.md](RESULTS_FINAL_3seed.md)(부록용).
+
 작성: 하태호 · 2026-10-30 · **갱신 2026-11-08**
 
 **11-08 갱신 요약**

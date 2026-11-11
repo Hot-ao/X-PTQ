@@ -14,6 +14,9 @@ SHORT = {"yolov8s-world": "S", "yolov8s-worldv2": "S-v2", "yolov8m-world": "M", 
          "yoloe-v8s-seg": "YOLOE-v8s", "yoloe-11s-seg": "YOLOE-11s"}
 
 
+SEEDS = tuple(int(x) for x in os.environ.get("PTQ_DRAFT_SEEDS", "0").split(","))   # 11-11: 논문 결과 seed 0 통일. 3 seed판은 PTQ_DRAFT_SEEDS=0,1,2
+
+
 def collect():
     R = []
     files = [f for d in ("234", "236", "240", "247") for f in glob.glob(os.path.join(ROOT, "runs", f"{d}_*", "*.log"))]
@@ -36,7 +39,7 @@ def collect():
         k = (r["model"], r["bits"], r["seed"], r["base"])
         if k not in latest or latest[k]["mtime"] < r["mtime"]:
             latest[k] = r
-    return list(latest.values())
+    return [r for r in latest.values() if r["seed"] in SEEDS]   # 11-11: seed 0만(Ours 구성을 정한 바로 그 검사들)
 
 
 def main():

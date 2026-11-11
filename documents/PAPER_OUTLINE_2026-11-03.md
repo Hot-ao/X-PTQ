@@ -1,5 +1,7 @@
 # 논문 개요 (2026-11-03, 11-07 수치 갱신)
 
+> **11-11 seed 0 전환:** 논문 결과는 이제 seed 0 한 번 실행 값으로 쓴다(정수 가속기 실험과 같은 기준). 이 문서의 seed 평균·신뢰구간 수치는 작성 당시 기록으로 남긴다. 논문에 옮길 수치는 [RESULTS_FINAL_1seed.md](RESULTS_FINAL_1seed.md)(seed 0)와 [DRAFT_PATCH_2026-11-10.md](DRAFT_PATCH_2026-11-10.md)를 쓴다. 3 seed 평균은 [RESULTS_FINAL_3seed.md](RESULTS_FINAL_3seed.md)(부록용).
+
 **대상 독자:** 공저자. 논문의 이야기 흐름, 절별 내용, 지금 근거가 있는 것과 없는 것을 한 번에 본다.
 
 **이전 판과의 관계**

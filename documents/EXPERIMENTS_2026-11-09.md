@@ -1,5 +1,7 @@
 # 실험 정리와 실험 절 구성 제안 (2026-11-09)
 
+> **11-11 seed 0 전환:** 논문 결과는 이제 seed 0 한 번 실행 값으로 쓴다(정수 가속기 실험과 같은 기준). 이 문서의 seed 평균·신뢰구간 수치는 작성 당시 기록으로 남긴다. 논문에 옮길 수치는 [RESULTS_FINAL_1seed.md](RESULTS_FINAL_1seed.md)(seed 0)와 [DRAFT_PATCH_2026-11-10.md](DRAFT_PATCH_2026-11-10.md)를 쓴다. 3 seed 평균은 [RESULTS_FINAL_3seed.md](RESULTS_FINAL_3seed.md)(부록용).
+
 **대상 독자:** [X-PTQ(초안).pdf](X-PTQ(초안).pdf)의 5절(Experiments)을 쓰는 사람. 지금까지 돌린 실험을 한 곳에 모으고, 각 실험이 실험 절의 어디에 왜 들어가야 하는지 근거와 함께 적는다.
 
 **수치 출처**

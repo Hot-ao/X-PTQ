@@ -2,8 +2,8 @@
 
 (a) 정성 예시, YOLO-World-S W4A8 seed 0: FP32 / BRECQ / Ours(brecq+GPM, 새 규칙 r1102).
     검출은 qual_dets.py가 만든 /data/taeho/cvpr2027_dets/qual_s_w4a8 (fp, brecq, ours)를 쓴다. 그리기 규칙은 qual_figure.draw와 같다.
-    BRECQ는 같은 설정에서 COCO AP를 FP의 92%로 유지한다(3 seed) -- 그런데 held-out 어휘 라벨을 확신을 갖고 바꾼다.
-(b) YOLO-World-S 비트별 LVIS AP, 3 seed 평균(점 = seed별 값). 값은 documents/RESULTS_2026-11-04.md §1과 같다.
+    BRECQ는 같은 설정에서 COCO AP를 FP의 92%로 유지한다 -- 그런데 held-out 어휘 라벨을 확신을 갖고 바꾼다.
+(b) YOLO-World-S 비트별 LVIS AP. 11-11부터 seed 0(documents/RESULTS_FINAL_1seed.md §2와 같다). PTQ_DRAFT_SEEDS=0,1,2면 3 seed 평균(점 = seed별 값).
 사용(저장소 루트): .venv/bin/python figures/src/teaser_v2.py [--image 450559]
 출력: figures/teaser_v2.{pdf,png}
 """
@@ -16,6 +16,7 @@ from qual_figure import LVIS_ANN, COCO_ROOT, iou, top_per_location, draw
 
 DETS = "/data/taeho/cvpr2027_dets/qual_s_w4a8"
 FP_LVIS = 25.89
+SEEDS = tuple(int(x) for x in os.environ.get("PTQ_DRAFT_SEEDS", "0").split(","))   # 11-11: 논문 결과 seed 0 통일. 3 seed판은 PTQ_DRAFT_SEEDS=0,1,2
 BITS = ["W8A8", "W4A8", "W4A5", "W4A4"]
 # LVIS AP, seed 0/1/2 (확정 프로토콜, 새 규칙). Ours = brecq+GPM(seed 0 검사가 고른 구성).
 VALS = {
@@ -91,12 +92,13 @@ def main():
     ax.axhline(FP_LVIS, color=MUTED, linewidth=0.9, linestyle=(0, (3, 2)), zorder=1)
     ax.text(-0.25, FP_LVIS + 0.6, f"FP32 {FP_LVIS:.1f}", fontsize=6.3, color=MUTED, va="bottom")
     for m in ("BRECQ", "QDrop", "Ours"):
-        means = [st.mean(VALS[m][bt]) for bt in BITS]
+        means = [st.mean(VALS[m][bt][i] for i in SEEDS) for bt in BITS]
         for i, bt in enumerate(BITS):
-            ax.scatter([i] * 3, VALS[m][bt], s=5, color=COL[m], alpha=0.35, linewidths=0, zorder=2)
+            if len(SEEDS) > 1:
+                ax.scatter([i] * len(SEEDS), [VALS[m][bt][k] for k in SEEDS], s=5, color=COL[m], alpha=0.35, linewidths=0, zorder=2)
         ax.plot(x, means, color=COL[m], linewidth=1.6, marker="o", markersize=4, markeredgecolor="white",
                 markeredgewidth=0.8, zorder=3)
-    o, bq = st.mean(VALS["Ours"]["W4A4"]), st.mean(VALS["BRECQ"]["W4A4"])
+    o, bq = st.mean(VALS["Ours"]["W4A4"][k] for k in SEEDS), st.mean(VALS["BRECQ"]["W4A4"][k] for k in SEEDS)
     ax.annotate(f"{o:.1f}", (3, o), xytext=(5, 0), textcoords="offset points", ha="left", va="center", fontsize=6.6, color=INK)
     ax.annotate("< 0.5", (3, bq), xytext=(5, 1), textcoords="offset points",
                 ha="left", va="bottom", fontsize=6.6, color=INK)

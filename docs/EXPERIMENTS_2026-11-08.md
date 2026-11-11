@@ -1,5 +1,7 @@
 # 5. Experiments 글머리 (2026-11-08)
 
+> **11-11 seed 0 전환:** 논문 결과는 이제 seed 0 한 번 실행 값으로 쓴다(정수 가속기 실험과 같은 기준). 이 문서의 seed 평균·신뢰구간 수치는 작성 당시 기록으로 남긴다. 논문에 옮길 수치는 [RESULTS_FINAL_1seed.md](RESULTS_FINAL_1seed.md)(seed 0)와 [DRAFT_PATCH_2026-11-10.md](DRAFT_PATCH_2026-11-10.md)를 쓴다. 3 seed 평균은 [RESULTS_FINAL_3seed.md](RESULTS_FINAL_3seed.md)(부록용).
+
 **대상 독자:** 실험 절을 쓰는 사람. 단락마다 주장과 근거를 글머리로 잡아 둔다. 구조를 확정한 뒤 문장으로 옮긴다.
 
 **수치 출처:** [RESULTS_2026-11-04.md](RESULTS_2026-11-04.md)(11-07 19:30판)와 [results_final.csv](results_final.csv)다. [RESULTS_FINAL.md](RESULTS_FINAL.md)는 11-06판이라 W4A4 Ours가 seed 1개로 남아 있다(S W4A4 18.60 ≠ 앞 절의 18.09). **다시 생성하기 전에는 거기서 수치를 가져오지 않는다.**

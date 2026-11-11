@@ -511,7 +511,9 @@ def cell(x, base=None, note=None):
 
 
 MAIN_SEED = 0          # 11-03: 주요 표는 seed 0 하나로 통일한다(결과 분류 탭은 그대로 seed 평균)
-DRAFT_SEEDS = (0, 1, 2)  # 11-04: 메인 표 안은 seed 0~2 평균(GDINO·OWL처럼 seed 0만 있으면 그것만)
+# 11-04: 메인 표 안은 seed 0~2 평균. 11-11: 논문 결과를 seed 0으로 통일(사용자 결정, 정수 가속기 실험과 같은 기준).
+# 3 seed 평균(부록용)은 PTQ_DRAFT_SEEDS=0,1,2 로 다시 뽑는다.
+DRAFT_SEEDS = tuple(int(x) for x in os.environ.get('PTQ_DRAFT_SEEDS', '0').split(','))
 
 
 def only_seed(x, seeds=None):
@@ -605,7 +607,7 @@ def fixed_tables(res, pending):
 
 
 def main_cell(res, pending, m, s, c):
-    """메인 표 안의 한 칸(seed 0~2 평균). 'ours' = BRECQ 위 seed 0에서 ρ로 고른 구성을 모든 seed에 고정,
+    """메인 표 안의 한 칸(DRAFT_SEEDS 평균, 11-11부터 기본 seed 0). 'ours' = BRECQ 위 seed 0에서 ρ로 고른 구성을 모든 seed에 고정,
     'qdrop+ours'·'pdquant+ours' = 그 기준선 위에 BRECQ seed 0에서 고른 구성(GP/GPM)을 모든 seed에 고정(11-09 PD-Quant 추가)."""
     S3 = DRAFT_SEEDS
     b = best(res, m, s, 'brecq', seeds=S3)
@@ -623,7 +625,7 @@ def main_cell(res, pending, m, s, c):
 
 
 def main_drafts(res, pending):
-    """논문 메인 표 후보들(11-03). 구성은 main_drafts.json에 있고, 칸 값은 seed 0~2 평균이다(11-04)."""
+    """논문 메인 표 후보들(11-03). 구성은 main_drafts.json에 있고, 칸 값은 DRAFT_SEEDS 평균이다(11-04, 11-11부터 기본 seed 0)."""
     try:
         drafts = json.load(open(os.path.join(os.path.dirname(__file__), 'main_drafts.json')))
     except (OSError, ValueError):

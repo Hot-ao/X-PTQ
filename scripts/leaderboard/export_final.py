@@ -1,7 +1,8 @@
 """현재 규칙 결과의 고정본을 documents/에 뽑는다(11-06).
 
-사용:  .venv/bin/python scripts/leaderboard/export_final.py
-출력:  documents/RESULTS_FINAL.md   논문 표 단위로 정리한 표 (손으로 고치지 말고 이 스크립트를 다시 돌린다)
+사용:  .venv/bin/python scripts/leaderboard/export_final.py                        seed 0 (11-11부터 논문 기준) -> RESULTS_FINAL_1seed.md
+       PTQ_DRAFT_SEEDS=0,1,2 .venv/bin/python scripts/leaderboard/export_final.py  3 seed 평균 (부록) -> RESULTS_FINAL_3seed.md
+출력:  documents/RESULTS_FINAL_1seed.md (seed 0) / RESULTS_FINAL_3seed.md   논문 표 단위로 정리한 표 (손으로 고치지 말고 이 스크립트를 다시 돌린다)
        documents/results_final.csv  seed별 원자료 (한 줄 = 모델 × 프로토콜 × 비트 × 조건 × seed), 칸별 출처(log, 저장 모델)
 
 - 수치는 make_leaderboard.py와 같은 함수(collect → build_results → best / pick_ours / main_cell)로 모은다.
@@ -20,7 +21,9 @@ import make_leaderboard as L
 
 DOC = os.path.join(L.ROOT, 'documents')
 S = 'yolov8s-world'
-S3 = L.DRAFT_SEEDS
+S3 = L.DRAFT_SEEDS                  # 11-11: 기본 (0,) = seed 0. PTQ_DRAFT_SEEDS로 바꾼다
+NREF = len(S3)
+MD_NAME = f'RESULTS_FINAL_{NREF}seed.md'   # 11-11: seed 0 -> _1seed, 3 seed -> _3seed. RESULTS_FINAL.md는 _1seed를 가리키는 링크
 YOLO = [m for m, _ in L.MODELS if m not in ('owlv2-b16', 'gdino-tiny')]
 OLD = ('P 기존', 'M 8장', 'ρ 1.5')
 SUP = {1: '⁽¹⁾', 2: '⁽²⁾', 4: '⁽⁴⁾', 5: '⁽⁵⁾', 6: '⁽⁶⁾'}
@@ -39,7 +42,7 @@ def label(m, pick):
     return pick.replace('G', '') if m.startswith('yoloe') else pick
 
 
-def ap_flip(c, n_ref=3, flip=True):
+def ap_flip(c, n_ref=NREF, flip=True):
     if not c or c.get('old'):                    # best()는 새 규칙 값이 없으면 기존 규칙 값을 돌려준다. 고정본에서는 빈칸
         return '–'
     if c.get('lvis') is None:
@@ -114,7 +117,7 @@ def main():
     w = out.append
     head, dirty = git_info()
 
-    w('# 실험 결과 고정본 (현재 규칙)\n')
+    w('# 실험 결과 고정본 (현재 규칙, ' + ('seed 0' if S3 == (0,) else f"seed {'·'.join(map(str, S3))} 평균") + ')\n')
     w(f"**생성:** {time.strftime('%Y-%m-%d %H:%M')} · `scripts/leaderboard/export_final.py` · 코드 커밋 `{head}`"
       + (f" (**커밋 안 된 코드 변경 있음:** {', '.join(f'`{d}`' for d in dirty)})" if dirty else '') + '\n')
     w('**대상 독자:** 공저자, 그리고 논문 표를 만드는 사람. 이 파일은 스크립트가 만든다. 손으로 고치지 말고 다시 돌린다. '
@@ -125,10 +128,18 @@ def main():
       'M은 xmax를 calibration 전체에서 재고(하한 0.3%), 사전 검사는 ρ = 1.0이다. 기존 규칙 결과는 표에 넣지 않는다(§6).')
     w('- 프로토콜: attn_cls(conv, attention, region–텍스트 내적 양자화), 첫·마지막 W8A8, head 마지막 1×1 입력 A16, 재구성 2,000 iters, '
       'calibration 256장, 결정적 실행. OWLv2·GDINO는 각자의 확정 프로토콜이다.')
-    w('- 값: **LVIS minival AP(×100) / LVIS top-1 flip(%)**. 표 1–4는 seed 0–2 평균이고, 위첨자 ⁽ⁿ⁾는 seed 수가 3이 아닌 칸이다. '
-      'Δ는 같은 seed끼리 짝지은 차이의 평균 ± 95% t 신뢰구간 반폭이다(seed 1개면 ± 없음). ⏳ = 대기열에 있음, – = 없음.')
-    w('- Ours: BRECQ 위 G+P(+M). seed 0의 calibration 밖 검사(ρ = 1.0)로 GP / GPM 중 하나를 골라 모든 seed에 쓴다. '
-      'QDrop + Ours는 같은 선택을 QDrop 위에 쓴다. YOLOE는 G가 없으므로 P / PM으로 적는다.')
+    if S3 == (0,):
+        w('- 값: **LVIS minival AP(×100) / LVIS top-1 flip(%)**, **모든 표가 seed 0 한 번 실행**이다(11-11 결정: 논문 결과를 seed 0으로 통일). '
+          'Δ는 같은 seed 0끼리의 차이다. 3 seed 평균과 95% 신뢰구간은 [RESULTS_FINAL_3seed.md](RESULTS_FINAL_3seed.md)(부록용)에 있다. '
+          '⏳ = 대기열에 있음, – = 없음.')
+        w('- **YOLO-World-S W4A5 seed 0은 BRECQ·QDrop 기준선이 무너지는 seed다**(BRECQ LVIS AP 11.29). 이 칸의 Δ는 seed 1·2보다 크게 나오므로 '
+          '논문에는 각주로 밝힌다(3 seed 평균은 3seed 파일).')
+    else:
+        w(f'- 값: **LVIS minival AP(×100) / LVIS top-1 flip(%)**. 표 1–4는 seed {"·".join(map(str, S3))} 평균이고, 위첨자 ⁽ⁿ⁾는 seed 수가 {NREF}가 아닌 칸이다. '
+          'Δ는 같은 seed끼리 짝지은 차이의 평균 ± 95% t 신뢰구간 반폭이다(seed 1개면 ± 없음). ⏳ = 대기열에 있음, – = 없음. '
+          '11-11부터 논문 본문은 seed 0판([RESULTS_FINAL_1seed.md](RESULTS_FINAL_1seed.md))을 쓰고, 이 파일은 부록·강건성 확인용이다.')
+    w('- Ours: BRECQ 위 G+P(+M). seed 0의 calibration 밖 검사(ρ = 1.0)로 GP / GPM 중 하나를 고른다(다른 seed에도 같은 선택). '
+      'QDrop + Ours, PD-Quant + Ours는 같은 선택을 그 기반 위에 쓴다. YOLOE는 G가 없으므로 P / PM으로 적는다.')
     w('- GDINO의 LVIS flip은 정의가 달라 재측정 전까지 비운다. seed별 원자료와 칸별 출처(log, 저장 모델)는 '
       '[results_final.csv](results_final.csv)에 있다.\n')
     w('---\n')
@@ -173,7 +184,7 @@ def main():
                 t += f" ({label(S, x.get('note'))})"
             cells.append(t)
         w(f'| {lab} | ' + ' | '.join(cells) + ' |')
-    w('\n- Δ와 신뢰구간은 §1(BRECQ·QDrop 대비)과 §4(조건별)에 있다.\n')
+    w('\n- Δ는 §1(기반 PTQ 대비)과 §4(조건별)에 있다.' + ('' if S3 == (0,) else ' 신뢰구간도 함께 있다.') + '\n')
 
     # 3. ViT·DETR
     w('## 3. ViT·DETR 계열: OWLv2-B/16, Grounding DINO-T\n')
@@ -219,16 +230,21 @@ def main():
     # 5. 나머지 현재 규칙 결과
     shown = {(S, s, c) for s in bits3 for c in abl}
     w('## 5. 그 밖의 현재 규칙 결과 (부록 후보)\n')
-    w('| 분류 | 모델 | 프로토콜 | 비트 | 조건 | 꼬리표 | seed | LVIS AP / flip | Δ AP (vs BRECQ) | 출처 |')
+    w('| 분류 | 모델 | 프로토콜 | 비트 | 조건 | 꼬리표 | seed | LVIS AP / flip | Δ AP (vs 기반) | 출처 |')
     w('|---|---|---|---|---|---|---|---|---|---|')
     extra = [g for g in res.values() if g['m'] in L.MODEL_NAME and g['c'] != 'FP32' and not is_old(g['tags'])
              and g['tbl'] in ('추가지표1', '추가지표2', '추가지표3', '미지정') and (g['m'], g['s'], g['c']) not in shown
              and not smoke(g['p'])]
-    for g in sorted(extra, key=lambda g: (g['tbl'], L.MODELS.index((g['m'], L.MODEL_NAME[g['m']])), g['p'], g['s'], g['c'])):
+    for g0 in sorted(extra, key=lambda g: (g['tbl'], L.MODELS.index((g['m'], L.MODEL_NAME[g['m']])), g['p'], g['s'], g['c'])):
+        g = L.only_seed(g0, S3)                  # 11-11: 표와 같은 seed만
+        if not g:
+            continue
         lv, fl = g['stats'].get('lvis', [None])[0], g['stats'].get('lvis_flip', [None])[0]
         if g['m'] == 'gdino-tiny':
             fl = None
-        d = g.get('d', {}).get('lvis')
+        bc = g['c'].split('+')[0] if '+' in g['c'] else 'brecq'
+        base = L.best(res, g['m'], g['s'], bc if bc in ('qdrop', 'pdquant') else 'brecq', g['p'], seeds=S3)
+        d = L.paired(g['per'], base['per'], 'lvis') if base and g['c'] != (base or {}).get('c') else None
         dt = '–' if not d else (f"{d['m']:+.2f} ± {d['ci']:.2f}" if d['ci'] is not None else f"{d['m']:+.2f}")
         v = '–' if lv is None else f'{lv:.2f}' + (f' / {fl:.1f}' if fl is not None else '')
         w(f"| {g['tbl']} | {L.MODEL_NAME[g['m']]} | {g['p']} | {g['s']} | {g['c']} | {', '.join(g['tags']) or '–'} | "
@@ -255,7 +271,7 @@ def main():
     for sec, name in ((1, '§1 메인 표'), (2, '§2 표 1'), (3, '§3 ViT·DETR'), (4, '§4 ablation')):
         w(f"- {name}: " + ', '.join(f'`{os.path.basename(x)}`' for x in sorted(src.by[sec])))
     w('- 칸별 log와 저장 모델 경로는 csv의 `log`, `save_model` 열에 있다.')
-    open(os.path.join(DOC, 'RESULTS_FINAL.md'), 'w').write('\n'.join(out) + '\n')
+    open(os.path.join(DOC, MD_NAME), 'w').write('\n'.join(out) + '\n')
 
     # csv: seed별 원자료 (build_results와 같은 규칙으로 같은 칸이 여러 번 돌았으면 가장 늦게 끝난 것)
     latest = {}
@@ -287,7 +303,7 @@ def main():
         cw.writerow(['model', 'protocol', 'bits', 'condition', 'seed', 'tags', 'table', 'is_ours']
                     + keys + ['size_MiB', 'log', 'save_model'])
         cw.writerows(rows)
-    print(f'documents/RESULTS_FINAL.md, documents/results_final.csv ({len(rows)}줄)'
+    print(f'documents/{MD_NAME}, documents/results_final.csv ({len(rows)}줄)'
           + (f' · 커밋 안 된 코드: {len(dirty)}개' if dirty else ''))
 
 

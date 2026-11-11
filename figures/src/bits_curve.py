@@ -2,7 +2,7 @@
 
 YOLO-World-S, LVIS AP. 11-10부터 리더보드 집계 코드(scripts/leaderboard/make_leaderboard.py의 collect -> build_results,
 best, pick_ours)를 직접 불러 seed 0-2를 쓴다. 메인 표 초안 G와 같은 규칙이다.
-  - 점 = seed 0-2 평균, 막대 = seed 최솟값-최댓값
+  - 11-11부터 seed 0 한 번 실행 값(논문 결과 통일). PTQ_DRAFT_SEEDS=0,1,2면 점 = 평균, 막대 = seed 최솟값-최댓값
   - Ours (on BRECQ) = BRECQ seed 0의 calibration 밖 flip으로 GP/GPM을 고르고 모든 seed에 고정(pick_ours)
   - Ours (on QDrop) = QDrop 위에 같은 구성
   - SmoothQuant / AWQ는 seed 0만 있어서 이 그림에서 뺐다(11-03판에는 있었음, 표 1에 남는다)
@@ -17,7 +17,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, os.path.join(ROOT, "scripts", "leaderboard"))
 BITS = ["W8A8", "W4A8", "W4A6", "W4A5", "W4A4"]
 MODEL = "yolov8s-world"
-SEEDS = (0, 1, 2)
+SEEDS = tuple(int(x) for x in os.environ.get("PTQ_DRAFT_SEEDS", "0").split(","))   # 11-11: 논문 결과 seed 0 통일. 3 seed판은 PTQ_DRAFT_SEEDS=0,1,2
 COLLAPSE = 15.0
 INK, MUTED, GRID, AXIS = "#0b0b0b", "#6b6a64", "#e1e0d9", "#c3c2b7"
 SERIES = [  # (키, 표시 이름, 색, 선 모양, 굵기)
@@ -75,7 +75,8 @@ def main():
             hollow.append(key in ("brecq", "qdrop") and min(v) < COLLAPSE)
         print(f"{name:16s} " + "  ".join(f"{BITS[x]} {y:5.2f} [{y - l:.2f}-{y + h:.2f}]" for x, y, l, h in zip(xs, ys, lo, hi)))
         ax.plot(xs, ys, color=col, linestyle=ls, linewidth=lw, zorder=4 if key == "ours" else 3)
-        ax.errorbar(xs, ys, yerr=[lo, hi], fmt="none", ecolor=col, elinewidth=0.9, capsize=1.8, capthick=0.9, zorder=3)
+        if len(SEEDS) > 1:
+            ax.errorbar(xs, ys, yerr=[lo, hi], fmt="none", ecolor=col, elinewidth=0.9, capsize=1.8, capthick=0.9, zorder=3)
         for x, y, h in zip(xs, ys, hollow):
             ax.plot([x], [y], "o", markersize=4.2, zorder=5, color=col, markerfacecolor="white" if h else col,
                     markeredgecolor=col if h else "white", markeredgewidth=0.9)
@@ -91,10 +92,10 @@ def main():
     ax.set_ylabel("LVIS AP (held-out vocabulary)")
     ax.yaxis.grid(True, color=GRID, linewidth=0.5); ax.set_axisbelow(True)
     seeds = f"{min(ns)} seeds" if len(ns) == 1 else f"{min(ns)}–{max(ns)} seeds"
-    ax.set_title(f"YOLO-World-S (mean of {seeds}, bars = seed range)", loc="left", fontsize=7.2, color=INK)
+    ax.set_title("YOLO-World-S (seed 0)" if len(SEEDS) == 1 else f"YOLO-World-S (mean of {seeds}, bars = seed range)", loc="left", fontsize=7.2, color=INK)
     h = [Line2D([], [], color=c, linestyle=ls, linewidth=lw, label=n) for _, n, c, ls, lw in SERIES[::-1]]
     h.append(Line2D([], [], color=MUTED, marker="o", markerfacecolor="white", linestyle="none", markersize=4.2,
-                    label=f"a baseline seed collapsed (AP < {COLLAPSE:g})"))
+                    label=f"baseline collapsed (AP < {COLLAPSE:g})" if len(SEEDS) == 1 else f"a baseline seed collapsed (AP < {COLLAPSE:g})"))
     fig.legend(handles=h, loc="lower center", ncol=2, fontsize=6, frameon=False, handlelength=2.4, columnspacing=1.0)
     fig.tight_layout(rect=(0, 0.17, 1, 1))
     for ext in ("pdf", "png"):

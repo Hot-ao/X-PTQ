@@ -4,11 +4,11 @@
 
 이 README는 "어떻게 설치하고, 어떻게 돌리고, 표를 어떻게 다시 만드는가"를 다룬다. 다른 내용은 아래 문서에 있다.
 - **`documents/`(11-02~):** 논문 작업용 문서. 지금 수치와 논문 반영은 여기를 본다.
-- **`docs/`(~11-04):** 원 저장소(promptcal-ptq)에서 옮겨 온 입문서·방법·경위. 방법의 뼈대는 맞지만 **수치와 규칙은 11-02 이전 것**이 섞여 있다. 수치는 `documents/RESULTS_FINAL.md`를 우선한다.
+- **`docs/`(~11-04):** 원 저장소(promptcal-ptq)에서 옮겨 온 입문서·방법·경위. 방법의 뼈대는 맞지만 **수치와 규칙은 11-02 이전 것**이 섞여 있다. 수치는 `documents/RESULTS_FINAL_1seed.md`를 우선한다.
 
 | 알고 싶은 것 | 문서 |
 |---|---|
-| **지금 결과 (현재 규칙, 3 seed, 논문 표 단위)** | [`documents/RESULTS_FINAL.md`](documents/RESULTS_FINAL.md) + seed별 원자료 [`documents/results_final.csv`](documents/results_final.csv). 스크립트 생성물(§5) |
+| **지금 결과 (현재 규칙, seed 0, 논문 표 단위)** | [`documents/RESULTS_FINAL_1seed.md`](documents/RESULTS_FINAL_1seed.md) (`RESULTS_FINAL.md`는 이 파일을 가리키는 링크), 3 seed 평균(부록용) [`documents/RESULTS_FINAL_3seed.md`](documents/RESULTS_FINAL_3seed.md) + seed별 원자료 [`documents/results_final.csv`](documents/results_final.csv). 스크립트 생성물(§5) |
 | 실험 목록과 실험 절 배치 제안 | [`documents/EXPERIMENTS_2026-11-09.md`](documents/EXPERIMENTS_2026-11-09.md) |
 | 초안 PDF에 고칠 곳 (위치별 수치·문장) | [`documents/DRAFT_PATCH_2026-11-10.md`](documents/DRAFT_PATCH_2026-11-10.md) |
 | 논문 초안 | [`documents/X-PTQ_초안_2026-11-11.md`](documents/X-PTQ_초안_2026-11-11.md), `documents/X-PTQ(초안).pdf` |
@@ -78,7 +78,7 @@ CVPR2027/
 ├── scripts/            실행(작업자·프로토콜), 대기열(queues/), 표 생성기(tables/), 리더보드(leaderboard/), 데이터 받기(data/)
 ├── figures/            논문 그림(pdf/png)과 그 생성 코드(src/)
 ├── docs/               입문서, 방법, 경위 (~11-04, 수치는 옛 규칙 포함)
-├── documents/          논문 작업 문서, 결과 고정본(RESULTS_FINAL.md, results_final.csv — 생성물), 초안
+├── documents/          논문 작업 문서, 결과 고정본(RESULTS_FINAL_1seed.md, RESULTS_FINAL_3seed.md, results_final.csv — 생성물), 초안
 ├── results/            리더보드(LEADERBOARD.html, leaderboard.csv) — 생성물
 ├── runs/               실험 로그(run마다 디렉터리). 표 생성기와 리더보드가 이름으로 읽으니 이름을 바꾸지 않는다
 ├── archive/            쓰지 않게 된 코드·run·캐시 (archive/README.md)
@@ -105,13 +105,13 @@ CVPR2027/
 | `scripts/queues/*.tsv` | 표 1~5와 확장 실험을 만든 대기열 원본(§5) |
 | `scripts/tables/*.py` | 로그에서 표 1~5를 다시 만드는 생성기(§5). `logparse.py`가 로그 파서 |
 | `scripts/make_protect_cache.py` | 보호 진단 캐시를 미리 만든다(새 모델을 대기열로 돌리기 전에 1회) |
-| `scripts/leaderboard/` | `make_leaderboard.py`(`runs/`의 모든 로그 → `results/`; `collect` → `build_results` → `best` / `pick_ours` / `main_cell`이 모든 표와 그림의 공통 집계 함수), **`export_final.py`(현재 규칙만 → `documents/RESULTS_FINAL.md`, `results_final.csv`, §5)**, 템플릿, 10분 자동 갱신 루프(`leaderboard_loop.sh`) |
+| `scripts/leaderboard/` | `make_leaderboard.py`(`runs/`의 모든 로그 → `results/`; `collect` → `build_results` → `best` / `pick_ours` / `main_cell`이 모든 표와 그림의 공통 집계 함수), **`export_final.py`(현재 규칙만 → `documents/RESULTS_FINAL_1seed.md` / `_3seed.md`, `results_final.csv`, §5)**, 템플릿, 10분 자동 갱신 루프(`leaderboard_loop.sh`) |
 | `scripts/convert_yw_seg.py` | YOLO-World-Seg mask 분기를 YOLO-World 가중치에 붙일 형식으로 변환(`--yw-seg`용) |
 | `scripts/mig_rule_check.py` | M의 xmax 규칙 비교(10-30, 재구성·평가 없이 α와 scale 변화만 본다). 11-02 규칙의 근거 |
 | `scripts/examples/post_build_flip_check.py` | `--post-build` 훅 예시 |
 | `figures/src/diag_concentration.py`, `concentration_curve.py` | 민감도 지도(`figures/sensitivity_maps*.pdf`)와 손상 집중도 곡선 |
-| `figures/src/bits_curve.py` | 비트별 LVIS AP 곡선(S, seed 0–2 평균, 막대 = seed 범위). 리더보드 집계 함수를 그대로 부른다 |
-| `figures/src/mcheck_scatter.py` | M 사전 검사 정확도 산점도(`runs/234`, `236`, `240`, `247`의 73건) |
+| `figures/src/bits_curve.py` | 비트별 LVIS AP 곡선(S, seed 0). 리더보드 집계 함수를 그대로 부른다 |
+| `figures/src/mcheck_scatter.py` | M 사전 검사 정확도 산점도(`runs/234`, `236`, `240`, `247`의 seed 0 40건) |
 | `figures/src/teaser_flip.py`, `teaser_v2.py` | teaser 그림 |
 | `figures/src/make_method_overview.py`, `make_method_arch.py`, `make_method_flow*.py` | 방법 그림(`method_*.pdf`, `method_flow.pptx`) |
 | `figures/src/qual_dets.py` → `qual_figure.py`, `qual_grid.py` | 정성 그림. 1단계(GPU)가 검출을 저장하고 2단계(CPU)가 규칙으로 사례를 고른다. **11-03판은 이전 규칙 모델 기준이라 다시 만들어야 한다** |
@@ -153,7 +153,7 @@ CVPR2027/
 
 ### 11-02 규칙 (현재 규칙)
 
-10-31~11-02에 P와 M의 세부 규칙을 고쳤다. 지금 기본값이 이 규칙이고, `RESULTS_FINAL.md`는 이 규칙 결과만 쓴다. 이전 규칙 로그는 리더보드에서 꼬리표(`P 기존`, `M 8장`, `ρ 1.5`, `하한 x%`)로 구분된다.
+10-31~11-02에 P와 M의 세부 규칙을 고쳤다. 지금 기본값이 이 규칙이고, `RESULTS_FINAL_*seed.md`는 이 규칙 결과만 쓴다. 이전 규칙 로그는 리더보드에서 꼬리표(`P 기존`, `M 8장`, `ρ 1.5`, `하한 x%`)로 구분된다.
 
 | 항목 | 이전 | 11-02 규칙 (인자, 기본값) |
 |---|---|---|
@@ -182,11 +182,11 @@ CVPR2027/
 | `R` / `H` | 같은 예산의 무작위 보호 / HAWQ식(출력 MSE) 보호 (대조군) |
 
 **우리 방법 = G + P (+ M).** G는 구조(C2fAttn 유무), P는 진단 캐시가 정한다. M을 쓸지는 **(b) 규칙**으로 정한다.
-- **(b) 규칙:** 모델·비트마다 **BRECQ seed 0**의 calibration 밖 flip(`--train-flip`)으로 GP / GPM 중 하나를 고르고, 그 선택을 모든 seed와 모든 기반(BRECQ, QDrop, PD-Quant)에 그대로 쓴다. 코드로는 `make_leaderboard.pick_ours`이고, 표의 "선택" 열이 그 결과다.
+- **(b) 규칙:** 모델·비트마다 **BRECQ seed 0**의 calibration 밖 flip(`--train-flip`)으로 GP / GPM 중 하나를 고르고, 그 선택을 모든 기반(BRECQ, QDrop, PD-Quant)과 (부록의) 다른 seed에 그대로 쓴다. 코드로는 `make_leaderboard.pick_ours`이고, 표의 "선택" 열이 그 결과다.
 - 대기열에는 결정된 구성(`brecq+GPM`, `qdrop+GP`, `pdquant+GPM` 등)을 직접 적는다. `+A`(빌드 중 자동 검사)는 같은 생각을 한 run 안에서 하는 것이고, 메인 표에는 쓰지 않는다.
 - YOLOE는 텍스트 게이트가 없어 G가 아무것도 하지 않는다. 표에는 P / PM으로 적는다.
 
-11-11 기준 선택(`RESULTS_FINAL.md` §1 "선택" 열):
+11-11 기준 선택(`RESULTS_FINAL_1seed.md` §1 "선택" 열):
 
 | 모델 | W8A8 | W4A8 | W4A6 | W4A5 | W4A4 |
 |---|---|---|---|---|---|
@@ -242,10 +242,14 @@ export PDQ_PD_REDUCE=mean     # pdquant 조건이 있을 때. 작업자를 띄�
 ### 지금 쓰는 방법: 결과 고정본 (11-06~)
 
 ```bash
-nice .venv/bin/python scripts/leaderboard/export_final.py     # 로그 1,000여 개를 읽어 1–2분
+nice .venv/bin/python scripts/leaderboard/export_final.py                          # seed 0 -> RESULTS_FINAL_1seed.md (논문 기준, 11-11~)
+PTQ_DRAFT_SEEDS=0,1,2 nice .venv/bin/python scripts/leaderboard/export_final.py    # 3 seed 평균 -> RESULTS_FINAL_3seed.md (부록)
 ```
 
-- `runs/`의 모든 로그를 리더보드와 같은 함수로 모아, **11-02 규칙 결과만** 논문 표 단위로 `documents/RESULTS_FINAL.md`에 쓰고 seed별 원자료와 칸별 출처(log, 저장 모델)를 `documents/results_final.csv`에 쓴다. md는 손으로 고치지 않는다.
+- **11-11 결정: 논문의 모든 결과는 seed 0 한 번 실행 값이다**(정수 가속기 실험과 같은 기준, 남은 기간의 GPU 확보). 새 seed 실험은 돌리지 않는다. 이미 끝난 BRECQ·QDrop 3 seed는 부록용 3seed 파일로만 쓴다.
+- seed 집합은 환경변수 `PTQ_DRAFT_SEEDS`(기본 `0`)가 정한다. `make_leaderboard.py`의 `DRAFT_SEEDS`, 그림 스크립트(`bits_curve.py`, `mcheck_scatter.py`, `teaser_v2.py`)가 같은 변수를 읽는다.
+
+- `runs/`의 모든 로그를 리더보드와 같은 함수로 모아, **11-02 규칙 결과만** 논문 표 단위로 `documents/RESULTS_FINAL_1seed.md`(seed 0) 또는 `_3seed.md`에 쓰고 seed별 원자료와 칸별 출처(log, 저장 모델)를 `documents/results_final.csv`에 쓴다. md는 손으로 고치지 않는다.
 - 머리에 생성 시각과 코드 커밋, 커밋 안 된 파일이 찍힌다. §7에 표마다 읽은 run 목록이 있다.
 - 담는 것: 메인 표(6개 YOLO 모델 × W8A8/W4A8/W4A5/W4A4 × BRECQ / QDrop / PD-Quant ± Ours), 표 1(S, 모든 비교 방법 × W8A8–W4A4), OWLv2·GDINO, ablation, 그 밖의 현재 규칙 결과, 이전 규칙만 있는 묶음 목록.
 - 그림(`figures/src/bits_curve.py`, `mcheck_scatter.py`)도 같은 집계 함수를 불러 같은 수치를 쓴다.
@@ -303,8 +307,8 @@ scripts/worker.sh runs/164_yoloe 4 0-23 &                            # GPU마다
 
 | 항목 | 상태 |
 |---|---|
-| PD-Quant seed 1·2 (메인 표 W8A8/W4A8/W4A4) | `runs/256`에서 진행 중, 11-12 오전 끝 예상. W4A5·W4A6은 seed 0만(seed 1·2 추가 여부 미정) |
-| ablation 빈칸 (S W4A8 PM, W4A5 M·GM·PM의 seed 1·2) | `runs/256` 대기열 맨 뒤 |
+| seed | 11-11부터 논문 결과는 seed 0. PD-Quant seed 2와 ablation seed 1·2는 대기열에서 뺐다(`runs/256` README). PD-Quant seed 1은 일부만 있어 3seed 파일에서 ⁽²⁾로 보인다 |
+| 정수 가속기 실험 | 다음 단계(seed 0) |
 | 정성 그림 | 11-03판은 이전 규칙 모델. 현재 규칙(`r1102`) 모델로 검출을 다시 만들어야 한다 |
 | GDINO LVIS flip | 정의가 다른 모델과 달라 고정본에서 비움. W4A5·W4A8 seed 0만 |
 | OWLv2 W4A8 | QDrop(25.45)이 BRECQ + Ours(21.12)보다 높다. 같은 기반끼리만 비교한다 |
