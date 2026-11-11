@@ -632,14 +632,14 @@ def build(model_cls, w, names, device, calib, mode, fp=None, pidx=None, h_eval=N
     elif mode == "pdquant":
         # 10-28 PD-Quant(Liu et al., CVPR 2023) 기준선. 공식 구현이 QDrop 코드 위에 만들어졌으므로 위 qdrop과 같은 설정
         # (재구성 단위, iters, batch, drop 확률, LSQ)에 PD 손실과 DC만 더한다(quant/pdquant.py). BN 통계는 접기 전 모델에서 모은다.
-        from quant.pdquant import collect_bn_targets, PDContext, PD_OFF, DC_OFF, PD_REDUCE, PD_LAMB_R, DC_SKIP_FIRST
-        _unf = model_cls(w); _unf.set_classes(names)
-        _tg = collect_bn_targets(_unf.model)
-        del _unf
-        _named = dict(_fpref.model.named_modules())
-        _bn_map = {_named[k]: v for k, v in _tg.items() if isinstance(_named.get(k), torch.nn.Conv2d)
-                   and not (DC_SKIP_FIRST and k.startswith("model.0."))}
-        print(f"  [pdquant] DC 대상 conv {len(_bn_map)}/{len(_tg)}개 (BN 통계), PD 손실 T={__import__('quant.pdquant', fromlist=['PD_T']).PD_T}", flush=True)
+        # 11-09: DC는 공식처럼 BN을 접지 않은 원래 모듈의 BN 입력 통계로 한다(quant/pdquant.build_dc_ref).
+        from quant.pdquant import build_dc_ref, PDContext, PD_OFF, DC_OFF, PD_REDUCE, PD_LAMB_R, DC_SKIP_FIRST
+        with torch.random.fork_rng():      # 11-09: 보조 모델 생성이 난수를 소비해 QDrop과 RNG 흐름이 갈리지 않게(차이는 PD·DC만)
+            _unf = model_cls(w); _unf.set_classes(names)
+        _unf.model.to(device).eval()
+        _bn_map = build_dc_ref(_fpref.model, _unf.model, skip_first=DC_SKIP_FIRST)
+        _nbn = sum(len(v[1]) for v in _bn_map.values())
+        print(f"  [pdquant] DC 대상 {len(_bn_map)}개 모듈(BN {_nbn}개, BN 입력 통계), PD 손실 T={__import__('quant.pdquant', fromlist=['PD_T']).PD_T}", flush=True)
         if DC_OFF or PD_OFF or PD_REDUCE != "sum" or PD_LAMB_R != 0.1 or DC_SKIP_FIRST:
             print(f"  [pdquant][진단 변형] PD {'off' if PD_OFF else PD_REDUCE} lamb_r {PD_LAMB_R}, "
                   f"DC {'off' if DC_OFF else ('on(첫 블록 제외)' if DC_SKIP_FIRST else 'on')}", flush=True)
@@ -654,6 +654,7 @@ def build(model_cls, w, names, device, calib, mode, fp=None, pidx=None, h_eval=N
         finally:
             if _pd is not None:
                 _pd.close()
+            del _unf, _bn_map
     elif mode == "brecq":
         # weight rounding과 activation scale을 공동 최적화한다(공식의 순차 2단계가 아님, batch 1, 전부 block-wise).
         convert_to_adaround(m.model, channelwise_smult=False)

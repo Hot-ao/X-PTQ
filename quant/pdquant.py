@@ -20,9 +20,8 @@ QDrop의 block 재구성 위에 두 가지를 더한다. brecq.optimize_brecq(pd
   - 나머지 네트워크: FP 모델 전체를 다시 돌리면서 재구성 대상의 FP 짝 모듈 출력을 양자화 경로 출력으로 바꿔 끼운다
     (forward hook). 공식(ResNet류)은 뒤쪽 블록을 순서대로 통과시키는데, YOLO는 앞 층 출력을 뒤에서 다시 쓰는
     skip 연결이 있어 이렇게 했다. skip으로 들어오는 앞 층 값은 FP다.
-  - BN: ultralytics는 양자화 전에 BN을 conv에 접는다(fuse). 접힌 conv 출력은 BN 출력과 같으므로, BN 입력이
-    (running_mean, sqrt(running_var+eps))를 따르게 하는 공식 목표는 접힌 출력이 (beta, |gamma|·sqrt(var/(var+eps)))를
-    따르게 하는 것과 같다. 접기 전 모델에서 이 값을 모아 둔다(collect_bn_targets).
+  - BN: ultralytics는 양자화 전에 BN을 conv에 접는다(fuse). 공식은 BN을 접지 않은 FP 모델에서 BN 입력 통계를 맞추므로,
+    DC는 접지 않은 원래 모듈로 한다(build_dc_ref, 11-09). 10-28판은 접힌 출력 공간에서 맞춰 채널 가중이 공식과 달랐다.
 """
 
 from __future__ import annotations
@@ -93,16 +92,47 @@ DC_OFF = os.environ.get("PDQ_NO_DC", "0") == "1"
 DC_SKIP_FIRST = os.environ.get("PDQ_DC_SKIP_FIRST", "0") == "1"   # 입력이 이미지인 첫 블록(model.0)은 DC 제외
 
 
-def collect_bn_targets(unfused_det_model):
-    """접기 전 DetectionModel에서 Conv(conv+bn) 모듈마다, 접힌 conv 출력이 따라야 할 채널별 (평균, 표준편차)를 모은다.
-    반환: {"model.2.cv1.conv": (mean[C], std[C])} -- 이름은 접은 뒤 모델에서도 같은 nn.Conv2d를 가리킨다."""
+def build_dc_ref(fp_det_model, unfused_det_model, skip_first=False):
+    """11-09: DC를 공식과 같은 공간(BN **입력**)에서 하도록, 재구성 대상(FP 기준 모델의 block 또는 head conv)마다
+    BN을 접지 않은 원래 모듈을 짝지어 둔다.
+
+    10-28판은 접힌 conv 출력(=BN 출력)을 (beta, |gamma|*sqrt(var/(var+eps)))에 맞췄다. 도달점은 같지만 채널마다
+    손실이 k^2 = gamma^2/(var+eps)배로 달라져(이 모델들에서 k는 1e-7~200) 제약 항(/lamb_c)과의 균형이 공식과 달랐다.
+    공식(data_utils.GetDcFpLayerInpOut)은 BN을 접지 않은 FP 모델(is_fusing=False)에서 BN 입력의 채널별
+    (평균, 표준편차)를 (running_mean, sqrt(running_var+1e-6))에 맞춘다. 여기서도 그대로 한다.
+
+    - block 대상(model.i): 같은 인덱스의 접지 않은 block을 쓰고, 그 안의 BN에 hook을 건다. G(게이트 교환)는 FP 등가
+      변환이라 FP 기준 block과 원래 block의 함수가 같다 -- 보정은 원래 block으로, 재구성 목표는 FP 기준 block으로 낸다.
+    - conv 대상(head의 layer 단위 재구성): 접지 않은 같은 이름의 conv 출력이 곧 BN 입력이다(공식 layer_reconstruction도
+      QuantModule 안의 BN에 DC를 건다). BN 짝이 없는 conv(head 마지막 1x1 등)는 공식처럼 제약 항만 남아 보정이 없다.
+    반환: {FP 기준 모듈: (원래 모듈, [(hook 걸 모듈, mean[C], std[C], 'in'|'out')])}."""
     out = {}
-    for name, m in unfused_det_model.named_modules():
-        conv, bn = getattr(m, "conv", None), getattr(m, "bn", None)
-        if isinstance(conv, torch.nn.Conv2d) and isinstance(bn, torch.nn.BatchNorm2d):
-            var = bn.running_var.detach().float()
-            g = bn.weight.detach().float().abs() * torch.sqrt(var / (var + bn.eps))
-            out[f"{name}.conv"] = (bn.bias.detach().float().clone(), g.clone())
+    unf_named = dict(unfused_det_model.named_modules())
+
+    def stat(bn):
+        return (bn.running_mean.detach().float().clone(),
+                torch.sqrt(bn.running_var.detach().float() + _EPS).clone())
+
+    for i, (fb, ub) in enumerate(zip(fp_det_model.model, unfused_det_model.model)):
+        if skip_first and i == 0:
+            continue
+        bns = [m for m in ub.modules() if isinstance(m, torch.nn.BatchNorm2d)]
+        if bns:
+            out[fb] = (ub, [(bn, *stat(bn), "in") for bn in bns])
+    for name, fm in fp_det_model.named_modules():
+        if not isinstance(fm, torch.nn.Conv2d) or fm in out:
+            continue
+        uc = unf_named.get(name)
+        parent = unf_named.get(name.rsplit(".", 1)[0]) if "." in name else None
+        bn = getattr(parent, "bn", None)
+        if isinstance(uc, torch.nn.Conv2d) and isinstance(bn, torch.nn.BatchNorm2d) and \
+                getattr(parent, "conv", None) is uc and uc.weight.shape == fm.weight.shape:
+            if skip_first and name.startswith("model.0."):
+                continue
+            out[fm] = (uc, [(uc, *stat(bn), "out")])
+    for ub, _ in out.values():
+        for p in ub.parameters():
+            p.requires_grad_(False)
     return out
 
 
@@ -111,43 +141,72 @@ def _lp(pred, tgt, p=2.0):
     return (pred - tgt).abs().pow(p).sum(1).mean()
 
 
-def dc_correct(fm, fp_inputs, bn_map, device, lamb=DC_LAMB_C, lr=DC_LR, iters=DC_ITERS, batch=DC_BATCH):
-    """공식 GetDcFpLayerInpOut: block FP 입력(첫 텐서 인자)을 BN 통계에 맞게 보정한다.
-    fp_inputs: 이미지별 입력 튜플(_to_cpu 형식). bn_map: {nn.Conv2d 모듈: (mean, std)}.
-    fm 안에 BN 통계가 있는 conv가 없으면 공식에서도 제약 항만 남아 입력이 그대로이므로 None을 돌려준다.
-    반환: (보정된 입력 튜플 목록, 보정된 입력에 대한 FP 출력 목록) -- 둘 다 _to_cpu 형식."""
+def _own(a, b):
+    """공식 GetDcFpLayerInpOut.own_loss: ||A - B||^2 / B.size(0) (A[C]가 B[N, C]로 broadcast)."""
+    return (a - b).norm() ** 2 / b.size(0)
+
+
+def dc_correct(fm, fp_inputs, dc_ref, device, lamb=DC_LAMB_C, lr=DC_LR, iters=DC_ITERS, batch=DC_BATCH,
+               log=None):
+    """공식 GetDcFpLayerInpOut: block FP 입력(첫 텐서 인자)을 BN 입력 통계에 맞게 보정한다.
+    fp_inputs: 이미지별 입력 튜플(_to_cpu 형식). dc_ref: build_dc_ref의 반환값.
+    짝지은 BN이 없으면 공식에서도 제약 항만 남아 입력이 그대로이므로 None을 돌려준다.
+    log: 목록을 주면 배치마다 (보정 전 BN 손실, 보정 후 BN 손실, 제약 손실)을 담는다(검증용).
+    반환: (보정된 입력 튜플 목록, 보정된 입력에 대한 FP 기준 모듈 출력 목록) -- 둘 다 _to_cpu 형식."""
     from .brecq import _collate, _to_dev, _to_cpu
-    convs = [(m, bn_map[m]) for m in fm.modules() if m in bn_map]
-    if not convs:
+    if fm not in dc_ref:
         return None
+    um, specs = dc_ref[fm]
     caps = {}
-    hs = [m.register_forward_hook(lambda mod, i, o: caps.__setitem__(mod, o)) for m, _ in convs]
-    stats = [(m, mu.to(device), sd.to(device)) for m, (mu, sd) in convs]
+
+    def mk(key, where):
+        def hook(mod, i, o):
+            caps[key] = i[0] if where == "in" else o
+        return hook
+    hs = [mod.register_forward_hook(mk(k, w)) for k, (mod, _, _, w) in enumerate(specs)]
+    stats = [(k, mu.to(device), sd.to(device)) for k, (_, mu, sd, _) in enumerate(specs)]
+
+    def bn_loss():
+        # 공식과 같은 순서로 더한다(평균 항 합 + 표준편차 항 합). Adam은 grad가 0 근처인 원소를 부호로 움직여서
+        # 덧셈 순서의 반올림 차이도 500 iter 뒤 보정 입력에 남는다(11-09 검증에서 확인).
+        mean_loss = std_loss = 0
+        for k, mu, sd in stats:
+            if k not in caps:              # forward에서 쓰이지 않은 BN
+                continue
+            o = caps[k]
+            o = o.reshape(o.size(0), o.size(1), -1)
+            mean_loss += _own(mu, torch.mean(o, dim=2))
+            std_loss += _own(sd, torch.sqrt(torch.var(o, dim=2) + _EPS))
+        return mean_loss + std_loss
+
     new_in, new_out = [], []
     try:
         for b0 in range(0, len(fp_inputs), batch):
             args = list(_to_dev(_collate(fp_inputs[b0:b0 + batch]), device))
-            x0 = args[0].detach()
+            x0 = args[0].detach().float()
+            rest = [a.float() if torch.is_tensor(a) and a.is_floating_point() else a for a in args[1:]]
             para = x0.clone().requires_grad_(True)
             opt = torch.optim.Adam([para], lr=lr)
             sch = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, min_lr=1e-5, patience=100)
+            l0 = None
             for _ in range(iters):
                 opt.zero_grad()
                 caps.clear()
-                fm(para, *args[1:])
-                loss = 0.0
-                for m, mu, sd in stats:
-                    o = caps[m]
-                    o = o.reshape(o.size(0), o.size(1), -1)
-                    t_mu = o.mean(2)
-                    t_sd = torch.sqrt(o.var(2) + _EPS)
-                    loss = loss + (mu - t_mu).norm() ** 2 / t_mu.size(0) + (sd - t_sd).norm() ** 2 / t_sd.size(0)
-                loss = loss + _lp(para, x0) / lamb
+                um(para, *rest)
+                lb = bn_loss()
+                if l0 is None:
+                    l0 = float(lb)
+                lc = _lp(para, x0) / lamb
+                loss = lb + lc
                 loss.backward()
                 opt.step()
                 sch.step(float(loss.detach()))
             with torch.no_grad():
-                out = fm(para.detach(), *args[1:])
+                if log is not None:
+                    caps.clear()
+                    um(para, *rest)
+                    log.append((l0, float(bn_loss()), float(_lp(para, x0) / lamb)))
+                out = fm(para.detach(), *rest)     # 재구성 목표는 FP 기준 모듈(접힘, G 구조)로 낸다
             for k in range(para.size(0)):
                 new_in.append(_to_cpu(tuple([para[k:k + 1].detach()] + [a[k:k + 1] if torch.is_tensor(a) else a
                                                                           for a in args[1:]])))

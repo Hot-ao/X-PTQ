@@ -35,7 +35,7 @@ def label(m, pick):
     """YOLOE는 G가 적용되지 않으므로 GP/GPM을 P/PM으로 적는다."""
     if not pick:
         return ''
-    pick = pick.split(':')[-1].replace('brecq+', '').replace('qdrop+', '')
+    pick = pick.split(':')[-1].replace('brecq+', '').replace('qdrop+', '').replace('pdquant+', '')
     return pick.replace('G', '') if m.startswith('yoloe') else pick
 
 
@@ -135,8 +135,8 @@ def main():
 
     # 1. 메인 표
     w('## 1. 메인 표: YOLO 계열 6개 모델\n')
-    w('| 모델 | 비트 | FP32 | BRECQ | + Ours | Δ AP (vs BRECQ) | 선택 | QDrop | + Ours | Δ AP (vs QDrop) |')
-    w('|---|---|---|---|---|---|---|---|---|---|')
+    w('| 모델 | 비트 | FP32 | BRECQ | + Ours | Δ AP (vs BRECQ) | 선택 | QDrop | + Ours | Δ AP (vs QDrop) | PD-Quant | + Ours | Δ AP (vs PD-Quant) |')
+    w('|---|---|---|---|---|---|---|---|---|---|---|---|---|')
     for m in YOLO:
         fp = next((L.best(res, m, s, 'FP32') for s in L.SETTINGS if L.best(res, m, s, 'FP32')), None)
         for s in ('W8A8', 'W4A8', 'W4A5', 'W4A4'):
@@ -144,10 +144,13 @@ def main():
             o = src.add(1, L.main_cell(res, pending, m, s, 'ours'))
             q = src.add(1, L.main_cell(res, pending, m, s, 'qdrop'))
             qo = src.add(1, L.main_cell(res, pending, m, s, 'qdrop+ours'))
+            pq = src.add(1, L.main_cell(res, pending, m, s, 'pdquant'))        # 11-10: PD-Quant 기반 추가
+            pqo = src.add(1, L.main_cell(res, pending, m, s, 'pdquant+ours'))
             if not any(x and x.get('lvis') is not None for x in (b, o, q, qo)):
                 continue
             w(f"| {L.MODEL_NAME[m]} | {s} | {fpv(fp)} | {ap_flip(b)} | **{ap_flip(o)}** | {delta(o)} | "
-              f"{label(m, o and o.get('note'))} | {ap_flip(q)} | **{ap_flip(qo)}** | {delta(qo)} |")
+              f"{label(m, o and o.get('note'))} | {ap_flip(q)} | **{ap_flip(qo)}** | {delta(qo)} | "
+              f"{ap_flip(pq)} | **{ap_flip(pqo)}** | {delta(pqo)} |")
     w('')
 
     # 2. 표 1 후보
@@ -159,13 +162,14 @@ def main():
     w('| FP32 | ' + fpv(fp) + ' |' + ' |' * (len(bits1) - 1))
     rows1 = [('RTN', 'naive'), ('AdaRound', 'adaround(mse)'), ('BRECQ', 'brecq'), ('QDrop', 'qdrop'),
              ('BRECQ + SmoothQuant', 'brecq+S'), ('BRECQ + AWQ', 'brecq+W'), ('**Ours (BRECQ)**', 'ours'),
-             ('  └ GP', 'brecq+GP'), ('  └ GPM', 'brecq+GPM'), ('Ours (QDrop)', 'qdrop+ours')]
+             ('  └ GP', 'brecq+GP'), ('  └ GPM', 'brecq+GPM'), ('Ours (QDrop)', 'qdrop+ours'),
+             ('PD-Quant', 'pdquant'), ('Ours (PD-Quant)', 'pdquant+ours')]
     for lab, c in rows1:
         cells = []
         for s in bits1:
             x = src.add(2, L.main_cell(res, pending, S, s, c))
             t = ap_flip(x)
-            if c in ('ours', 'qdrop+ours') and x and x.get('lvis') is not None:
+            if c in ('ours', 'qdrop+ours', 'pdquant+ours') and x and x.get('lvis') is not None:
                 t += f" ({label(S, x.get('note'))})"
             cells.append(t)
         w(f'| {lab} | ' + ' | '.join(cells) + ' |')

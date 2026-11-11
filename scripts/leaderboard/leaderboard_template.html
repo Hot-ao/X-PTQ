@@ -184,7 +184,7 @@ function renderFixed() {
   h += `<div class="panel"><h2>표 A · YOLO-World-S 주 결과</h2>
     <p class="desc">Ours(ρ=1.0 선택) = calibration 밖 train flip이 GPM ≤ GP이면 GPM, 아니면 GP (seed 0, 새 규칙).</p>
     <div class="scroll"><table class="grid"><thead><tr><th>방법</th>${S1.map(s => `<th>${s}</th>`).join('')}</tr></thead><tbody>` +
-    F.t1.map(r => `<tr class="${r.cond === 'ours' || r.cond === 'qdrop+GPM' ? 'ours' : ''}"><td>${esc(r.label)}</td>${S1.map(s => `<td>${cellHTML(r.cells[s])}</td>`).join('')}</tr>`).join('') +
+    F.t1.map(r => `<tr class="${r.cond === 'ours' || r.cond === 'qdrop+GPM' || r.cond === 'pdquant+GPM' ? 'ours' : ''}"><td>${esc(r.label)}</td>${S1.map(s => `<td>${cellHTML(r.cells[s])}</td>`).join('')}</tr>`).join('') +
     '</tbody></table></div></div>';
   const S2 = ['W8A8', 'W4A8', 'W4A5', 'W4A4'];
   h += `<div class="panel"><h2>표 B · 모델별 (BRECQ → Ours)</h2>
@@ -193,7 +193,7 @@ function renderFixed() {
     F.t2.map(r => `<tr><td>${esc(r.label)}</td>${S2.map(s => {
       const c = r.cells[s];
       if (!c) return '<td><span class="muted">–</span></td>';
-      return `<td><div class="s">FP ${f2(c.fp && c.fp.lvis)} · BRECQ ${f2(c.brecq && c.brecq.lvis)}${c.qdrop ? ' · QDrop ' + f2(c.qdrop.lvis) : ''}${c.proto ? ' · ' + esc(c.proto) : ''}</div>${cellHTML(c.ours)}</td>`;
+      return `<td><div class="s">FP ${f2(c.fp && c.fp.lvis)} · BRECQ ${f2(c.brecq && c.brecq.lvis)}${c.qdrop ? ' · QDrop ' + f2(c.qdrop.lvis) : ''}${c.pdquant ? ' · PD-Quant ' + f2(c.pdquant.lvis) : ''}${c.proto ? ' · ' + esc(c.proto) : ''}</div>${cellHTML(c.ours)}</td>`;
     }).join('')}</tr>`).join('') + '</tbody></table></div></div>';
   const S3 = ['W4A8', 'W4A5', 'W4A4'];
   h += `<div class="panel"><h2>표 C · YOLO-World-S ablation</h2>
@@ -253,7 +253,7 @@ function renderDrafts() {
   let on = store.get('drafts_on', ids.slice(0, 1)).filter(i => ids.includes(i));
   if (!on.length) on = ids.slice(0, 1);
   let h = `<div class="panel"><h2>메인 표 안</h2>
-    <p class="desc">논문 표 1 후보를 나란히 비교한다. 위 버튼으로 보고 싶은 안을 여러 개 켤 수 있다. 칸 = LVIS minival AP (LVIS flip %), seed 0~2 평균(GDINO·OWL은 seed 0). Ours는 seed마다 ρ로 고르고, QDrop+Ours는 seed 0에서 고른 구성을 고정한다. APr과 기반(BRECQ/QDrop) 대비 ΔAP는 칸에 마우스를 올리면 보인다. Ours 구성: G 게이트 교환, P W8 보호, M scale 이전 (YOLOE는 텍스트 게이트가 없어 G 없음).
+    <p class="desc">논문 표 1 후보를 나란히 비교한다. 위 버튼으로 보고 싶은 안을 여러 개 켤 수 있다. 칸 = LVIS minival AP (LVIS flip %), seed 0~2 평균(GDINO·OWL은 seed 0). Ours는 seed마다 ρ로 고르고, QDrop+Ours·PD-Quant+Ours는 seed 0에서 고른 구성을 고정한다. PD-Quant는 11-09 수정 구현(PD anchor 평균)만 쓴다. APr과 기반(BRECQ/QDrop/PD-Quant) 대비 ΔAP는 칸에 마우스를 올리면 보인다. Ours 구성: G 게이트 교환, P W8 보호, M scale 이전 (YOLOE는 텍스트 게이트가 없어 G 없음).
     +Ours = ρ=1.0 검사로 GP/GPM 선택, QDrop 쪽도 같은 선택. 칸에 마우스를 올리면 조건·flip. 안은 <span class="mono">scripts/leaderboard/main_drafts.json</span>에서 추가·수정한다.</p>
     <div class="subtabs" id="dtabs">${D.drafts.map(d => `<button data-d="${esc(d.id)}" class="${on.includes(d.id) ? 'on' : ''}">${esc(d.name)}</button>`).join('')}</div></div>` +
     D.drafts.filter(d => on.includes(d.id)).map(draftHTML).join('');

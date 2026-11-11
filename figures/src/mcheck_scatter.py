@@ -1,5 +1,5 @@
 """M 사전 검사가 제대로 고르는가 (11-04, 부록 그림 후보). 사용(저장소 루트): .venv/bin/python figures/src/mcheck_scatter.py
-GP와 GPM을 둘 다 만든 실행(runs/234_rerun_s0, runs/236_fill_s0)의 로그에서
+GP와 GPM을 둘 다 만든 실행(runs/234_rerun_s0, 236_fill_s0, 240, 247; 11-10에 240·247 추가)의 로그에서
   x = 검사 flip 차이 (calibration 밖 train2017 200장, COCO 어휘; flip_GPM - flip_GP, %p)   -> x <= 0 이면 GPM을 고른다(rho = 1.0)
   y = LVIS AP 차이 (GPM - GP, 점)                                                         -> 사후 확인용. 선택에는 쓰지 않는다
 를 읽어 점으로 찍는다. 검사가 AP가 더 높은 쪽을 고르면 맞음(파란 원), 아니면 틀림(빨간 x). 틀림 사분면은 옅게 칠한다.
@@ -16,7 +16,8 @@ SHORT = {"yolov8s-world": "S", "yolov8s-worldv2": "S-v2", "yolov8m-world": "M", 
 
 def collect():
     R = []
-    for f in sorted(glob.glob(os.path.join(ROOT, "runs", "23[46]_*", "*.log"))):
+    files = [f for d in ("234", "236", "240", "247") for f in glob.glob(os.path.join(ROOT, "runs", f"{d}_*", "*.log"))]
+    for f in sorted(files):   # 11-10: 240(W4A4)·247(W4A6) 추가 -> 73건
         t = open(f, errors="ignore").read()
         m = re.search(r"'model': '([^']+)'.*?'w_bits': (\d+), 'a_bits': (\d+).*?'seed': (\d+).*?'first_last_bits': (\d+)", t)
         tf = re.search(r"\[train-flip\] calib 밖 flip\(%\): (.*)", t)
@@ -29,8 +30,13 @@ def collect():
             if gp in tfd and gpm in tfd and gp in ap and gpm in ap:
                 R.append(dict(model=SHORT.get(m.group(1).replace(".pt", ""), m.group(1)), bits=f"W{m.group(2)}A{m.group(3)}",
                               seed=int(m.group(4)), base=b, dx=tfd[gpm] - tfd[gp], dy=ap[gpm] - ap[gp],
-                              ap_gp=ap[gp], ap_gpm=ap[gpm]))
-    return R
+                              ap_gp=ap[gp], ap_gpm=ap[gpm], mtime=os.path.getmtime(f)))
+    latest = {}   # 11-10: 같은 칸(모델·비트·seed·기반)이 여러 번 돌았으면 가장 늦은 실행만 (S W4A6 BRECQ: 234 -> 247 재실행)
+    for r in R:
+        k = (r["model"], r["bits"], r["seed"], r["base"])
+        if k not in latest or latest[k]["mtime"] < r["mtime"]:
+            latest[k] = r
+    return list(latest.values())
 
 
 def main():
@@ -52,16 +58,16 @@ def main():
                          "xtick.color": MUTED, "ytick.color": MUTED, "axes.spines.top": False, "axes.spines.right": False})
     fig, ax = plt.subplots(figsize=(3.5, 3.0))
     ax.set_xscale("symlog", linthresh=0.5, linscale=0.8); ax.set_yscale("symlog", linthresh=1.0, linscale=0.8)
-    X, Y = 60, 40
-    ax.set_xlim(-X, X); ax.set_ylim(-12, Y)
+    XL, X, Y = 100, 60, 40     # 11-10: W4A4(runs/240) 추가로 왼쪽이 -70까지 간다
+    ax.set_xlim(-XL, X); ax.set_ylim(-12, Y)
     # 틀린 선택 사분면: 검사는 GPM(x<=0)인데 GP가 낫다(y<0), 검사는 GP(x>0)인데 GPM이 낫다(y>=0)
-    ax.fill_between([-X, 0], -12, 0, color=SHADE, zorder=0, lw=0)
+    ax.fill_between([-XL, 0], -12, 0, color=SHADE, zorder=0, lw=0)
     ax.fill_between([0, X], 0, Y, color=SHADE, zorder=0, lw=0)
     ax.axhline(0, color=AXIS, lw=0.8, zorder=1); ax.axvline(0, color=AXIS, lw=0.8, zorder=1)
     ax.text(-0.12, Y * 0.85, "← check picks GPM", fontsize=6.0, color=MUTED, ha="right", va="top")
     ax.text(0.12, -12 * 0.85, "check picks GP →", fontsize=6.0, color=MUTED, ha="left", va="bottom")
     ax.text(X * 0.93, Y * 0.82, "wrong pick\n(GPM was better)", fontsize=5.8, color=BADC, ha="right", va="top")
-    ax.text(-X * 0.93, -12 * 0.85, "wrong pick\n(GP was better)", fontsize=5.8, color=BADC, ha="left", va="bottom")
+    ax.text(-XL * 0.93, -12 * 0.85, "wrong pick\n(GP was better)", fontsize=5.8, color=BADC, ha="left", va="bottom")
     for r in R:
         if r["ok"]:
             ax.scatter(r["dx"], r["dy"], s=22, color=OKC, edgecolor="white", linewidth=0.8, zorder=4)
@@ -69,7 +75,7 @@ def main():
             ax.scatter(r["dx"], r["dy"], s=26, marker="X", color=BADC, edgecolor="white", linewidth=0.6, zorder=5)
     # 선택적 직접 표기: 차이가 큰 대표 사례와 반복해서 틀리는 설정만
     seen = set()
-    notes = {("S", "W4A4", "brecq"): (7, 0, "S, M W4A4"), ("M", "W4A5", "brecq"): (-6, 7, "M W4A5"),
+    notes = {("S", "W4A4", "brecq"): (7, 0, "W4A4"), ("M", "W4A5", "brecq"): (-4, 16, "M W4A5"),
              ("L", "W4A5", "brecq"): (7, 2, "L W4A5"), ("S", "W4A8", "brecq"): (-7, -6, "S W4A8"),
              ("YOLOE-11s", "W4A8", "brecq"): (6, 5, "YOLOE-11s W4A8"), ("M", "W4A8", "brecq"): (-7, 0, "M W4A8")}
     for r in R:
@@ -78,8 +84,8 @@ def main():
             seen.add(k)
             ox, oy, lab = notes[k]
             ax.annotate(lab, (r["dx"], r["dy"]), xytext=(ox, oy), textcoords="offset points",
-                        fontsize=5.6, color=INK, ha="left" if ox >= 0 else "right", va="center")
-    ax.set_xticks([-50, -10, -1, 0, 1, 10, 50]); ax.set_xticklabels(["−50", "−10", "−1", "0", "1", "10", "50"])
+                        fontsize=5.6, color=INK, ha="center" if ox == 0 else "left" if ox > 0 else "right", va="center")
+    ax.set_xticks([-100, -10, -1, 0, 1, 10, 50]); ax.set_xticklabels(["−100", "−10", "−1", "0", "1", "10", "50"])
     ax.set_yticks([-10, -1, 0, 1, 10]); ax.set_yticklabels(["−10", "−1", "0", "1", "10"])
     ax.set_xlabel("check flip, GPM − GP (pp)\nheld-out train images, COCO vocab.", fontsize=6.6, linespacing=1.2)
     ax.set_ylabel("LVIS AP, GPM − GP", fontsize=6.8)

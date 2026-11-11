@@ -311,11 +311,13 @@ def optimize_brecq(quant_module, fp_module, calib_tensors, device,
         if dc_bn_map:
             # PD-Quant DC: FP 입력을 BN 통계에 맞게 보정 -> 목표 출력과 drop용 FP 입력을 교체(BN이 없으면 그대로)
             from .pdquant import dc_correct
-            _r = dc_correct(fm, fp_in_buf[:n], dc_bn_map, device)
+            _dlog = []
+            _r = dc_correct(fm, fp_in_buf[:n], dc_bn_map, device, log=_dlog)
             if _r is not None:
                 fp_in_buf, out_buf = _r
-                if verbose:
-                    print(f"  [{ti+1}/{len(targets)}] {label} DC 보정 완료")
+                # 11-09: 검증용. 배치 평균 (보정 전 BN 손실 -> 보정 후, 제약 항). 공식처럼 BN 손실이 줄고 제약 항은 작아야 한다
+                _a = [sum(v[i] for v in _dlog) / len(_dlog) for i in range(3)]
+                print(f"    [pdquant][DC] {label} BN {_a[0]:.4g} -> {_a[1]:.4g}, 제약 {_a[2]:.4g}", flush=True)
 
         for c in convs:
             c.soft = True

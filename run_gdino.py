@@ -430,7 +430,7 @@ def main():
     for k, v in res.items():
         print(f"{k} | " + " | ".join(f"{v.get(c, float('nan')):.2f}" for c in cols))
     for k, v in sizes.items():
-        res[k]["size_mib"] = v
+        res.setdefault(k, {})["size_mib"] = v
     print(f"[mem] 최대 GPU 메모리 {torch.cuda.max_memory_allocated(device) / 2**30:.1f} GiB")
     print(f"[json] {json.dumps(res)}")
 

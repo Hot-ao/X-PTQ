@@ -92,6 +92,17 @@ def protocol_of(a):
 
 # 11-02: P·M 규칙. 결과마다 "기존 규칙" 꼬리표를 단다(빈 목록 = 현재 규칙이거나 규칙과 무관한 조건).
 RULE_TIME = time.mktime((2026, 11, 2, 9, 0, 0, 0, 0, -1))   # MCHECK_RATIO 1.5 -> 1.0
+# 11-09: PD-Quant는 DC 수정(BN 입력 통계, 공식 전사본 대조 통과) + PD anchor 평균(PDQ_PD_REDUCE=mean) 구현만 표에 쓴다.
+# 그 이전(runs/206·207, DC 버그)·검증용(254) 로그는 'PDQ 이전' 꼬리표를 달아 표에서 뺀다.
+PDQ_TIME = time.mktime((2026, 11, 9, 19, 40, 0, 0, 0, -1))
+PDQ_OK = ('BN 입력 통계', '[pdquant][진단 변형] PD mean lamb_r 0.1, DC on')
+
+
+def pdq_tags(cond, txt, started):
+    if not cond.startswith('pdquant'):
+        return []
+    ok = started >= PDQ_TIME and all(k in txt for k in PDQ_OK)
+    return [] if ok else ['PDQ 이전']
 
 
 def rule_tags(cond, a, mtime):
@@ -234,7 +245,7 @@ def collect():
                 v['tf'] = tf[c]
             allrecs.append(dict(m=model, p=proto, s=setting, c=key[3], seed=key[4], t=round(starts.get(f, mtime)),
                                 end=round(mtime), src=os.path.dirname(rel), size=size, build=build_s,
-                                tags=rule_tags(c, a, mtime), v=v, log=rel, save=a.get('save_model') or None))
+                                tags=rule_tags(c, a, mtime) + pdq_tags(c, txt, starts.get(f, mtime)), v=v, log=rel, save=a.get('save_model') or None))
             if key in recs and recs[key]['mtime'] >= mtime:
                 continue
             recs[key] = dict(metrics=met, mtime=mtime, src=rel, size=size, build_s=build_s)
@@ -369,7 +380,7 @@ TABLES = ['주요지표', '추가지표1', '추가지표2', '추가지표3', '�
 TABLE_DESC = {'주요지표': '본문 표 1·2: 기준선과 우리 방법', '추가지표1': 'ablation (G/P/M 조합, 보호 대조, 이전 규칙 교체)',
               '추가지표2': '일반화 보조 (QDrop 위, 다른 calibration, 첫·마지막 FP)', '추가지표3': '분석·민감도 (P 예산, xmax, 하한)',
               '미지정': '판단 보류', '제외': '대체됐거나 프로토콜이 다른 결과'}
-BASELINES = {'naive', 'brecq', 'qdrop', 'adaround(minmax)', 'adaround(mse)', 'brecq+S', 'brecq+W', 'FP32'}
+BASELINES = {'naive', 'brecq', 'qdrop', 'pdquant', 'adaround(minmax)', 'adaround(mse)', 'brecq+S', 'brecq+W', 'FP32'}
 ABLATION = {'brecq+G', 'brecq+P', 'brecq+M', 'brecq+GM', 'brecq+PM', 'brecq+GP', 'brecq+GPM', 'brecq+R', 'brecq+H',
             'brecq+GPS', 'brecq+GPW', 'naive+S', 'naive+W', 'naive+M', 'brecq+GMA', 'brecq+PMA', 'brecq+GPMA'}
 
@@ -425,6 +436,8 @@ def judge(g, res):
         return 1, '제외', '논문 대상 모델 아님'
     if c == 'FP32':
         return 1, '제외', 'FP 기준값 (주요 표에 자동 표시)'
+    if 'PDQ 이전' in tags:
+        return 1, '제외', 'PD-Quant 이전 구현(DC 버그)·진단·검증'
     if not is_main(p):
         if '첫·마지막 FP' in p or 'calib o365' in p:
             return 2, '추가지표2', '보조 프로토콜'
@@ -444,8 +457,8 @@ def judge(g, res):
         return 2, '추가지표3', 'P 예산 sweep'
     if c in BASELINES or c in ours_conds(m):
         return 3, '주요지표', '기준선·우리 방법'
-    if c.startswith('qdrop+'):
-        return 2, '추가지표2', 'QDrop 위 plug-in'
+    if c.startswith('qdrop+') or c.startswith('pdquant+'):
+        return 2, '추가지표2', 'QDrop/PD-Quant 위 plug-in'
     if c in ABLATION:
         return 2, '추가지표1', 'ablation'
     return 1, '미지정', '기타 조건'
@@ -475,8 +488,8 @@ def pick_ours(res, m, s, seeds=None):
     s0 = 0 if 0 in seeds_ok else seeds_ok[0]
     use_m = gpm['per'][s0]['tf'] <= gp['per'][s0]['tf']
     src = gpm if use_m else gp
-    per = {k: src['per'][k] for k in seeds_ok}
-    pick = {k: 'GPM' if use_m else 'GP' for k in seeds_ok}
+    per = dict(src['per'])            # 11-09: seed 1·2는 고른 구성만 돌리므로(runs/246·251) 선택한 쪽의 seed를 모두 쓴다
+    pick = {k: 'GPM' if use_m else 'GP' for k in sorted(per)}
     stats = {k: list(mean_sd([v.get(k) for v in per.values()])) for k in ('coco', 'lvis', 'lvis_flip', 'apr')}
     x = dict(m=m, s=s, c='ours', per=per, seeds=sorted(per), stats=stats, end=max(gp['end'], gpm['end']),
              src=sorted(set(gp['src']) | set(gpm['src'])), tags=[], p=gp['p'])
@@ -518,7 +531,7 @@ def best(res, m, s, c, proto=None, seeds=None):
     """새 규칙(꼬리표 없음)을 먼저, 없으면 기존 규칙을 쓴다(페이지에서 회색으로 표시). 주요 표용이라 seed 0만 본다."""
     cands = [only_seed(x, seeds) for x in res.values() if x['m'] == m and x['s'] == s and x['c'] == c
              and (x['p'] == proto if proto else is_main(x['p']))
-             and not any(t.startswith('P 예산') for t in x['tags'])]
+             and not any(t.startswith('P 예산') or t == 'PDQ 이전' for t in x['tags'])]
     cands = [x for x in cands if x]
     if not cands:
         return None
@@ -530,7 +543,8 @@ def fixed_tables(res, pending):
     S = 'yolov8s-world'
     rows1 = [('FP32', 'FP32'), ('RTN', 'naive'), ('AdaRound', 'adaround(mse)'), ('BRECQ', 'brecq'), ('QDrop', 'qdrop'),
              ('BRECQ + SmoothQuant', 'brecq+S'), ('BRECQ + AWQ', 'brecq+W'), ('Ours (BRECQ, ρ=1.0 선택)', 'ours'),
-             ('  └ GP', 'brecq+GP'), ('  └ GPM', 'brecq+GPM'), ('Ours (QDrop + GPM)', 'qdrop+GPM')]
+             ('  └ GP', 'brecq+GP'), ('  └ GPM', 'brecq+GPM'), ('Ours (QDrop + GPM)', 'qdrop+GPM'),
+             ('PD-Quant', 'pdquant'), ('Ours (PD-Quant + GPM)', 'pdquant+GPM')]
     t1 = []
     for label, c in rows1:
         row = dict(label=label, cond=c, cells={})
@@ -558,6 +572,7 @@ def fixed_tables(res, pending):
                         break
             b = best(res, m, s, 'brecq', proto)
             q = best(res, m, s, 'qdrop', proto)
+            pdq = best(res, m, s, 'pdquant', proto)
             if m == 'gdino-tiny':
                 x = best(res, m, s, 'brecq+PM', proto)
                 note = 'brecq+PM'
@@ -573,7 +588,7 @@ def fixed_tables(res, pending):
                                                  ('brecq+M' if s == 'W8A8' else 'brecq+PM')))
             if not (b or ours):
                 continue
-            row['cells'][s] = dict(fp=cell(fp), brecq=cell(b), qdrop=cell(q), ours=ours,
+            row['cells'][s] = dict(fp=cell(fp), brecq=cell(b), qdrop=cell(q), pdquant=cell(pdq), ours=ours,
                                    proto=proto.split('· ')[-1] if proto else None)
         if row['cells']:
             t2.append(row)
@@ -591,17 +606,19 @@ def fixed_tables(res, pending):
 
 def main_cell(res, pending, m, s, c):
     """메인 표 안의 한 칸(seed 0~2 평균). 'ours' = BRECQ 위 seed 0에서 ρ로 고른 구성을 모든 seed에 고정,
-    'qdrop+ours' = QDrop 위에 seed 0에서 고른 구성(GP/GPM)을 모든 seed에 고정."""
+    'qdrop+ours'·'pdquant+ours' = 그 기준선 위에 BRECQ seed 0에서 고른 구성(GP/GPM)을 모든 seed에 고정(11-09 PD-Quant 추가)."""
     S3 = DRAFT_SEEDS
     b = best(res, m, s, 'brecq', seeds=S3)
     if c == 'ours':
         x, note = pick_ours(res, m, s, S3)
         return merge(cell(x, b, note), pend(pending, m, s, 'brecq+GPM'))
-    if c == 'qdrop+ours':
+    if c in ('qdrop+ours', 'pdquant+ours'):
+        bc = c.split('+')[0]
         _, note = pick_ours(res, m, s)
-        qc = 'qdrop+' + note.split(':')[-1] if note else 'qdrop+GPM'
-        return merge(cell(best(res, m, s, qc, seeds=S3), best(res, m, s, 'qdrop', seeds=S3), qc), pend(pending, m, s, qc))
-    base = b if c.startswith('brecq+') else best(res, m, s, 'qdrop', seeds=S3) if c.startswith('qdrop+') else None
+        qc = bc + '+' + note.split(':')[-1] if note else bc + '+GPM'
+        return merge(cell(best(res, m, s, qc, seeds=S3), best(res, m, s, bc, seeds=S3), qc), pend(pending, m, s, qc))
+    bc = c.split('+')[0] if '+' in c else None
+    base = b if bc == 'brecq' else best(res, m, s, bc, seeds=S3) if bc in ('qdrop', 'pdquant') else None
     return merge(cell(best(res, m, s, c, seeds=S3), base), pend(pending, m, s, c))
 
 

@@ -2,7 +2,7 @@
  {
   "id": "G",
   "name": "G · F + W8A8·W4A4 (전체 비트)",
-  "desc": "E와 같은 배치. 비교 단위는 BRECQ 대 QDrop이 아니라 각 기준선과 그 위에 Ours를 얹은 것이다. +Ours 칸 오른쪽 숫자 = 같은 기준선 대비 ΔAP(seed 짝 평균). 재구성 설정은 모두 같다: block 단위 2,000 iters/block, batch 1, calibration 256장(QDrop drop 확률 0.5). 기준선 사이에 줄을 그어 짝을 나눈다. F에 W8A8과 W4A4 묶음을 더한 안. W8A8·W4A4는 seed 0만 있는 칸이 많다(칸 툴팁의 seed 수 확인).",
+  "desc": "E와 같은 배치. 비교 단위는 BRECQ 대 QDrop이 아니라 각 기준선과 그 위에 Ours를 얹은 것이다. +Ours 칸 오른쪽 숫자 = 같은 기준선 대비 ΔAP(seed 짝 평균). 재구성 설정은 모두 같다: block 단위 2,000 iters/block, batch 1, calibration 256장(QDrop drop 확률 0.5). 기준선 사이에 줄을 그어 짝을 나눈다. F에 W8A8과 W4A4 묶음을 더한 안. W8A8·W4A4는 seed 0만 있는 칸이 많다(칸 툴팁의 seed 수 확인). 11-09: PD-Quant(CVPR'23) 짝 추가. 공식 설정(DC + PD, T=4, lamb_r 0.1, 500 iter DC)에서 PD KL만 anchor 평균(이미지당 anchor 8,400개라 합하면 PD가 재구성 손실을 압도). +Ours는 같은 선택(BRECQ seed 0 train flip).",
   "layout": "bit-col",
   "models": [
    "yolov8s-world",
@@ -34,6 +34,14 @@
    [
     "+ Ours",
     "qdrop+ours"
+   ],
+   [
+    "PD-Quant",
+    "pdquant"
+   ],
+   [
+    "+ Ours",
+    "pdquant+ours"
    ]
   ],
   "delta": true
