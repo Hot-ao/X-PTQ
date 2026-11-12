@@ -1,7 +1,7 @@
-"""동기 그림 (11-03, 논문 그림 1 후보): AP는 버티는데 held-out 어휘의 판정이 무너진다.
+"""동기 그림 (11-03, 논문 그림 1 후보): AP는 버티는데 LVIS(배포) 어휘의 판정이 무너진다.
 
 YOLO-World-S, BRECQ, 확정 프로토콜(runs/158_final, 6 seed). 리더보드 수집기(make_leaderboard.collect)로 seed별 값을 읽는다.
-  (a) FP 대비 AP 유지율: COCO AP(calibration 어휘), LVIS AP(held-out 어휘)
+  (a) FP 대비 AP 유지율: COCO AP(calibration 어휘), LVIS AP(배포 어휘)
   (b) top-1 flip: COCO 어휘(Top1_flip), LVIS 어휘(LVIS_flip). FP가 확신하는 예측 중 top-1 클래스가 바뀐 비율
 BRECQ가 무너진 seed(LVIS AP < 15, W4A5 seed 0)는 평균에서 뺀다. W4A4는 BRECQ가 전부 무너져(LVIS AP < 1) 뺀다.
 그림: figures/teaser_flip.{pdf,png}
@@ -77,7 +77,7 @@ def main():
         ax.set_xlim(-0.35, len(BITS) - 0.65)
         ax.yaxis.grid(True, color=GRID, linewidth=0.5); ax.set_axisbelow(True)
     h = [Line2D([], [], color=BLUE, linewidth=1.6, marker="o", markersize=4, markeredgecolor="white", label="COCO (calibration vocabulary)"),
-         Line2D([], [], color=ORANGE, linewidth=1.6, marker="o", markersize=4, markeredgecolor="white", label="LVIS (held-out vocabulary)")]
+         Line2D([], [], color=ORANGE, linewidth=1.6, marker="o", markersize=4, markeredgecolor="white", label="LVIS (deployment vocabulary)")]
     fig.legend(handles=h, loc="lower center", ncol=2, fontsize=6.3, frameon=False, handlelength=1.8, columnspacing=1.0)
     fig.tight_layout(rect=(0, 0.08, 1, 1), w_pad=1.2)
     for ext in ("pdf", "png"):

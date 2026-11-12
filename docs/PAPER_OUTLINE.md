@@ -76,7 +76,6 @@ s의 숫자는 확정 프로토콜 6 seed(표 1, runs/158)다. W4A5는 seed 0(�
 - **outlier 처리와 scale 이전:** SmoothQuant, AWQ, OmniQuant 계열. 우리 이전(M)과의 차이는 **conv 그래프에서 배포 제약(생산자 공유, residual add)을 지킨다**는 점이다.
 - **혼합 정밀도:** HAWQ 계열. 차이는 **누수 없는 판정 기반 진단**이고, 같은 예산의 HAWQ식 보호와 비교한다.
 - **OVOD:** YOLO-World, YOLOE, GLIP, Grounding DINO, OWL-ViT.
-- **OVOD 양자화:** QATMA(QAT, YOLO-World M/L/X)가 가장 가깝다. QATMA는 PTQ가 W4A4에서 완전히 실패한다고 보고하고, 층별 원인 분석은 하지 않는다.
 
 ### 3. Analysis: Where Quantization Breaks OVOD (1.5쪽)
 - **3.1 설정과 판정 충실도 지표**
@@ -112,7 +111,7 @@ s의 숫자는 확정 프로토콜 6 seed(표 1, runs/158)다. W4A5는 seed 0(�
 - **5.3 ablation (표 2):** G / P / M / GM / PM / GPM. 같은 예산의 무작위 보호(R), HAWQ식 보호(H), 채널 단위 W8, 독립 s 이전.
 - **5.4 plug-in (표 3):** QDrop + PM.
 - **5.5 일반화 (표 4·5):** v2(GPM, PM 변형), m(GP, M은 검사에서 꺼짐), YOLOE-v8s(GPM = PM, G 해당 없음). 모델별 M 검사 결과와 **회복률(FP–BRECQ 손상 대비 되찾은 비율)**을 함께 싣는다. 개선 폭(점)이 모델마다 크게 다른 것을 공정하게 비교하기 위해서다.
-- **5.6 프로토콜 엄격도 (표 5):** attention·contrastive FP와 8bit 비교(6 seed, 결론 유지). 마지막 conv 입력 A8 vs A16(m의 seed 붕괴). QATMA와 같은 조건 비교.
+- **5.6 프로토콜 엄격도 (표 5):** attention·contrastive FP와 8bit 비교(6 seed, 결론 유지). 마지막 conv 입력 A8 vs A16(m의 seed 붕괴).
 - **5.7 비용:** 모델 크기, PTQ 제작 시간, (latency).
 
 ### 6. Discussion & Limitations (0.5쪽)
@@ -138,7 +137,7 @@ s의 숫자는 확정 프로토콜 6 seed(표 1, runs/158)다. W4A5는 seed 0(�
 | 표 2 | ablation (W4A5, G/P/M 전 조합) | ✅ 확정 프로토콜 6 seed (결과 문서 §2) |
 | 표 3 | 선택 기준 대조(P/R/H), QDrop plug-in | ✅ 확정 프로토콜 6 seed (결과 문서 §3) |
 | 표 4 | 일반화 | 🟡 |
-| 표 5 | attention·contrastive 8bit, QATMA 조건 | 🟡 / ⏳ |
+| 표 5 | attention·contrastive 8bit | 🟡 / ⏳ |
 
 ---
 
@@ -166,7 +165,7 @@ s의 숫자는 확정 프로토콜 6 seed(표 1, runs/158)다. W4A5는 seed 0(�
 3. ~~최종 6 seed 일괄 (s)~~ 완료(10-03): 표 1·2·3.
 4. **일반화 3 seed:** v2(PM/GPM), m(GP).
 5. ~~YOLOE-v8s~~ 완료(10-05, 표 5). 다음: YOLOE-11s(백본 계열 확장), L 크기 모델.
-6. **보강:** SmoothQuant·AWQ 기준선, Reg-PTQ, QATMA 조건(첫·마지막 FP, YOLO-World-L).
+6. **보강:** SmoothQuant·AWQ 기준선, Reg-PTQ, 첫·마지막 FP, YOLO-World-L.
 7. **그림 1~5 작성.**
 8. **(가능하면) 엣지 latency 측정.**
 9. **`brecq+GPM`의 묶음 의존성 (10-09 발견):** 같은 seed라도 한 run에 어떤 조건과 묶느냐에 따라 값이 달라진다(s W4A8 seed 0에서 LVIS AP 23.47 vs 23.71). "결정적 실행, bit 단위 재현"이라고 쓰려면 원인을 찾거나 `brecq+GPM`을 같은 묶음으로 다시 재야 한다. 차이가 1점 이상인 칸의 결론에는 영향이 없다. 경위는 [`HISTORY.md`](HISTORY.md) §14.
@@ -180,7 +179,7 @@ s의 숫자는 확정 프로토콜 6 seed(표 1, runs/158)다. W4A5는 seed 0(�
 |---|---|
 | "혼합 정밀도는 흔한 기법 아닌가?" | 보호 자체는 기여의 중심이 아니다. 같은 예산에서 무작위 보호는 +0.21점, 진단 기반은 +1.05점(표 3a)으로 위치 선택이 결정적이다. HAWQ식과는 비슷하다(+0.15, 비유의). 새로움은 G(구조, 단일 요소 중 최대 +1.37점)와 분석에 둔다. 보호 비용도 +0.3%다 |
 | "attention과 DFL을 FP로 둔 것 아닌가?" | attention·contrastive 8bit에서도 결론이 유지된다(표 5). DFL은 고정 디코딩 연산이다 |
-| "QAT(QATMA)와 비교하면?" | 학습 없이 W4A5에서 동작한다. QATMA와 같은 조건 비교는 표 5에 둔다 |
+| "QAT와 비교하면?" | 우리는 재학습 없는 PTQ다. QAT와의 수치 비교는 하지 않는다 |
 | "LVIS_flip은 왜 믿을 만한가?" | AP와 함께 보고하고, Holm 보정한 주 지표로 쓴다. seed 분산이 작고 AP보다 먼저 움직인다 |
 | "다른 OVOD에서도 되나?" | YOLO-World 세 모델과 텍스트 게이트가 없는 YOLOE에서 W4 개선이 재현된다. YOLOE에서는 진단이 초반 backbone을 찾아내고 P와 M만으로 개선된다. 다만 모두 YOLOv8 기반이라 범위를 "실시간 CNN OVOD"로 한정한다 |
 | "이전(M)을 모델마다 고르는 건 튜닝 아닌가?" | 평가를 보지 않는 검사(calibration 밖 이미지, COCO 어휘)로 모델당 한 번 정한다. 문턱을 1.1~2배 어디에 둬도 결정이 같다 |

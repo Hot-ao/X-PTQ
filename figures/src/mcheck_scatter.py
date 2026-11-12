@@ -90,7 +90,7 @@ def main():
                         fontsize=5.6, color=INK, ha="center" if ox == 0 else "left" if ox > 0 else "right", va="center")
     ax.set_xticks([-100, -10, -1, 0, 1, 10, 50]); ax.set_xticklabels(["−100", "−10", "−1", "0", "1", "10", "50"])
     ax.set_yticks([-10, -1, 0, 1, 10]); ax.set_yticklabels(["−10", "−1", "0", "1", "10"])
-    ax.set_xlabel("check flip, GPM − GP (pp)\nheld-out train images, COCO vocab.", fontsize=6.6, linespacing=1.2)
+    ax.set_xlabel("check flip, GPM − GP (pp)\n200 non-calibration train images, COCO vocab.", fontsize=6.6, linespacing=1.2)
     ax.set_ylabel("LVIS AP, GPM − GP", fontsize=6.8)
     ax.set_title(f"M check picks the better candidate in {ok}/{n} runs\n"
                  f"all {len(big)} runs with |ΔAP| ≥ 1 correct; worst miss {max(o - p for o, p in zip(orc, pick)):.1f} AP",

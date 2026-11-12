@@ -89,7 +89,7 @@ def main():
     print("구성(BRECQ seed 0 선택):", {b: per[b]["_cfg"] for b in BITS})
     ax.set_xticks(range(len(BITS))); ax.set_xticklabels(BITS, fontsize=6.8)
     ax.set_xlim(-0.3, len(BITS) - 0.7); ax.set_ylim(0, 29)
-    ax.set_ylabel("LVIS AP (held-out vocabulary)")
+    ax.set_ylabel("LVIS AP (deployment vocabulary)")
     ax.yaxis.grid(True, color=GRID, linewidth=0.5); ax.set_axisbelow(True)
     seeds = f"{min(ns)} seeds" if len(ns) == 1 else f"{min(ns)}–{max(ns)} seeds"
     ax.set_title("YOLO-World-S (seed 0)" if len(SEEDS) == 1 else f"YOLO-World-S (mean of {seeds}, bars = seed range)", loc="left", fontsize=7.2, color=INK)

@@ -54,7 +54,7 @@
 | 절 | 분량 | 핵심 메시지 | 표·그림 | 상태 |
 |---|---|---|---|---|
 | 1 Introduction | 1.0 | AP는 버티는데 판정이 무너진다. 무엇이/어디서/그래서 무엇을 | **그림 1**: 비트별 COCO AP vs LVIS flip (YOLO-World-S) | 데이터 ✅, 그림 ❌ |
-| 2 Related Work | 0.6 | PTQ, 이전·outlier, 혼합 정밀도, ViT PTQ, OVOD, OVOD 양자화(QATMA) | – | ❌ |
+| 2 Related Work | 0.6 | PTQ, 이전·outlier, 혼합 정밀도, ViT PTQ, OVOD | – | ❌ |
 | 3 지표와 진단 | 1.0 | flip/lost 정의, 누수 없는 진단 절차, 잡음 수준 보고 | 진단 절차 도식(작게) | ❌ |
 | 4 분석 | 1.5 | 손상 구조는 아키텍처를 따른다 + 메커니즘 + 이전은 취약성을 옮긴다 | **그림 2**: 6개 모델 민감도 지도 ✅ / **그림 3**: C2fAttn 분기 통계 / **표 A**: 포착량 vs P 효과 ✅ | 그림 3 ❌ |
 | 5 처방 | 1.2 | G(식·구조도), P, M(배포 제약 + 사전 검사), plug-in | **그림 4**: 게이트 교환 구조도 (`figures/method_overview` 초안 있음) | 🟡 |
@@ -106,7 +106,7 @@ flip을 같은 표에 함께 넣고(COCO AP / LVIS AP / LVIS flip), W4A5는 BREC
 |---|---|---|
 | P·M은 기존 기법 아닌가 | 맞다. 기여는 "언제·어디에"를 판정 기준의 누수 없는 진단이 정한다는 것(표 A, 그림 2). 무작위 보호 +0.21 vs P +1.05 | – |
 | 휴리스틱 아닌가, 다른 데이터에도 되는가 | 모든 선택이 평가 데이터를 보지 않는 고정 규칙이고 6개 구조에 같은 규칙 | **다른 평가 데이터(ODinW/Objects365), 다른 calibration 데이터 미검증** |
-| SOTA와 비교는 | 같은 조건에서 기존 PTQ 6종보다 우세 | **문헌 방법 1개 재구현(PD-Quant/Reg-PTQ), QATMA 조건 비교 없음** |
+| SOTA와 비교는 | 같은 조건에서 기존 PTQ 6종보다 우세 | **문헌 방법 1개 재구현(PD-Quant/Reg-PTQ)** |
 | G는 YOLO-World 전용 아닌가 | YOLO-World 계열은 널리 쓰이는 실시간 OVOD. 게이트가 없으면 진단이 다른 처방을 고른다 | – |
 | attention·DFL을 FP로 둔 것 아닌가 | attention·region–텍스트 내적 8bit에서도 유지. DFL은 고정 디코딩 연산 | – |
 | M 검사가 틀리는 경우는 | v2 W8A8을 놓친다. 한계로 명시 | – |
@@ -119,4 +119,4 @@ flip을 같은 표에 함께 넣고(COCO AP / LVIS AP / LVIS flip), W4A5는 BREC
 3. **그림 1, 3, 4** — 데이터는 모두 있음.
 4. **다른 calibration 데이터** — YOLO-World-S W4A8·W4A5에서 진단 목록과 성능이 유지되는지.
 5. **본문 초안** — 4절(분석)과 6절(실험)부터. 수치는 이 문서의 표를 그대로 쓴다.
-6. (여유가 있으면) QATMA 조건(YOLO-World-L, 첫·마지막 FP), OWLv2 W4A5 붕괴 확인(naive/BRECQ 1 seed), 실기기 지연.
+6. (여유가 있으면) YOLO-World-L, 첫·마지막 FP, OWLv2 W4A5 붕괴 확인(naive/BRECQ 1 seed), 실기기 지연.

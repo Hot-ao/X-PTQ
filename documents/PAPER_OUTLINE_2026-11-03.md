@@ -76,7 +76,7 @@
 - PTQ: AdaRound, BRECQ, QDrop. 검출 PTQ(Reg-PTQ)는 인용만. PD-Quant는 부록에서만 언급.
 - outlier와 scale 이전: SmoothQuant, AWQ. CLE(DFQ)는 SiLU에서 FP 등가가 아니라 비교하지 않는다고 한 줄.
 - 혼합 정밀도: HAWQ, HAQ, BRECQ의 MP. 차이: 외부 제약 아래 비트 배분이 아니라, 손상 집중 때문에 작은 고정 예산이면 된다는 것(§5.2).
-- OVOD: YOLO-World, YOLOE, OWL-ViT/OWLv2, GLIP, Grounding DINO. OVOD 양자화는 거의 없다(QATMA는 학회 논문이 아니므로 비교하지 않는다).
+- OVOD: YOLO-World, YOLOE, OWL-ViT/OWLv2, GLIP, Grounding DINO. OVOD 양자화는 거의 없다.
 
 ### 3. 판정 충실도와 누수 없는 진단 (1.0쪽)
 - 3.1 지표: LVIS flip(FP가 확신하는 예측의 top-1 변화율), lost. COCO = calibration 어휘, LVIS = held-out 어휘. OWLv2는 LVIS로 fine-tuning되지 않은 self-training 체크포인트.

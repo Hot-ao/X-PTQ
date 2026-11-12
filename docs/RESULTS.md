@@ -396,7 +396,7 @@ _이미지 수: Aerial 15, Aquarium 127, Cottontail 19, EgoHands 200(minival), M
 9월 분석(HISTORY §8.1)에서는 첫·마지막 레이어를 8bit로 둬도 W4A4가 붕괴해 "per-tensor A4는 열지 못한다"를 한계로 적었다. 그때는 G가 없었고 프로토콜도 달랐다. 확정 프로토콜과 GPM으로 다시 재 보니 **BRECQ는 여전히 붕괴하지만 GPM은 버틴다.**
 
 - run: `runs/203_w4a4`(s, 첫·마지막 8bit/FP), `runs/205_w4a4_m_abl`(m, s ablation). 모델은 `/data/taeho/cvpr2027_qmodels/`(첫·마지막 FP는 `fl16/`)에 저장.
-- "첫·마지막 FP"는 `--first-last-bits 16`(16bit는 사실상 FP). QATMA가 쓰는 조건이다.
+- "첫·마지막 FP"는 `--first-last-bits 16`(16bit는 사실상 FP).
 
 **YOLO-World-S (FP: COCO 36.80 / LVIS 25.89)**
 
@@ -425,7 +425,6 @@ _이미지 수: Aerial 15, Aquarium 127, Cottontail 19, EgoHands 200(minival), M
 | 첫·마지막 FP | 0 | 0.24 / 1.12 | – | 20.81 / 12.97 |
 
 - **M 사전 검사의 W4A4 결정은 "켬"이다**(첫·마지막 8bit: M 끔 94.67% / 켬 53.04%, 저장 모델로 사후 검사. 첫·마지막 FP: 73.93% / 49.78%). W4A5 검사는 "끔"이었다. 그래서 M 결정 캐시 키에 비트를 넣었다(METHOD §4.5). W4A5 결정을 그대로 썼다면 GP가 되어 붕괴했다.
-- 참고: QATMA(재학습, 첫·마지막 FP)는 같은 M 모델 W4A4에서 LVIS 16.3(FP 31.0의 53%)을 보고했고, PTQ 기준선은 모두 0.0이었다. 우리는 학습 없이 FP의 41~44%다. 논문에서는 "기존 PTQ가 붕괴하는 W4A4에서도 동작한다"까지만 쓰고 QATMA와의 수치 비교는 중심에 두지 않기로 했다(MEETING_2026-10-28 §1.2).
 
 ---
 
@@ -474,4 +473,4 @@ calibration 밖 train2017 200장과 COCO 어휘로 M 켬/끔의 flip을 비교�
 2. 모델 크기 계산에 attention Linear weight 포함.
 3. ~~일반화 6 seed~~(10-03, 표 4), ~~YOLOE-v8s~~(10-05, 표 5). 남은 후보: YOLOE-11s(다른 백본), L 크기 모델.
 5. ~~ODinW-13~~(10-28, 표 6: YOLO-World-S, YOLOE-v8s, YOLOE-11s). W4A4(§4d, 2 seed). 남은 것: OWLv2 BRECQ 대비 seed 실행, YOLO-World 논문 FP 값 대조, Objects365 등 다른 도메인.
-4. QATMA 조건, SmoothQuant/AWQ·Reg-PTQ, 엣지 latency.
+4. SmoothQuant/AWQ·Reg-PTQ, 엣지 latency.

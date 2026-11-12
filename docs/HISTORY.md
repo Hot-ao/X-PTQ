@@ -232,7 +232,6 @@
 - **QDrop 위 PM도 6/6**(plug-in).
 
 **9.3 새로움 탐색**
-- **선행 연구:** 직접 경쟁 연구는 **QATMA**(arXiv 2603.05964)다. QAT이고, YOLO-World M/L/X, W4A4·W4A5를 다루며, PTQ는 W4A4에서 완전 실패로 보고했다. 층별 원인 분석은 없다.
 - **A안(이전 고려 보호, `runs/148`):** 보호 목록의 마지막 한 자리만 바뀐다. 대신 **"이전은 취약성을 12.cv2에서 1.conv로 옮긴다"**는 메커니즘을 얻었다. → 나중에.
 - **방향 2(분기 인식 concat):** A4 붕괴는 해결되지 않았다 → 기각. W4A4는 한계로 명시.
 - **방향 1: 텍스트 게이트 교환(G, `e3b342f`)**
@@ -249,7 +248,7 @@
 
 ## 10. 엄격한 프로토콜 확정 (10-01 ~ 10-02)
 
-**출발점.** 기본 프로토콜은 conv만 양자화하고 attention Linear/matmul, head contrastive matmul, DFL을 FP로 두었다. "그래도 되는가"라는 질문(QATMA는 attention을 8bit로 양자화)에서 시작했다.
+**출발점.** 기본 프로토콜은 conv만 양자화하고 attention Linear/matmul, head contrastive matmul, DFL을 FP로 두었다. "그래도 되는가"라는 질문에서 시작했다.
 
 **10-01: attention·contrastive 8bit (runs/153)**
 - `--attn-quant`를 구현했다. 실행 중 값은 per-tensor A8, 텍스트 상수는 클래스별 8bit, 실행 중 입력을 받는 Linear는 W8A8로 양자화한다.
@@ -341,7 +340,7 @@
   - YOLOE-v8s(텍스트 게이트 없음): W4A8 +0.74, W4A5 +4.40점, W8A8 flip −23%.
 - **남은 일**
   1. 백본 계열 확장(YOLOE-11s), L 크기 모델
-  2. SmoothQuant·AWQ 기준선, QATMA 조건(YOLO-World-L)
+  2. SmoothQuant·AWQ 기준선, YOLO-World-L
   3. flip 지표의 정당성(APr, 어휘 변경과의 관계)
   4. 논문 그림과 본문, 실제 엣지 latency 측정
 - **논문 논지:** "open-vocab 검출기 PTQ에서 무너지는 것은 held-out 어휘의 판정이고, 그 손상은 텍스트가 융합되는 구조적 지점과 초반 backbone에 몰려 있다. 그 지점을 구조적으로 재배치(게이트 교환)하고 소수 conv만 지키면, 학습 없는 PTQ로 행렬 연산을 거의 전부 정수화한 W4에서 YOLO-World 세 모델과 YOLOE의 판정을 지킨다. calibration 어휘에 맞춘 학습은 오히려 held-out 판정을 해친다."

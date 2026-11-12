@@ -2,7 +2,7 @@
 
 (a) 정성 예시, YOLO-World-S W4A8 seed 0: FP32 / BRECQ / Ours(brecq+GPM, 새 규칙 r1102).
     검출은 qual_dets.py가 만든 /data/taeho/cvpr2027_dets/qual_s_w4a8 (fp, brecq, ours)를 쓴다. 그리기 규칙은 qual_figure.draw와 같다.
-    BRECQ는 같은 설정에서 COCO AP를 FP의 92%로 유지한다 -- 그런데 held-out 어휘 라벨을 확신을 갖고 바꾼다.
+    BRECQ는 같은 설정에서 COCO AP를 FP의 92%로 유지한다 -- 그런데 LVIS(배포) 어휘 라벨을 확신을 갖고 바꾼다.
 (b) YOLO-World-S 비트별 LVIS AP. 11-11부터 seed 0(documents/RESULTS_FINAL_1seed.md §2와 같다). PTQ_DRAFT_SEEDS=0,1,2면 3 seed 평균(점 = seed별 값).
 사용(저장소 루트): .venv/bin/python figures/src/teaser_v2.py [--image 450559]
 출력: figures/teaser_v2.{pdf,png}
@@ -83,7 +83,7 @@ def main():
         ax = fig.add_subplot(gs[0, i])
         draw(ax, img, shift(dets[k][iid]), shift(focus), names, args.t_show, ttl, max_boxes=len(focus))
         ax.title.set_fontsize(7.5)
-    fig.text(0.005, 0.045, "(a) BRECQ keeps 92% of FP COCO AP at W4A8, yet relabels held-out (LVIS) objects with high confidence.",
+    fig.text(0.005, 0.045, "(a) BRECQ keeps 92% of FP COCO AP at W4A8, yet relabels LVIS objects with high confidence.",
              fontsize=6.6, color=INK, ha="left")
 
     ax = fig.add_subplot(gs[0, 3])
@@ -105,7 +105,7 @@ def main():
     ax.set_xticks(x); ax.set_xticklabels(BITS, fontsize=6.5)
     ax.set_xlim(-0.3, len(BITS) - 0.1); ax.set_ylim(0, 29)
     ax.yaxis.grid(True, color=GRID, linewidth=0.5); ax.set_axisbelow(True)
-    ax.set_title("(b) held-out LVIS AP, YOLO-World-S", loc="left", fontsize=7.5, color=INK)
+    ax.set_title("(b) LVIS AP, YOLO-World-S", loc="left", fontsize=7.5, color=INK)
     h = [Line2D([], [], color=COL[m], linewidth=1.6, marker="o", markersize=4, markeredgecolor="white", label=lab)
          for m, lab in (("Ours", "Ours"), ("BRECQ", "BRECQ"), ("QDrop", "QDrop"))]
     ax.legend(handles=h, loc="lower left", bbox_to_anchor=(0.0, 0.0), fontsize=6.2, frameon=False, handlelength=1.6, borderaxespad=0.2)

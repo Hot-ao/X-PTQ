@@ -64,7 +64,7 @@ v1과 달라지는 점: G를 "주인공 방법"이 아니라 **C2의 메커니�
 - PTQ(AdaRound, BRECQ, QDrop, PD-Quant), 검출 PTQ(Reg-PTQ), ViT PTQ(PTQ4ViT, RepQ-ViT: softmax 등 특수 양자화기)
 - outlier와 scale 이전(SmoothQuant, AWQ, OmniQuant), CNN의 등가 변환(DFQ의 CLE. SiLU에서는 FP 등가가 아니라 비교하지 않는다고 한 줄)
 - 혼합 정밀도(HAWQ, HAQ). 차이: 판정 기준의 누수 없는 진단과 "쓸지 말지"의 결정
-- OVOD(YOLO-World, YOLOE, OWL-ViT/OWLv2, GLIP, Grounding DINO), OVOD 양자화(QATMA: QAT, 층별 분석 없음)
+- OVOD(YOLO-World, YOLOE, OWL-ViT/OWLv2, GLIP, Grounding DINO)
 
 ### 3. 판정 충실도와 누수 없는 진단 (1.0쪽)
 - 3.1 지표: LVIS flip(FP가 확신하는 예측의 top-1이 바뀐 비율), lost. COCO = calibration 어휘, LVIS = held-out 어휘. OWLv2는 LVIS로 fine-tuning되지 않은 self-training 체크포인트를 쓴다.

@@ -218,7 +218,7 @@ KX = 116.5
 box(KX, 25.5, 14.0, 23.5, '', fc='white', ec=OK, lw=1.0)
 ax.text(KX + 7.0, 46.6, 'M check', ha='center', va='center', fontsize=6.8, color=OK, weight='bold', zorder=5)
 thumbs(KX + 3.2, 37.0, 5.6, [os.path.join(TRAIN, f) for f in tr[256:259]], z=5)
-ax.text(KX + 7.0, 32.6, 'held-out train\nimages (next 200)\n+ COCO vocab.', ha='center', va='center', fontsize=5.0,
+ax.text(KX + 7.0, 32.6, 'non-calib. train\nimages (next 200)\n+ COCO vocab.', ha='center', va='center', fontsize=5.0,
         color=MUTED, linespacing=1.05, zorder=5)
 ax.text(KX + 7.0, 27.9, 'top-1 flip vs. FP', ha='center', va='center', fontsize=5.4, color=INK, zorder=5)
 arrow([(CX + 22.6, 52.0), (KX - 1.4, 52.0), (KX - 1.4, 42.0), (KX, 42.0)])

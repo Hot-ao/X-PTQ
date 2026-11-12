@@ -328,7 +328,7 @@ with group('M check and output'):
     box(KX, 25.5, 14.0, 23.5, None, ec=OK, lw=1.0)
     text(KX + 7.0, 46.6, 'M check', fs=6.8, color=OK, bold=True)
     thumbs(KX + 3.2, 37.0, 5.6, [os.path.join(TRAIN, f) for f in tr[256:259]], 'check')
-    text(KX + 7.0, 32.6, ['held-out train', 'images (next 200)', '+ COCO vocab.'], fs=5.0, color=MUTED)
+    text(KX + 7.0, 32.6, ['non-calib. train', 'images (next 200)', '+ COCO vocab.'], fs=5.0, color=MUTED)
     text(KX + 7.0, 27.9, 'top-1 flip vs. FP', fs=5.4)
     poly([(CX + 22.6, 52.0), (KX - 1.4, 52.0), (KX - 1.4, 42.0), (KX, 42.0)])
     poly([(CX + 22.6, 23.0), (KX - 1.4, 23.0), (KX - 1.4, 33.0), (KX, 33.0)])

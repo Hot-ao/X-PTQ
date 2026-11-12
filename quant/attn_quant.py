@@ -2,7 +2,7 @@
 attention/contrastive 연산 양자화 (10-01 보강 실험: "attention·DFL을 FP로 둬도 되는가").
 
 기본 프로토콜은 conv만 양자화하고 텍스트 융합 attention(Linear/matmul)과 head의 contrastive matmul은 FP다.
-이 모듈은 그 연산들을 8bit로 양자화해 "FP로 둔 것이 결론(GPM − BRECQ)에 영향을 주는가"를 잰다(QATMA 조건과 정합).
+이 모듈은 그 연산들을 8bit로 양자화해 "FP로 둔 것이 결론(GPM − BRECQ)에 영향을 주는가"를 잰다.
 
 양자화 규칙(배포 관점):
   - 실행 중 값(이미지에서 온 피연산자, Linear 입력, softmax/sigmoid 출력)

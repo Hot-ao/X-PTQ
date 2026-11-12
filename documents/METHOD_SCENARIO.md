@@ -30,10 +30,6 @@
 
 ## 2. 공백: OVOD 양자화 연구가 부족하다
 
-- 직접 관련된 선행 연구는 **QATMA**(arXiv 2603.05964, 2026)다.
-  - 재학습이 필요한 양자화 인지 학습(QAT) 방법이다.
-  - YOLO-World M/L/X를 W4A4·W4A5에서 다루며, 기존 사후 양자화(PTQ)는 W4A4에서 완전히 실패한다고 보고했다.
-  - 무엇이 왜 망가지는지에 대한 층 단위 분석은 없다.
 - **재학습 없는 PTQ 관점에서 OVOD의 손상 원인을 분석하고 대응한 연구는 찾지 못했다.**
 - 최근 검출 PTQ 연구도 모두 고정 클래스(closed-set) 검출기를 대상으로 한다. 두 연구 모두 BRECQ(2021) 또는 QDrop(2022)을 기준선으로 비교한다.
   - Reg-PTQ(CVPR 2024): 박스 회귀를 다룬다.
@@ -189,10 +185,10 @@ $$
 
 단위는 순서대로 하나씩 정한다. 한 소비 층이 여러 단위의 채널을 받으면(concat), 앞에서 정한 단위의 $s$는 고정하고 아직 정하지 않은 단위의 채널은 $s=1$로 둔다.
 
-**(4) 사전 검사.** M을 켠 모델과 끈 모델을 둘 다 재구성(BRECQ 또는 QDrop)까지 만든 뒤, calibration에 쓰지 않은 이미지(held-cal: train2017에서 calibration 다음 200장, COCO 어휘)에서 판정 손상을 비교한다.
+**(4) 사전 검사.** M을 켠 모델과 끈 모델을 둘 다 재구성(BRECQ 또는 QDrop)까지 만든 뒤, calibration에 쓰지 않은 이미지(train2017에서 calibration 다음 200장, COCO 어휘)에서 판정 손상을 비교한다.
 
 $$
-\text{M 사용}\iff\mathrm{Flip}_{\text{held-cal}}(\text{M 켬})\le\rho\cdot\mathrm{Flip}_{\text{held-cal}}(\text{M 끔}),\qquad\rho=1.0
+\text{M 사용}\iff\mathrm{Flip}_{\text{chk}}(\text{M 켬})\le\rho\cdot\mathrm{Flip}_{\text{chk}}(\text{M 끔}),\qquad\rho=1.0
 $$
 
 - ρ는 11-02에 1.5에서 1.0으로 바꿨다. 1.1–1.4배 구간에서 M이 손해인 경우를 놓쳤기 때문이다(YOLOE-v8s W4A8, S W4A8).
@@ -220,7 +216,7 @@ $$
 $$
 
 $$
-\hat\theta=\begin{cases}\hat\theta_{\text{on}} & \mathrm{Flip}_{\text{held-cal}}(\hat\theta_{\text{on}})\le\rho\,\mathrm{Flip}_{\text{held-cal}}(\hat\theta_{\text{off}})\\[2pt] \hat\theta_{\text{off}} & \text{otherwise}\end{cases},\qquad\rho=1.0
+\hat\theta=\begin{cases}\hat\theta_{\text{on}} & \mathrm{Flip}_{\text{chk}}(\hat\theta_{\text{on}})\le\rho\,\mathrm{Flip}_{\text{chk}}(\hat\theta_{\text{off}})\\[2pt] \hat\theta_{\text{off}} & \text{otherwise}\end{cases},\qquad\rho=1.0
 $$
 
 - G가 적용되지 않는 모델(YOLOE, OWLv2, Grounding DINO)에서는 $\mathrm{G}$가 항등 변환이다.
@@ -310,7 +306,6 @@ $$
 ---
 
 ### 참고
-- QATMA: https://arxiv.org/abs/2603.05964
 - YOLO-World: https://openaccess.thecvf.com/content/CVPR2024/html/Cheng_YOLO-World_Real-Time_Open-Vocabulary_Object_Detection_CVPR_2024_paper.html
 - Reg-PTQ: https://openaccess.thecvf.com/content/CVPR2024/html/Ding_Reg-PTQ_Regression-specialized_Post-training_Quantization_for_Fully_Quantized_Object_Detector_CVPR_2024_paper.html
 - InlierQ: https://arxiv.org/abs/2602.03472
