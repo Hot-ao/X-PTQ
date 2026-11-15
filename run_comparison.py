@@ -564,7 +564,7 @@ def build(model_cls, w, names, device, calib, mode, fp=None, pidx=None, h_eval=N
     if gate_commute:
         # 09-30 설계 방향 1: C2fAttn의 텍스트 게이트를 cv2 뒤로 옮기는 FP 등가 재배치(quant/fusion_quant.py).
         # 양자화 전(wrap_convs 전)에 구조를 바꾼다. 재구성의 FP 기준도 같은 구조여야 하므로 아래 _fpref 참고.
-        assert mode in ("naive", "brecq", "qdrop", "pdquant"), f"게이트 교환 미지원 조건: {mode}"
+        assert mode in ("naive", "brecq", "qdrop", "pdquant", "inlierq"), f"게이트 교환 미지원 조건: {mode}"
         from quant.fusion_quant import gate_commute_all
         gate_commute_all(m.model)
     # 09-23: CLIP 인코더(clip_model) 제외는 quant_model.ALWAYS_SKIP_NAMES가 담당한다
@@ -593,7 +593,7 @@ def build(model_cls, w, names, device, calib, mode, fp=None, pidx=None, h_eval=N
         # 이전된 값 기준으로 잡혀야 하므로 calibrate 전. layer-wise AdaRound(optimize_adaround)는
         # conv.weight를 FP 입력과 직접 곱해 target을 만들어서 이전과 호환되지 않는다 -- combined는
         # 1단계가 brecq일 때만 허용(2단계의 s_mult는 conv당 스칼라라 이전과 독립).
-        assert mode in ("naive", "brecq", "qdrop", "pdquant") or \
+        assert mode in ("naive", "brecq", "qdrop", "pdquant", "inlierq") or \
             (mode == "combined" and combined_stage1 == "brecq"), f"migration 미지원 조건: {mode}"
         # migrate: True/"M" = 우리 M, "S" = SmoothQuant, "W" = AWQ(10-17 기준선, 같은 공유 제약·같은 이미지).
         from quant.channel_graph import search_and_apply_tied
@@ -601,7 +601,7 @@ def build(model_cls, w, names, device, calib, mode, fp=None, pidx=None, h_eval=N
                               rule={"S": "smooth", "W": "awq"}.get(migrate, "tied"),
                               stat_images=calib if MIG_STAT_ALL else None, xmax_floor=MIG_XMAX_FLOOR)
     _fpref = fp
-    if gate_commute and mode in ("brecq", "qdrop", "pdquant"):
+    if gate_commute and mode in ("brecq", "qdrop", "pdquant", "inlierq"):
         # BRECQ가 quant/FP conv를 트리 순서로 짝짓고 FP 출력을 목표로 쓰므로, FP 기준 모델도 같은
         # 게이트 교환 구조여야 cv2_main/cv2_side가 올바른 짝을 갖는다(FP 등가).
         from quant.fusion_quant import gate_commute_all as _gca
@@ -661,6 +661,19 @@ def build(model_cls, w, names, device, calib, mode, fp=None, pidx=None, h_eval=N
         optimize_brecq(m.model, _fpref.model, calib, device, iters=RECON_ITERS,
                        verbose=False, learn_act_scale=True, two_stage=False,
                        batch=1, neck_layerwise=False)
+    elif mode == "inlierq":
+        # 11-15 InlierQ(Kim et al., ICLR 2026) 기준선. 위 brecq와 설정이 모두 같고 재구성 손실만 inlier 위치의
+        # FIM 가중 오차로 바꾼다(quant/inlierq.py, 논문에 없는 값과 옮기며 정한 것은 그 파일 머리말).
+        from quant.inlierq import InlierQContext, IQ_K, IQ_TAU
+        print(f"  [inlierq] K={IQ_K} tau={IQ_TAU}", flush=True)
+        convert_to_adaround(m.model, channelwise_smult=False)
+        _iq = InlierQContext(_fpref.model, list(calib), device)
+        try:
+            optimize_brecq(m.model, _fpref.model, calib, device, iters=RECON_ITERS,
+                           verbose=False, learn_act_scale=True, two_stage=False,
+                           batch=1, neck_layerwise=False, iq=_iq)
+        finally:
+            _iq.close()
     elif mode == "combined":
         # Combined(PromptCal) 기준선: 1단계(weight 재구성, combined_stage1) 뒤에 2단계로 per-tensor
         # s_mult(activation scale)를 margin/neighbor 목적함수로 학습한다. S(pidx)와 H_cal(cal_idx)에
@@ -931,7 +944,7 @@ def main():
 
     conditions = [c.strip() for c in args.conditions.split(",")]
 
-    _valid = {"naive", "adaround", "qdrop", "pdquant", "brecq", "combined"}
+    _valid = {"naive", "adaround", "qdrop", "pdquant", "brecq", "combined", "inlierq"}
     # 09-29: 조건 접미사 -- "brecq+PM"처럼 기반 조건 뒤에 양자화기 옵션을 조건별로 붙인다(한 run에서 짝비교).
     #   P = 보호(누수 없는 진단, COCO 어휘 top-1 flip 기준, 예산 PROTECT_BUDGET)
     #   R = 같은 예산 무작위 보호(random.Random(1000), runs/134 rand0과 같은 목록)

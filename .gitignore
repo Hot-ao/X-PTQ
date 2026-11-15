@@ -6,6 +6,7 @@ __pycache__/
 # 가상환경. 이 저장소의 .venv는 promptcal-ptq/.venv로 가는 심볼릭 링크라 "/" 없이 적는다
 # (".venv/"는 디렉터리에만 걸려서 링크가 커밋됐었다)
 .venv
+.venv_mmdet
 venv/
 .env
 

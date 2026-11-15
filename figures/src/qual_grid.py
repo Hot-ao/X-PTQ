@@ -10,7 +10,7 @@ qual_dets.py가 만든 세 태그(s_w4a8, s_w4a5, s_w4a4; 각 fp, brecq, ours)�
 배치: 왼쪽 열 = FP32(두 행에 걸쳐), 그 오른쪽 = 행 BRECQ / Ours, 열 W4A8 / W4A5 / W4A4.
 사용(저장소 루트):
   .venv/bin/python figures/src/qual_grid.py                 # 후보 목록 figures/qual_grid_candidates.md + 1순위 그림
-  .venv/bin/python figures/src/qual_grid.py --pick 446651,509824,187055    # 그 이미지들로(위아래로 쌓음)
+  .venv/bin/python figures/src/qual_grid.py --pick 446651,153632,469174 --bases brecq,qdrop,pdquant   # 논문 그림(11-16 최종, 블록별 기준 PTQ)
 출력: figures/qual_grid.{pdf,png}
 """
 from __future__ import annotations
@@ -24,6 +24,10 @@ from qual_figure import LVIS_ANN, COCO_ROOT, FREQ_RANK, iou, match, top_per_loca
 BITS = [("s_w4a8", "W4A8"), ("s_w4a5", "W4A5"), ("s_w4a4", "W4A4")]
 METHODS = [("brecq", "BRECQ"), ("ours", "Ours")]
 BASES = [k for k, _ in METHODS if k != "ours"]
+# 11-15: --bases로 블록마다 기준 PTQ를 바꾼다. 태그의 brecq.json = 그 기준 PTQ, ours.json = 그 기준 + GPM (runs/266_qual_bases, 모두 seed 0)
+TAGSETS = {"brecq": ["s_w4a8", "b_w4a5s0", "s_w4a4"], "qdrop": ["q_w4a8", "q_w4a5", "q_w4a4"],
+           "pdquant": ["p_w4a8", "p_w4a5", "p_w4a4"]}
+BASE_NAME = {"brecq": "BRECQ", "qdrop": "QDrop", "pdquant": "PD-Quant"}
 
 
 def main():
@@ -32,6 +36,8 @@ def main():
     ap.add_argument("--t-show", type=float, default=0.15)
     ap.add_argument("--pick", default="", help="image_id(쉼표로 여러 장이면 위아래로 쌓는다)")
     ap.add_argument("--max-boxes", type=int, default=8)
+    ap.add_argument("--bases", default="", help="블록별 기준 PTQ(쉼표, --pick 순서). 예: brecq,qdrop,pdquant (11-15)")
+    ap.add_argument("--crop", default="", help="이미지별 자르기 'iid:x1,y1,x2,y2;iid:...'(원본 픽셀). 박스도 같이 옮긴다(11-15)")
     args = ap.parse_args()
     from lvis import LVIS
     dets = {}
@@ -89,6 +95,16 @@ def main():
     plt.rcParams.update({"font.family": "DejaVu Sans"})
     # 이미지마다 한 블록(FP32 | 행 이름 | W4A8 | W4A5 | W4A4, 행 = METHODS)을 위아래로 쌓는다. 열 제목은 맨 위 블록만.
     ims = [Image.open(os.path.join(COCO_ROOT, "val2017", f"{iid:012d}.jpg")).convert("RGB") for iid in picks]
+    crops = {int(k): [float(v) for v in b.split(",")] for k, b in (x.split(":") for x in args.crop.split(";") if x)}
+    off = {}
+    for i, iid in enumerate(picks):
+        if iid in crops:
+            x1, y1, x2, y2 = crops[iid]; ims[i] = ims[i].crop((int(x1), int(y1), int(x2), int(y2))); off[iid] = (x1, y1)
+    def sh(iid, ds):                                 # 자른 만큼 박스 좌표를 옮긴다(밖으로 나간 부분은 축이 잘라 낸다)
+        if iid not in off:
+            return ds
+        ox, oy = off[iid]
+        return [[d[0] - ox, d[1] - oy, d[2] - ox, d[3] - oy] + list(d[4:]) for d in ds]
     ars = [im.height / im.width for im in ims]
     W, nr, gap = 7.0, len(METHODS), 0.12             # gap: 블록 사이 간격(in)
     pw = W / 4.09                                    # 패널 폭(행 이름 열 0.09 포함)
@@ -97,18 +113,34 @@ def main():
     fig = plt.figure(figsize=(W, H))
     outer = fig.add_gridspec(2 * len(picks) - 1, 1, left=0.005, right=0.998, top=1 - 0.22 / H, bottom=0.005, hspace=0,
                              height_ratios=sum([[b, gap] for b in bh], [])[:-1])
+    bases = args.bases.split(",") if args.bases else []
+    for bs in bases:                                  # 블록별 기준 PTQ 태그를 읽는다
+        for tag in TAGSETS[bs]:
+            if tag not in dets:
+                d = f"/data/taeho/cvpr2027_dets/qual_{tag}"
+                dets[tag] = {k: json.load(open(os.path.join(d, f"{k}.json"))) for k in ["fp"] + [m for m, _ in METHODS]}
     for b, (iid, img) in enumerate(zip(picks, ims)):
-        focus = [f for f, _ in wins_of[iid]] if iid in wins_of else top_per_location(fp[str(iid)], args.t_fp)
+        tags = TAGSETS[bases[b]] if bases else [t for t, _ in BITS]
+        rows = ([("brecq", BASE_NAME[bases[b]]), ("ours", BASE_NAME[bases[b]] + " + Ours")] if bases else METHODS)
+        if iid in wins_of and not bases:
+            focus = [f for f, _ in wins_of[iid]]
+        else:                                        # 11-15: 후보 밖 이미지(또는 --bases)는 느슨한 규칙(Ours는 세 비트 모두 FP와 같고, 기준선은 한 비트 이상 틀림)
+            g = gt.get(iid, [])
+            focus = [f for f in top_per_location(fp[str(iid)], args.t_fp)
+                     if any(c == f[5] and iou(f[:4], b) >= 0.5 for b, c in g)
+                     and all(match(f[:4], dets[t]["ours"][str(iid)], args.t_show) == f[5] for t in tags)
+                     and any(match(f[:4], dets[t]["brecq"][str(iid)], args.t_show) != f[5] for t in tags)]
         gs = outer[2 * b].subgridspec(nr, 5, wspace=0.02, hspace=0.03, width_ratios=[1, 0.09, 1, 1, 1])
         # FP32는 왼쪽 열에서 블록 행들의 가운데 높이에 한 칸 크기로 둔다
         a0 = fig.add_subplot(gs[:, 0]); a0.axis("off")
         pos = a0.get_position(); h = pos.height / nr
         fa = fig.add_axes([pos.x0, pos.y0 + (pos.height - h) / 2, pos.width, h])
-        draw(fa, img, fp[str(iid)], focus, names, args.t_show, "FP32", args.max_boxes)
-        for r, (k, mname) in enumerate(METHODS):
-            for c, (tag, bname) in enumerate(BITS):
+        focus = sh(iid, focus)
+        draw(fa, img, sh(iid, fp[str(iid)]), focus, names, args.t_show, "FP32", args.max_boxes)
+        for r, (k, mname) in enumerate(rows):
+            for c, (tag, bname) in enumerate(zip(tags, [n for _, n in BITS])):
                 ax = fig.add_subplot(gs[r, c + 2])
-                draw(ax, img, dets[tag][k][str(iid)], focus, names, args.t_show, bname if (b == 0 and r == 0) else "",
+                draw(ax, img, sh(iid, dets[tag][k][str(iid)]), focus, names, args.t_show, bname if (b == 0 and r == 0) else "",
                      args.max_boxes)
                 if c == 0:
                     ax.set_ylabel(mname, fontsize=8, rotation=90, labelpad=3)

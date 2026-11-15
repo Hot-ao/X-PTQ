@@ -42,8 +42,23 @@ def collect():
     return [r for r in latest.values() if r["seed"] in SEEDS]   # 11-11: seed 0만(Ours 구성을 정한 바로 그 검사들)
 
 
+# 11-15: OWLv2·Grounding DINO 사후 검사(runs/262, YOLO와 같은 기준) 중 두 후보의 LVIS AP를 모두 잰 3건. dx, dy = (M 켬 - M 끔).
+#   OWLv2 W8A8: 검사 2.22 vs 3.25, AP M 29.80 vs BRECQ 28.14 (RESULTS_FINAL §3)
+#   OWLv2 W4A8: 검사 5.98 vs 6.67, AP PM 21.81 vs P 19.40 (runs/184)
+#   GDINO W4A5: 검사 8.79 vs 8.73, AP PM 30.23 vs P 27.83 (runs/263 merged.json, LVIS 앞 2,000장)
+#   OWLv2 W4A5, GDINO W4A8은 M 끔 후보의 AP를 재지 않아 넣지 않는다(검사는 둘 다 M 켬).
+# 11-15(2): 사용자 결정 -- 두 후보의 AP를 모두 잰 확장 3건만으로는 대표성이 없어 그림에서 뺀다(본문 5.3에 문장으로만 적는다).
+USE_EXT = False
+EXT = [dict(model="OWLv2", bits="W8A8", dx=2.22 - 3.25, dy=29.80 - 28.14),
+       dict(model="OWLv2", bits="W4A8", dx=5.98 - 6.67, dy=21.81 - 19.40),
+       dict(model="G-DINO", bits="W4A5", dx=8.79 - 8.73, dy=30.23 - 27.83)]
+
+
 def main():
     R = collect()
+    E = [dict(r) for r in EXT] if USE_EXT else []
+    for r in E:
+        r["ok"] = (r["dx"] <= 0) == (r["dy"] >= 0)
     for r in R:
         r["pick_gpm"] = r["dx"] <= 0
         r["ok"] = r["pick_gpm"] == (r["dy"] >= 0)
@@ -52,6 +67,8 @@ def main():
     orc = [max(r["ap_gp"], r["ap_gpm"]) for r in R]
     big = [r for r in R if abs(r["dy"]) >= 1]
     print(f"{n}개 중 {ok}개 맞음, |ΔAP| >= 1 {len(big)}개 중 {sum(r['ok'] for r in big)}개 맞음")
+    eok = sum(r["ok"] for r in E)
+    print(f"확장 {len(E)}건 중 {eok}건 맞음 -> 전체 {n + len(E)}건 중 {ok + eok}건")
     for name, v in (("검사로 선택", pick), ("항상 GP", [r["ap_gp"] for r in R]), ("항상 GPM", [r["ap_gpm"] for r in R])):
         print(f"  {name:8s} 평균 LVIS AP {sum(v) / n:.2f}, 사후 최선 대비 최대 손해 {max(o - p for o, p in zip(orc, v)):.2f}")
     import matplotlib
@@ -76,6 +93,11 @@ def main():
             ax.scatter(r["dx"], r["dy"], s=22, color=OKC, edgecolor="white", linewidth=0.8, zorder=4)
         else:
             ax.scatter(r["dx"], r["dy"], s=26, marker="X", color=BADC, edgecolor="white", linewidth=0.6, zorder=5)
+    for r in E:   # 11-15: 확장 모델은 마름모(채움 없음)로 구분
+        ax.scatter(r["dx"], r["dy"], s=30, marker="D", facecolor="white", edgecolor=OKC if r["ok"] else BADC, linewidth=1.3, zorder=6)
+    gd = next((r for r in E if r["model"] == "G-DINO"), None)
+    if gd: ax.annotate("G-DINO W4A5", (gd["dx"], gd["dy"]), xytext=(7, 5), textcoords="offset points", fontsize=5.6, color=INK, va="center")
+    # OWLv2 두 점은 이름을 달지 않는다(파란 점과 겹침). 캡션에서 "이름 없는 마름모 = OWLv2"로 설명한다.
     # 선택적 직접 표기: 차이가 큰 대표 사례와 반복해서 틀리는 설정만
     seen = set()
     notes = {("S", "W4A4", "brecq"): (7, 0, "W4A4"), ("M", "W4A5", "brecq"): (-4, 16, "M W4A5"),
@@ -92,13 +114,18 @@ def main():
     ax.set_yticks([-10, -1, 0, 1, 10]); ax.set_yticklabels(["−10", "−1", "0", "1", "10"])
     ax.set_xlabel("check flip, GPM − GP (pp)\n200 non-calibration train images, COCO vocab.", fontsize=6.6, linespacing=1.2)
     ax.set_ylabel("LVIS AP, GPM − GP", fontsize=6.8)
-    ax.set_title(f"M check picks the better candidate in {ok}/{n} runs\n"
-                 f"all {len(big)} runs with |ΔAP| ≥ 1 correct; worst miss {max(o - p for o, p in zip(orc, pick)):.1f} AP",
+    worst_e = max((abs(r["dy"]) for r in E if not r["ok"]), default=0)
+    worst = max(o - p for o, p in zip(orc, pick))
+    ax.set_title((f"M check picks the better candidate in {ok + eok}/{n + len(E)} runs\n"
+                  f"(real-time {ok}/{n}, OWLv2·G-DINO {eok}/{len(E)}); worst miss {worst:.1f} / {worst_e:.1f} AP") if E else
+                 f"M check picks the better candidate in {ok}/{n} runs\nworst miss {worst:.2f} AP",
                  loc="left", fontsize=6.9, color=INK, linespacing=1.25)
     from matplotlib.lines import Line2D
     h = [Line2D([], [], marker="o", color=OKC, linestyle="none", markersize=4.5, markeredgecolor="white", label="correct pick"),
-         Line2D([], [], marker="X", color=BADC, linestyle="none", markersize=5, markeredgecolor="white", label="wrong pick")]
-    ax.legend(handles=h, loc="lower center", bbox_to_anchor=(0.5, -0.42), ncol=2, fontsize=6, frameon=False)
+         Line2D([], [], marker="X", color=BADC, linestyle="none", markersize=5, markeredgecolor="white", label="wrong pick"),
+         Line2D([], [], marker="D", color=MUTED, markerfacecolor="white", linestyle="none", markersize=4.2, markeredgewidth=1.2,
+                label="OWLv2 / G-DINO (post-hoc)")][:3 if E else 2]
+    ax.legend(handles=h, loc="lower center", bbox_to_anchor=(0.5, -0.42), ncol=len(h), fontsize=5.8, frameon=False, columnspacing=0.8)
     fig.tight_layout()
     for ext in ("pdf", "png"):
         fig.savefig(os.path.join(ROOT, "figures", f"mcheck_scatter.{ext}"), dpi=300, bbox_inches="tight")

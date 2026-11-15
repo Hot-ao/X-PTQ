@@ -1,0 +1,31 @@
+{
+ "n_images": 500,
+ "images": "LVIS minival (val2017) sorted, first N",
+ "metric": "core/diag_w4_sensitivity.measure",
+ "tau": 0.25,
+ "sources": {
+  "fp": null,
+  "brecq": "/data/taeho/cvpr2027_qmodels/yolov8s-world_w4a8_s0_brecq.pt",
+  "ours": "/data/taeho/cvpr2027_qmodels/r1102/yolov8s-world_w4a8_s0_brecq-GPM.pt"
+ },
+ "results": {
+  "brecq": {
+   "emb": 0.0702,
+   "lvis": 16.3874,
+   "cls": 0.0032,
+   "coco": 4.3256,
+   "box": 0.0432,
+   "n_lvis": 30139,
+   "n_coco": 23488
+  },
+  "ours": {
+   "emb": 0.0373,
+   "lvis": 10.5976,
+   "cls": 0.0017,
+   "coco": 2.0989,
+   "box": 0.0245,
+   "n_lvis": 30139,
+   "n_coco": 23488
+  }
+ }
+}

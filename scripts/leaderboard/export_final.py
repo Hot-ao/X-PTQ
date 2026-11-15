@@ -144,25 +144,32 @@ def main():
       '[results_final.csv](results_final.csv)에 있다.\n')
     w('---\n')
 
-    # 1. 메인 표
-    w('## 1. 메인 표: YOLO 계열 6개 모델\n')
-    w('| 모델 | 비트 | FP32 | BRECQ | + Ours | Δ AP (vs BRECQ) | 선택 | QDrop | + Ours | Δ AP (vs QDrop) | PD-Quant | + Ours | Δ AP (vs PD-Quant) |')
-    w('|---|---|---|---|---|---|---|---|---|---|---|---|---|')
-    for m in YOLO:
-        fp = next((L.best(res, m, s, 'FP32') for s in L.SETTINGS if L.best(res, m, s, 'FP32')), None)
-        for s in ('W8A8', 'W4A8', 'W4A5', 'W4A4'):
-            b = src.add(1, L.main_cell(res, pending, m, s, 'brecq'))
-            o = src.add(1, L.main_cell(res, pending, m, s, 'ours'))
-            q = src.add(1, L.main_cell(res, pending, m, s, 'qdrop'))
-            qo = src.add(1, L.main_cell(res, pending, m, s, 'qdrop+ours'))
-            pq = src.add(1, L.main_cell(res, pending, m, s, 'pdquant'))        # 11-10: PD-Quant 기반 추가
-            pqo = src.add(1, L.main_cell(res, pending, m, s, 'pdquant+ours'))
-            if not any(x and x.get('lvis') is not None for x in (b, o, q, qo)):
-                continue
-            w(f"| {L.MODEL_NAME[m]} | {s} | {fpv(fp)} | {ap_flip(b)} | **{ap_flip(o)}** | {delta(o)} | "
-              f"{label(m, o and o.get('note'))} | {ap_flip(q)} | **{ap_flip(qo)}** | {delta(qo)} | "
-              f"{ap_flip(pq)} | **{ap_flip(pqo)}** | {delta(pqo)} |")
-    w('')
+    # 1. 메인 표 (11-13: W8A8은 모든 방법이 FP 근처라 본문에서 빼고 §1b 보충 표로. 본문은 W4A8–W4A4)
+    def main_table(bits):
+        w('| 모델 | 비트 | FP32 | BRECQ | + Ours | Δ AP (vs BRECQ) | 선택 | QDrop | + Ours | Δ AP (vs QDrop) | PD-Quant | + Ours | Δ AP (vs PD-Quant) |')
+        w('|---|---|---|---|---|---|---|---|---|---|---|---|---|')
+        for m in YOLO:
+            fp = next((L.best(res, m, s, 'FP32') for s in L.SETTINGS if L.best(res, m, s, 'FP32')), None)
+            for s in bits:
+                b = src.add(1, L.main_cell(res, pending, m, s, 'brecq'))
+                o = src.add(1, L.main_cell(res, pending, m, s, 'ours'))
+                q = src.add(1, L.main_cell(res, pending, m, s, 'qdrop'))
+                qo = src.add(1, L.main_cell(res, pending, m, s, 'qdrop+ours'))
+                pq = src.add(1, L.main_cell(res, pending, m, s, 'pdquant'))        # 11-10: PD-Quant 기반 추가
+                pqo = src.add(1, L.main_cell(res, pending, m, s, 'pdquant+ours'))
+                if not any(x and x.get('lvis') is not None for x in (b, o, q, qo)):
+                    continue
+                w(f"| {L.MODEL_NAME[m]} | {s} | {fpv(fp)} | {ap_flip(b)} | **{ap_flip(o)}** | {delta(o)} | "
+                  f"{label(m, o and o.get('note'))} | {ap_flip(q)} | **{ap_flip(qo)}** | {delta(qo)} | "
+                  f"{ap_flip(pq)} | **{ap_flip(pqo)}** | {delta(pqo)} |")
+        w('')
+
+    w('## 1. 메인 표: YOLO 계열 6개 모델 (W4A8–W4A4)\n')
+    main_table(('W4A8', 'W4A6', 'W4A5', 'W4A4'))
+    w('### 1b. 보충 표: W8A8\n')
+    w('- 11-13 결정: W8A8은 모든 방법이 FP 근처라 본문 메인 표에서 빼고 보충자료에 둔다. '
+      'Ours가 기반보다 낮은 칸도 있으므로(아래 Δ) 본문에는 "차이가 작다, 전체는 보충자료" 한 문장만 쓰고 "해가 없다"고는 쓰지 않는다.\n')
+    main_table(('W8A8',))
 
     # 2. 표 1 후보
     w('## 2. 표 1 후보: YOLO-World-S, 비교 방법 전체\n')
@@ -188,29 +195,49 @@ def main():
 
     # 3. ViT·DETR
     w('## 3. ViT·DETR 계열: OWLv2-B/16, Grounding DINO-T\n')
-    w('| 모델 | 비트 | FP32 | BRECQ | QDrop | Ours | 구성 | Δ AP (vs BRECQ) | 평가 |')
-    w('|---|---|---|---|---|---|---|---|---|')
+    # 11-15 사용자 결정: 비교는 같은 기반끼리(BRECQ vs BRECQ + Ours, QDrop vs QDrop + Ours)만 한다. QDrop + Ours가 없는
+    # 칸은 QDrop 기준선도 싣지 않는다(QDrop 옆에 BRECQ + Ours만 있으면 기반 간 비교로 읽혀 혼란을 준다).
+    w('| 모델 | 비트 | FP32 | BRECQ | BRECQ + Ours | 구성 | Δ AP | QDrop | QDrop + Ours | Δ AP | 평가 |')
+    w('|---|---|---|---|---|---|---|---|---|---|---|')
+    has = lambda x: bool(x and x.get('lvis') is not None)
     m = 'owlv2-b16'
     fp = next((L.best(res, m, s, 'FP32') for s in L.SETTINGS if L.best(res, m, s, 'FP32')), None)
     for s in ('W8A8', 'W4A8', 'W4A5', 'W4A4'):
         b = src.add(3, L.main_cell(res, pending, m, s, 'brecq'))
-        q = src.add(3, L.main_cell(res, pending, m, s, 'qdrop'))
         o = src.add(3, L.main_cell(res, pending, m, s, 'ours'))
-        if not any(x and x.get('lvis') is not None for x in (b, q, o)):
+        # OWLv2는 고정 구성(M / PM)이라 pick_ours를 쓰는 'qdrop+ours' 대신 BRECQ + Ours와 같은 구성 이름으로 찾는다.
+        cfg = label(m, o and o.get('note'))
+        qbase = L.best(res, m, s, 'qdrop', seeds=L.DRAFT_SEEDS)
+        qo = L.cell(L.best(res, m, s, f'qdrop+{cfg}', seeds=L.DRAFT_SEEDS), qbase, f'qdrop+{cfg}') if cfg else None
+        q = src.add(3, L.main_cell(res, pending, m, s, 'qdrop')) if has(qo) else None
+        qo = src.add(3, qo) if has(qo) else None
+        if not any(has(x) for x in (b, o)):
             continue
-        w(f"| OWLv2-B/16 | {s} | {fpv(fp)} | {ap_flip(b)} | {ap_flip(q)} | **{ap_flip(o)}** | "
-          f"{label(m, o and o.get('note'))} | {delta(o)} | LVIS minival |")
+        qcols = f"{ap_flip(q)} | **{ap_flip(qo)}** | {delta(qo)}" if qo else '– | – | –'
+        w(f"| OWLv2-B/16 | {s} | {fpv(fp)} | {ap_flip(b)} | **{ap_flip(o)}** | "
+          f"{label(m, o and o.get('note'))} | {delta(o)} | {qcols} | LVIS minival |")
     for s in ('W8A8', 'W4A8', 'W4A5', 'W4A4'):
         b, p = gdino(res, s, 'brecq')
         if not b:
             continue
-        q, _ = gdino(res, s, 'qdrop')
-        o, _ = gdino(res, s, 'brecq+PM')
         fpx = L.best(res, 'gdino-tiny', s, 'FP32', p)
-        cb, cq, co = src.add(3, L.cell(b)), src.add(3, L.cell(q)), src.add(3, L.cell(o, b))
-        w(f"| Grounding DINO-T | {s} | {fpv(fpx)} | {ap_flip(cb, flip=False)} | {ap_flip(cq, flip=False)} | "
-          f"**{ap_flip(co, flip=False)}** | PM | {delta(co)} | {p.split('· ')[-1] if '·' in p else '전체'} |")
-    w('\n- OWLv2: W8A8은 M, W4는 PM(고정 구성). GDINO: PM(고정 구성), flip은 재측정 전이라 비운다.\n')
+        cb = src.add(3, L.cell(b))
+        # 11-15 사용자 결정: GDINO도 검사(runs/262)가 고른 구성을 싣는다. W4A5는 P(구간 평가를 합친 runs/263/merged.json).
+        mj = os.path.join(L.ROOT, 'runs', '263_gdino_w4a5_P_lvis', 'merged.json')
+        if s == 'W4A5' and os.path.exists(mj):
+            j = json.load(open(mj))
+            ours, cfg = f"**{j['lvis']:.2f}**", 'P (검사)'
+            dlt = f"{j['lvis'] - cb['lvis']:+.2f}" if cb and cb.get('lvis') is not None else '–'
+        else:
+            o, _ = gdino(res, s, 'brecq+PM')
+            co = src.add(3, L.cell(o, b))
+            ours, cfg, dlt = f"**{ap_flip(co, flip=False)}**", 'PM', delta(co)
+        w(f"| Grounding DINO-T | {s} | {fpv(fpx)} | {ap_flip(cb, flip=False)} | "
+          f"{ours} | {cfg} | {dlt} | – | – | – | {p.split('· ')[-1] if '·' in p else '전체'} |")
+    w('\n- OWLv2: W8A8은 M, W4는 PM. 사후 M 검사(runs/262, YOLO와 같은 기준)가 세 칸 모두 같은 구성을 고른다.')
+    w('- GDINO W4A5: 검사가 P를 고른다(8.73 vs PM 8.79%). 11-15부터 P를 싣는다(runs/263, 같은 2000장). '
+      '검사가 놓친 PM은 30.23이다. flip은 재측정 전이라 비운다.')
+    w('- QDrop + Ours가 없는 칸은 QDrop 기준선도 싣지 않는다(11-15). 있는 칸은 OWLv2 W4A8뿐이다.\n')
 
     # 4. ablation
     w('## 4. 표 3 후보: YOLO-World-S ablation (Δ AP vs BRECQ)\n')

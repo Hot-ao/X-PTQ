@@ -190,6 +190,26 @@ def diag_protect(fp, calib, coco_names, device, n_eval=200, conf=0.25):
         torch.set_rng_state(rng[0]); torch.cuda.set_rng_state_all(rng[1])
 
 
+@torch.no_grad()
+def train_flip(qmodels, fp, coco_root, n_calib, coco_names, device, n_eval=200, conf=0.25):
+    """11-14: run_comparison --train-flip(diag_w4_sensitivity.mcheck_flip)의 OWLv2판. calibration에 쓰지 않은
+    train2017(정렬 순서 n_calib번째부터 n_eval장), COCO 어휘만. FP가 확신(sigmoid > conf)하는 패치에서 top-1 클래스가
+    바뀐 비율(%)을 모델마다 돌려준다. val2017/LVIS는 쓰지 않는다(누수 없음)."""
+    paths = sorted(glob.glob(os.path.join(coco_root, "train2017", "*.jpg")))[n_calib:n_calib + n_eval]
+    nq = len(coco_names)
+    for m in [fp, *qmodels]:
+        m.set_classes(coco_names)
+    f, n = [0] * len(qmodels), 0
+    for p in paths:
+        t = preprocess(p)[0].to(device)
+        lg = split_out(fp(t), nq)[0][0]
+        mk, top = torch.sigmoid(lg).amax(-1) > conf, lg.argmax(-1)
+        n += int(mk.sum())
+        for i, q in enumerate(qmodels):
+            f[i] += int((mk & (split_out(q(t), nq)[0][0].argmax(-1) != top)).sum())
+    return [100.0 * x / max(n, 1) for x in f]
+
+
 def coco_ap(gt_ann, results, img_ids):
     from pycocotools.coco import COCO
     from pycocotools.cocoeval import COCOeval
@@ -232,6 +252,8 @@ def main():
     ap.add_argument("--save-model", default="", help="빌드한 조건 모델을 이 폴더에 저장(+메타 .json)")
     ap.add_argument("--load-model", default="", help="빌드 대신 이 폴더의 저장 모델을 불러온다")
     ap.add_argument("--owl-name", default=None, help="HF 체크포인트(기본 owl_zoo.OWL_NAME = ST)")
+    ap.add_argument("--train-flip", action="store_true",
+                    help="빌드(또는 불러오기) 직후 calib 밖 train2017 200장·COCO 어휘에서 조건별 top-1 flip(run_comparison과 같은 정의)")
     args = ap.parse_args()
     global MIG_XMAX_FLOOR, MIG_STAT_ALL
     MIG_XMAX_FLOOR = args.xmax_floor
@@ -306,6 +328,9 @@ def main():
             save_qmodel(models[cond], qmodel_path(args.save_model, args, cond),
                         dict(cond=cond, args=vars(args), calib_time=time.time() - t0, model_mib=sizes[cond],
                              protect=list(prot) if "P" in cond.partition("+")[2] else []))
+    if args.train_flip and conditions:
+        _tf = train_flip([models[c] for c in conditions], models["FP32"], args.coco_root, args.calib, coco_names, device)
+        print("[train-flip] calib 밖 flip(%): " + ", ".join(f"{c} {v:.2f}" for c, v in zip(conditions, _tf)), flush=True)
 
     res = {}
     t0 = time.time()
@@ -353,7 +378,7 @@ def main():
             print(f"{k} | {res[k]['coco']:.2f} | {res[k + '|FP박스']['coco']:.2f} | {res[k + '|FP클래스']['coco']:.2f} | "
                   f"{res[k]['coco_flip']:.2f}% | {res[k]['box_l1']:.4f}")
     for k, v in sizes.items():
-        res[k]["size_mib"] = v
+        res.setdefault(k, {})["size_mib"] = v
     print(f"[mem] 최대 GPU 메모리 {torch.cuda.max_memory_allocated(device) / 2**30:.1f} GiB (예약 {torch.cuda.max_memory_reserved(device) / 2**30:.1f} GiB)")
     print(f"[json] {json.dumps(res)}")
 

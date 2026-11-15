@@ -20,7 +20,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 LVIS_ANN = "/data/taeho/lvis_datasets/labels_dl/extracted/lvis/annotations/lvis_v1_minival.json"
 COCO_ROOT = "/data/taeho/coco_datasets"
 FREQ_RANK = {"r": 0, "c": 1, "f": 2}
-OK, BAD, OTHER = "#2a78d6", "#d03b3b", "#c3c2b7"
+OK, BAD, OTHER = "#2a78d6", "#d03b3b", "#6abf4b"   # 11-15: 그 밖의 검출 회색 -> 초록(교수님 의견·사용자 선택; validate_palette 빨강과 deutan ΔE 14, 진한 초록은 빨강과 구분 안 됨)
 
 
 def iou(a, b):
@@ -72,6 +72,13 @@ def analyse(dets, gt, t_fp, t_show):
     return per_img, tot
 
 
+def _label_y(ax, img, y1):
+    """라벨은 박스 위에 붙인다. 박스가 사진 위 끝에 붙어 라벨이 사진 밖(옆 패널·제목)으로 나가면 박스 안쪽 위에 붙인다(11-16)."""
+    ph = ax.get_window_extent().height                         # 패널 높이(픽셀)
+    lh = (6.3 + 2.0) * ax.figure.dpi / 72 / ph * img.height     # 라벨 높이(사진 픽셀)
+    return (y1 - 2, "bottom") if y1 - 2 - lh >= 0 else (y1 + 2, "top")
+
+
 def draw(ax, img, dets, focus, names, t_show, title, max_boxes):
     """점수 >= t_show 상위 max_boxes개. focus 박스(FP 기준 사례 위치)와 겹치는 검출만 색으로, 나머지는 회색."""
     ax.imshow(img); ax.set_xticks([]); ax.set_yticks([])
@@ -98,14 +105,16 @@ def draw(ax, img, dets, focus, names, t_show, title, max_boxes):
             px = ax.get_window_extent().width                   # 패널 폭(픽셀); 글자 폭 약 6.3pt * 0.6
             est = len(lab) * 6.3 * 0.6 * ax.figure.dpi / 72 / px * img.width
             right = x1 + est > img.width
-            ax.text(x2 if right else x1, y1 - 2, lab, fontsize=6.3, color="white", va="bottom",
+            ly, va = _label_y(ax, img, y1)
+            ax.text(x2 if right else x1, ly, lab, fontsize=6.3, color="white", va=va,
                     ha="right" if right else "left", zorder=4, bbox=dict(facecolor=col, edgecolor="none", pad=1.0))
     for f in focus:                       # 이 모델이 사례 위치를 놓쳤으면 점선으로 위치만 표시
         if not any(iou(f[:4], d[:4]) >= 0.5 for d in shown):
             x1, y1, x2, y2 = f[:4]
             ax.add_patch(__import__("matplotlib").patches.Rectangle((x1, y1), x2 - x1, y2 - y1, fill=False, edgecolor=BAD,
                                                                      linewidth=1.4, linestyle=(0, (3, 2)), zorder=3))
-            ax.text(x1, y1 - 2, "missed", fontsize=6.3, color="white", va="bottom", zorder=4,
+            ly, va = _label_y(ax, img, y1)
+            ax.text(x1, ly, "missed", fontsize=6.3, color="white", va=va, zorder=4,
                     bbox=dict(facecolor=BAD, edgecolor="none", pad=1.0))
 
 

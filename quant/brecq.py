@@ -165,7 +165,7 @@ def optimize_brecq(quant_module, fp_module, calib_tensors, device,
                    learn_act_scale=False, act_lr=None, warmup=DEFAULT_WARMUP,
                    qdrop_prob=0.0, grad_clip=None,
                    two_stage=False, act_iters=5000, act_p=2.4, batch=1,
-                   neck_layerwise=True, pd=None, dc_bn_map=None):
+                   neck_layerwise=True, pd=None, dc_bn_map=None, iq=None):
     """
     09-06 수정: 순차/누적 오차 반영. 이전 버전은 block의 입력과 출력(target)을
     둘 다 fp_module에서만 캡처해서, 앞선 block들의 실제 양자화 오차가 뒤쪽 block
@@ -258,6 +258,7 @@ def optimize_brecq(quant_module, fp_module, calib_tensors, device,
         else:
             targets.append((f"block{i}", qb, fb, convs, True))   # backbone: block 단위 joint
 
+    # 11-15 InlierQ(quant/inlierq.py): iq(InlierQContext)가 있으면 재구성 손실을 inlier 위치의 FIM 가중 오차로 바꾼다.
     if verbose:
         nb = sum(1 for t in targets if t[4])
         nc = sum(1 for t in targets if not t[4])
@@ -319,6 +320,8 @@ def optimize_brecq(quant_module, fp_module, calib_tensors, device,
                 _a = [sum(v[i] for v in _dlog) / len(_dlog) for i in range(3)]
                 print(f"    [pdquant][DC] {label} BN {_a[0]:.4g} -> {_a[1]:.4g}, 제약 {_a[2]:.4g}", flush=True)
 
+        wbuf = iq.weights(fm, n, label) if iq is not None else None
+
         for c in convs:
             c.soft = True
             c.ste = True                       # block 내부로 grad 흐르게
@@ -345,7 +348,10 @@ def optimize_brecq(quant_module, fp_module, calib_tensors, device,
             if opt_a is not None:
                 opt_a.zero_grad()
             out = qm(*args)                    # block/conv를 quant weight로 통과 (다중 입력 지원)
-            loss = lp_rec_loss(out, tgt)
+            if wbuf is not None:
+                loss = iq.loss(out, tgt, torch.cat([wbuf[j] for j in js], dim=0).to(device).float())
+            else:
+                loss = lp_rec_loss(out, tgt)
             if pd is not None:                 # PD-Quant: 양자화 입력(drop 없음)의 출력 -> FP 나머지 네트워크 -> 예측 KL
                 _pdl = pd.loss(fm, qm(*args_q), js)
                 if it in (0, iters // 2, iters - 1):   # 공식도 rec/pd를 따로 출력한다
@@ -374,7 +380,7 @@ def optimize_brecq(quant_module, fp_module, calib_tensors, device,
                         for c in convs) / len(convs) * 100
             print(f"  [{ti+1}/{len(targets)}] {label} ({len(convs)} conv) "
                   f"done, h→0/1 {hconv:.0f}%, nearest 대비 flip {fl:.3f}%")
-        del in_buf, out_buf, fp_in_buf
+        del in_buf, out_buf, fp_in_buf, wbuf
         free_cpu_mem()
 
     if two_stage:
@@ -390,6 +396,6 @@ def optimize_brecq(quant_module, fp_module, calib_tensors, device,
               f"학습 없이 hard 확정됨(블록 출력이 텐서가 아닌 경우 등)")
     if flips:
         mean_flip = sum(flips) / len(flips)
-        name = "pdquant" if pd is not None else ("qdrop" if qdrop_prob > 0 else "brecq")
+        name = "inlierq" if iq is not None else "pdquant" if pd is not None else ("qdrop" if qdrop_prob > 0 else "brecq")
         print(f"[{name}] 전체 재구성 완료 (hard 반올림). nearest 대비 평균 flip "
               f"{mean_flip:.3f}% (max {max(flips):.3f}%)")

@@ -1,0 +1,74 @@
+{
+ "image": 450559,
+ "target": "helmet",
+ "anchor": 4546,
+ "sources": {
+  "fp": null,
+  "brecq": "/data/taeho/cvpr2027_qmodels/yolov8s-world_w4a8_s0_brecq.pt",
+  "ours": "/data/taeho/cvpr2027_qmodels/r1102/yolov8s-world_w4a8_s0_brecq-GPM.pt"
+ },
+ "classes": [
+  "helmet",
+  "cap/cap headwear",
+  "football helmet",
+  "hat",
+  "baseball cap/jockey cap/golf cap",
+  "gasmask/respirator/gas helmet",
+  "fedora",
+  "beret",
+  "dress hat/high hat/opera hat/silk hat/top hat",
+  "cowboy hat/ten-gallon hat",
+  "sunhat",
+  "bowler hat/bowler/derby hat/derby/plug hat"
+ ],
+ "scores": {
+  "fp": [
+   0.8733,
+   0.0835,
+   0.4435,
+   0.0104,
+   0.0035,
+   0.0759,
+   0.0004,
+   0.0002,
+   0.0003,
+   0.0022,
+   0.0003,
+   0.0003
+  ],
+  "brecq": [
+   0.6419,
+   0.6494,
+   0.38,
+   0.3426,
+   0.3398,
+   0.0318,
+   0.0299,
+   0.0251,
+   0.0241,
+   0.024,
+   0.0111,
+   0.0078
+  ],
+  "ours": [
+   0.8832,
+   0.126,
+   0.6218,
+   0.0154,
+   0.0093,
+   0.1605,
+   0.0008,
+   0.0003,
+   0.0006,
+   0.0015,
+   0.0002,
+   0.0006
+  ]
+ },
+ "top1": {
+  "fp": "helmet",
+  "brecq": "cap/cap headwear",
+  "ours": "helmet"
+ },
+ "n_vocab": 1203
+}
