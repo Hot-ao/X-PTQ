@@ -3,7 +3,7 @@
 입력: runs/260_diag_vocab_check/{yolov8s-world,yoloe-v8s-seg}.json (scripts/diag_vocab_check.py)
 점 하나 = conv 그룹 하나. 진한 점 = COCO 진단이 1.5% 예산으로 고른 보호 층(LVIS로 골라도 같다).
 축은 symlog(0 근처는 선형): 12.cv2 하나가 다른 층보다 10배 커서 선형 축이면 나머지가 원점에 뭉친다.
-출력: figures/diag_vocab_scatter.{pdf,png}
+출력: figures/analysis/diag_vocab_scatter.{pdf,png}
 """
 import json, os, sys
 import numpy as np
@@ -49,8 +49,8 @@ def main():
                 transform=ax.transAxes, ha="right", va="bottom", fontsize=6.4, color=INK, linespacing=1.3)
         ax.set_xlim(lim); ax.set_ylim(lim)
         ax.set_title(title, loc="left", fontsize=7.5, color=INK)
-        ax.set_xlabel("Δflip with COCO vocab. (%p, used for diagnosis)")
-        ax.set_ylabel("Δflip with LVIS vocab. (%p, check only)")
+        ax.set_xlabel("Δflip rate with COCO vocab. (pp, used for diagnosis)")
+        ax.set_ylabel("Δflip rate with LVIS vocab.\n(pp, verification only)")
         ax.grid(True, color=GRID, linewidth=0.5); ax.set_axisbelow(True)
         print(f"{stem}: rho={rho:.3f}, n={len(rows)}, protected={sorted(sel)}")
     h = [Line2D([], [], marker="o", linestyle="none", color=BLUE, markeredgecolor="white", markersize=5,
@@ -60,8 +60,8 @@ def main():
     fig.legend(handles=h, loc="lower center", ncol=3, fontsize=6.4, frameon=False)
     fig.tight_layout(rect=(0, 0.07, 1, 1), w_pad=2.0)
     for ext in ("pdf", "png"):
-        fig.savefig(os.path.join(ROOT, "figures", f"diag_vocab_scatter.{ext}"), dpi=300)
-    print("-> figures/diag_vocab_scatter.{pdf,png}")
+        fig.savefig(os.path.join(ROOT, "figures", "analysis", f"diag_vocab_scatter.{ext}"), dpi=300)
+    print("-> figures/analysis/diag_vocab_scatter.{pdf,png}")
 
 
 if __name__ == "__main__":

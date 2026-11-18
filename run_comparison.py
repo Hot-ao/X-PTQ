@@ -6,7 +6,7 @@ LVIS-1203(vocabulary 이식)에서 AP와 판정 충실도(flip/lost)를 잰다. 
 조건(`--conditions`)은 `<기반>+<접미사>`로 쓴다.
   - 기반: naive / adaround / qdrop / brecq / combined
   - 접미사: G(텍스트 게이트 교환), P(민감 conv W8 보호), M(공유 제약 scale 이전),
-    A(M을 사전 검사로 켤지 결정), R/H(무작위/HAWQ식 보호, 대조군)
+    A(M을 사전 검사로 켤지 결정), R/H(무작위/출력 오차 기준 보호, 대조군; 부록 표 J의 O)
   - 우리 방법 = `brecq+GPM`
 
 데이터:
@@ -948,7 +948,8 @@ def main():
     # 09-29: 조건 접미사 -- "brecq+PM"처럼 기반 조건 뒤에 양자화기 옵션을 조건별로 붙인다(한 run에서 짝비교).
     #   P = 보호(누수 없는 진단, COCO 어휘 top-1 flip 기준, 예산 PROTECT_BUDGET)
     #   R = 같은 예산 무작위 보호(random.Random(1000), runs/134 rand0과 같은 목록)
-    #   H = 같은 예산 HAWQ식 보호(출력 MSE = 'cls' 기준)
+    #   H = 같은 예산 출력 오차 기준 보호('cls' = COCO logit 상대 L2 오차; ZeroQ식 단일 층 출력 민감도. 부록 표 J에서는 O.
+    #       조건 이름 H는 기존 run·로그와 맞추려고 유지)
     #   M = 공유 제약 scale 이전(a 후보 0,0.25,0.5,0.75,1)
     #   G = 텍스트 게이트 교환(09-30 설계 방향 1). G와 P/R/H를 함께 쓰면 C2fAttn cv2(교환으로 사라지는 conv)는
     #       보호 목록에서 빠진다(교환이 그 conv를 대신 다룸 -> 모델이 그만큼 작아짐).

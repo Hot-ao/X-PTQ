@@ -4,7 +4,7 @@ YOLO-World-S, BRECQ, 확정 프로토콜(runs/158_final, 6 seed). 리더보드 �
   (a) FP 대비 AP 유지율: COCO AP(calibration 어휘), LVIS AP(배포 어휘)
   (b) top-1 flip: COCO 어휘(Top1_flip), LVIS 어휘(LVIS_flip). FP가 확신하는 예측 중 top-1 클래스가 바뀐 비율
 BRECQ가 무너진 seed(LVIS AP < 15, W4A5 seed 0)는 평균에서 뺀다. W4A4는 BRECQ가 전부 무너져(LVIS AP < 1) 뺀다.
-그림: figures/teaser_flip.{pdf,png}
+그림: figures/teaser/teaser_flip.{pdf,png}
 사용(저장소 루트): .venv/bin/python figures/src/teaser_flip.py
 """
 from __future__ import annotations
@@ -81,8 +81,8 @@ def main():
     fig.legend(handles=h, loc="lower center", ncol=2, fontsize=6.3, frameon=False, handlelength=1.8, columnspacing=1.0)
     fig.tight_layout(rect=(0, 0.08, 1, 1), w_pad=1.2)
     for ext in ("pdf", "png"):
-        fig.savefig(os.path.join(ROOT, "figures", f"teaser_flip.{ext}"), dpi=300)
-    print("그림 -> figures/teaser_flip.{pdf,png}")
+        fig.savefig(os.path.join(ROOT, "figures", "teaser", f"teaser_flip.{ext}"), dpi=300)
+    print("그림 -> figures/teaser/teaser_flip.{pdf,png}")
 
 
 if __name__ == "__main__":

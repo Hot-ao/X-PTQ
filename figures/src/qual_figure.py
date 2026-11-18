@@ -10,7 +10,7 @@
   .venv/bin/python figures/src/qual_figure.py --tag s_w4a8                 # 후보 목록만(상위 30)
   .venv/bin/python figures/src/qual_figure.py --tag s_w4a8 --pick 1234,5678,91011   # 그 이미지로 그림
   .venv/bin/python figures/src/qual_figure.py --tag s_w4a8 --each 20         # 후보 상위 20장을 한 장씩
-출력: figures/qual_<tag>.{pdf,png}, 후보 목록 figures/qual_<tag>_candidates.md, (--each) figures/qual_<tag>_wins/
+출력: figures/qual/qual_<tag>.{pdf,png}, 후보 목록 figures/qual/qual_<tag>_candidates.md, (--each) figures/qual/qual_<tag>_wins/
 """
 from __future__ import annotations
 import argparse, json, os, sys
@@ -125,7 +125,7 @@ def main():
     ap.add_argument("--t-show", type=float, default=0.15, help="BRECQ/Ours 박스를 '검출'로 치는 점수 하한(그림에도 같은 값)")
     ap.add_argument("--pick", default="", help="그릴 image_id 목록(쉼표). 비우면 후보 목록만 만든다")
     ap.add_argument("--max-boxes", type=int, default=8)
-    ap.add_argument("--each", type=int, default=0, help="후보 상위 N장을 이미지마다 따로 figures/qual_<tag>_wins/에 저장")
+    ap.add_argument("--each", type=int, default=0, help="후보 상위 N장을 이미지마다 따로 figures/qual/qual_<tag>_wins/에 저장")
     ap.add_argument("--labels", default="FP32,BRECQ,Ours", help="열 제목 3개(쉼표)")
     args = ap.parse_args()
     sys.path.insert(0, ROOT); sys.path.insert(0, os.path.join(ROOT, "core"))
@@ -152,7 +152,7 @@ def main():
         desc = "; ".join(f"{names[f[5]]} [{freq[f[5]]}] → {names[b] if b is not None else '놓침'}" for f, b in w)
         nfp = len(top_per_location(dets["fp"][str(iid)], args.t_fp))
         lines.append(f"| {iid} | {desc} | {nfp} |")
-    cpath = os.path.join(ROOT, "figures", f"qual_{args.tag}_candidates.md")
+    cpath = os.path.join(ROOT, "figures", "qual", f"qual_{args.tag}_candidates.md")
     open(cpath, "w").write("\n".join(lines) + "\n")
     print(f"후보 {len(cand)}장 -> {cpath}")
     if not args.pick and not args.each:
@@ -182,11 +182,11 @@ def main():
         plt.close(fig)
 
     if args.pick:
-        render([int(x) for x in args.pick.split(",")], os.path.join(ROOT, "figures", f"qual_{args.tag}"), ("pdf", "png"))
-        print(f"그림 -> figures/qual_{args.tag}.{{pdf,png}}")
+        render([int(x) for x in args.pick.split(",")], os.path.join(ROOT, "figures", "qual", f"qual_{args.tag}"), ("pdf", "png"))
+        print(f"그림 -> figures/qual/qual_{args.tag}.{{pdf,png}}")
     if args.each:
         # 후보 순서(위 규칙) 상위 N장을 이미지마다 한 파일로. 목록은 같은 폴더 README.md
-        out = os.path.join(ROOT, "figures", f"qual_{args.tag}_wins")
+        out = os.path.join(ROOT, "figures", "qual", f"qual_{args.tag}_wins")
         os.makedirs(out, exist_ok=True)
         rows = [f"# Ours만 맞힌 사례 상위 {args.each}장 ({args.tag})", "", lines[2], lines[3], "",
                 "| 파일 | image_id | 사례 (FP·Ours 클래스 [빈도] → BRECQ) |", "|---|---|---|"]

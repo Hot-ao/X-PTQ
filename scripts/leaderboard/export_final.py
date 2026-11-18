@@ -252,7 +252,7 @@ def main():
             x = src.add(4, L.main_cell(res, pending, S, s, c))
             cells += [ap_flip(x), delta(x) if c != 'brecq' else '']
         w(f"| {c.replace('brecq+', '+') if c != 'brecq' else 'BRECQ'} | " + ' | '.join(cells) + ' |')
-    w('\n- R = 같은 예산의 무작위 보호, H = HAWQ식 보호, GPS / GPW = M 대신 SmoothQuant / AWQ식 이전.\n')
+    w('\n- R = 같은 예산의 무작위 보호, H = 출력 오차 기준 보호(부록 표 J의 O), GPS / GPW = M 대신 SmoothQuant / AWQ식 이전.\n')
 
     # 5. 나머지 현재 규칙 결과
     shown = {(S, s, c) for s in bits3 for c in abl}

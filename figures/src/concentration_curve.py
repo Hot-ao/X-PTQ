@@ -5,7 +5,7 @@
 손상이 weight에 고르게 퍼져 있다면 y = x(회색 점선)다. 점은 P 규칙(select_protected, 예산 1.5%)이 실제로 고른 층의 몫이다.
 G가 처리하는 C2fAttn cv2도 포함한 값이다(집중도 자체를 보이는 그림이라 처방과 무관하게 센다).
 색은 구조 계열(텍스트 게이트 CNN / 게이트 없는 CNN / transformer), 선 모양은 계열 안의 모델을 구분한다.
-그림: figures/concentration_curve.{pdf,png}
+그림: figures/analysis/concentration_curve.{pdf,png}
 사용(저장소 루트): .venv/bin/python figures/src/concentration_curve.py
 """
 from __future__ import annotations
@@ -87,8 +87,8 @@ def main():
     fig.legend(handles=h, loc="lower center", ncol=2, fontsize=6, frameon=False, handlelength=2.6, columnspacing=1.2)
     fig.tight_layout(rect=(0, 0.21, 1, 1))
     for ext in ("pdf", "png"):
-        fig.savefig(os.path.join(ROOT, "figures", f"concentration_curve.{ext}"), dpi=300)
-    print("그림 -> figures/concentration_curve.{pdf,png}")
+        fig.savefig(os.path.join(ROOT, "figures", "analysis", f"concentration_curve.{ext}"), dpi=300)
+    print("그림 -> figures/analysis/concentration_curve.{pdf,png}")
 
 
 if __name__ == "__main__":

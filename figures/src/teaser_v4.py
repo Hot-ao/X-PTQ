@@ -7,7 +7,7 @@
     3.30 (W8A8) -> 69.73 (12.cv2 W4) -> 17.74 (분기별 scale 분리) -> 9.75 (게이트를 conv 뒤로 = G).
 (c) 해결: YOLO-World-S 비트별 LVIS AP, 논문 기준 seed 0(bits_curve.py와 같은 리더보드 집계).
 사용(저장소 루트): .venv/bin/python figures/src/teaser_v4.py   (리더보드 로그를 읽어 1-2분)
-출력: figures/teaser_v4.{pdf,png}
+출력: figures/teaser/teaser_v4.{pdf,png}
 """
 from __future__ import annotations
 import json, os, sys, statistics as st
@@ -111,7 +111,7 @@ def main():
     ax.legend(loc="lower left", fontsize=6, frameon=False, handlelength=1.4, borderaxespad=0.1)
     head(x0, "(c) Fix", "§5.2")
 
-    out = os.path.join(ROOT, "figures", "teaser_v4")
+    out = os.path.join(ROOT, "figures", "teaser", "teaser_v4")
     for ext in ("pdf", "png"):
         fig.savefig(f"{out}.{ext}", dpi=300)
     print("->", out)

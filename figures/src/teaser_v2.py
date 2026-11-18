@@ -5,7 +5,7 @@
     BRECQ는 같은 설정에서 COCO AP를 FP의 92%로 유지한다 -- 그런데 LVIS(배포) 어휘 라벨을 확신을 갖고 바꾼다.
 (b) YOLO-World-S 비트별 LVIS AP. 11-11부터 seed 0(documents/RESULTS_FINAL_1seed.md §2와 같다). PTQ_DRAFT_SEEDS=0,1,2면 3 seed 평균(점 = seed별 값).
 사용(저장소 루트): .venv/bin/python figures/src/teaser_v2.py [--image 450559]
-출력: figures/teaser_v2.{pdf,png}
+출력: figures/teaser/teaser_v2.{pdf,png}
 """
 from __future__ import annotations
 import argparse, json, os, statistics as st, sys
@@ -51,7 +51,7 @@ def main():
     ap.add_argument("--image", default="450559")
     ap.add_argument("--t-fp", type=float, default=0.5)
     ap.add_argument("--t-show", type=float, default=0.15)
-    ap.add_argument("--out", default=os.path.join(ROOT, "figures", "teaser_v2"))
+    ap.add_argument("--out", default=os.path.join(ROOT, "figures", "teaser", "teaser_v2"))
     args = ap.parse_args()
     import matplotlib
     matplotlib.use("Agg")

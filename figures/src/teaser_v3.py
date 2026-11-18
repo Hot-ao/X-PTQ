@@ -4,7 +4,7 @@
 (b) 원인: YOLO-World-S 층별 누수 없는 진단(Δ flip, configs/protect_cache). diag_concentration.py와 같은 데이터·같은 규칙.
 (c) 효과: W4A4, YOLO 계열 6개 모델 LVIS AP 3 seed 평균(documents/RESULTS_2026-11-04.md §1).
 사용(저장소 루트): .venv/bin/python figures/src/teaser_v3.py [--image 450559]
-출력: figures/teaser_v3.{pdf,png}
+출력: figures/teaser/teaser_v3.{pdf,png}
 """
 from __future__ import annotations
 import argparse, json, os, sys
@@ -32,7 +32,7 @@ def main():
     ap.add_argument("--image", default="450559")
     ap.add_argument("--t-fp", type=float, default=0.5)
     ap.add_argument("--t-show", type=float, default=0.15)
-    ap.add_argument("--out", default=os.path.join(ROOT, "figures", "teaser_v3"))
+    ap.add_argument("--out", default=os.path.join(ROOT, "figures", "teaser", "teaser_v3"))
     args = ap.parse_args()
     import matplotlib
     matplotlib.use("Agg")

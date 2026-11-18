@@ -1,7 +1,7 @@
 """방법 개요 그림 (논문 Fig. 2 초안). 사용: python figures/src/make_method_overview.py  (어디서 실행해도 된다)
 (a) YOLO-World에서 G/P/M이 작용하는 위치, (b) C2fAttn의 게이트 교환, (c) 공유 제약 scale 이전.
 구조와 수치의 근거는 docs/METHOD.md §2.2(분기별 activation 최대), §4.2, §4.4다. 데이터 파일은 읽지 않는다.
-출력: figures/method_overview.png, method_overview.pdf"""
+출력: figures/method/method_overview.png, method_overview.pdf"""
 import os
 import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -231,5 +231,5 @@ ax.text(117.5, 3.0, 'one per-tensor activation grid (dashed) is used more evenly
         ha='center', va='center')
 
 for ext in ('png', 'pdf'):
-    fig.savefig(os.path.join(HERE, f'method_overview.{ext}'), dpi=220, facecolor='white')
-print('저장:', os.path.join(HERE, 'method_overview.png'), '/ .pdf')
+    fig.savefig(os.path.join(HERE, 'method', f'method_overview.{ext}'), dpi=220, facecolor='white')
+print('저장:', os.path.join(HERE, 'method', 'method_overview.png'), '/ .pdf')

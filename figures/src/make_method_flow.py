@@ -4,7 +4,7 @@ make_method_arch.py(위치 그림)와 짝을 이루는 순서 그림이다. 흐�
   -> 후보 두 개: GP = calibrate + BRECQ, GPM = M(생산 conv 쪽 x/s, 소비 conv W*s) + calibrate + BRECQ
   -> calibration 밖 train2017 200장 + COCO 어휘의 top-1 flip으로 하나 선택(flip_GPM <= flip_GP 이면 GPM, rho = 1.0, seed마다)
 막대는 실측(configs/protect_cache, YOLO-World-S 층별 COCO flip 증가). 근거: documents/FIGURE_METHOD_PLACEMENT_2026-11-04.md
-출력: figures/method_flow.{pdf,png}"""
+출력: figures/method/method_flow.{pdf,png}"""
 import json, os, sys
 import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -233,5 +233,5 @@ ax.text(KX + 19.3, 29.6, 'per seed', ha='center', va='center', fontsize=5.0, col
 ax.set_ylim(Y0, 70); fig.set_size_inches(W, H * (70 - Y0) / 70)
 
 for ext in ('png', 'pdf'):
-    fig.savefig(os.path.join(FIG, f'method_flow.{ext}'), dpi=300, facecolor='white')
-print('저장:', os.path.join(FIG, 'method_flow.png'), '/ .pdf')
+    fig.savefig(os.path.join(FIG, 'method', f'method_flow.{ext}'), dpi=300, facecolor='white')
+print('저장:', os.path.join(FIG, 'method', 'method_flow.png'), '/ .pdf')

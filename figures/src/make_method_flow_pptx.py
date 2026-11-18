@@ -1,10 +1,10 @@
-"""방법 흐름 그림의 편집 가능한 PPT판 (11-04). figures/method_flow.png(make_method_flow.py)와 같은 배치를
+"""방법 흐름 그림의 편집 가능한 PPT판 (11-04). figures/method/method_flow.png(make_method_flow.py)와 같은 배치를
 PowerPoint 기본 도형(둥근 사각형, 원, 꺾은선 화살표, 글상자)으로 다시 그린다. 패널마다 그룹으로 묶어 두었다.
 사용(저장소 루트, python-pptx 필요. .venv에는 없어 scratch에 따로 설치해 썼다):
   PYTHONPATH=<python-pptx 경로> .venv/bin/python figures/src/make_method_flow_pptx.py
 좌표는 make_method_flow.py의 그림 단위(가로 140 x 세로 70, y는 아래가 0)를 그대로 쓰고 슬라이드(13.33 x 6.67 in)로 옮긴다.
 글자 크기는 그림 크기(7 in) 대비 슬라이드 배율(x1.9)만큼 키운다. 막대는 실측(configs/protect_cache).
-출력: figures/method_flow.pptx"""
+출력: figures/method/method_flow.pptx"""
 import json, os, sys
 from PIL import Image
 from pptx import Presentation
@@ -337,6 +337,6 @@ with group('M check and output'):
     poly([(KX + 14.0, 37.5), (KX + 15.8, 37.5)])
     text(KX + 19.3, 29.6, 'per seed', fs=5.0, color=MUTED)
 
-out = os.path.join(FIG, 'method_flow.pptx')
+out = os.path.join(FIG, 'method', 'method_flow.pptx')
 prs.save(out)
 print('저장:', out)

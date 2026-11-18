@@ -7,7 +7,7 @@
   - 예산 포착량(%p): P가 고른 층들의 증가 합(절대값). 10-19: 비중(%)은 모델 안에서만 정규화해서, 손상이 작고 퍼진
     모델(OWLv2: 한 층만 4.1%p로 잡음 0.8%p를 겨우 넘음)에서 한 층이 31%로 부풀려 보였다. P의 효과는 절대량과 순서가 맞는다.
 를 계산하고, 관측된 P의 효과(BRECQ 대비 P만 더한 조건의 짝 Δ LVIS AP, CVPR2027/runs)를 나란히 출력한다.
-그림: figures/sensitivity_maps.{pdf,png}(본문: 구조 계열마다 하나씩 4개 모델), figures/sensitivity_maps_all.{pdf,png}(부록: 8개).
+그림: figures/analysis/sensitivity_maps.{pdf,png}(본문: 구조 계열마다 하나씩 4개 모델), figures/analysis/sensitivity_maps_all.{pdf,png}(부록: 8개).
 층별 증가(깊이 순서), P가 고른 층은 파란색, YOLO-World에서 G가 대신 다루는 텍스트 융합 conv는 빗금.
 11-03: P 표시는 새 규칙(G가 다루는 conv를 빼고 다시 채움, 분모 = 양자화 weight 전체 = run_comparison의 Pg).
 제목의 집중도는 G 대상 conv를 포함해 1.5% 예산(select_protected)이 담는 손상 비중으로, figures/src/concentration_curve.py의 점과 같다.
@@ -160,8 +160,8 @@ def figure(data, stem):
                loc="upper right", ncol=4, fontsize=7, frameon=False, bbox_to_anchor=(1.0, 1.0))
     fig.tight_layout(rect=(0, 0, 1, 1 - 0.18 / fig.get_figheight()))   # 범례 자리: 높이와 무관하게 약 0.18in
     for ext in ("pdf", "png"):
-        fig.savefig(os.path.join(ROOT, "figures", f"{stem}.{ext}"), dpi=200)
-    print(f"그림 -> figures/{stem}.{{pdf,png}}")
+        fig.savefig(os.path.join(ROOT, "figures", "analysis", f"{stem}.{ext}"), dpi=200)
+    print(f"그림 -> figures/analysis/{stem}.{{pdf,png}}")
 
 
 def main():

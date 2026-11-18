@@ -1,0 +1,25 @@
+model,ckpt,setting,seed,ours_config,fp_lvis_ap,fp_coco_ap,brecq_coco_vocab_flip,brecq_lvis_vocab_flip,ours_coco_vocab_flip,ours_lvis_vocab_flip,brecq_lvis_ap,ours_lvis_ap,brecq_coco_ap,ours_coco_ap,src_brecq,src_ours
+YOLO-World-S,yolov8s-world,W8A8,0,GPM,25.89,36.8,0.45,3.82,0.27,2.71,25.54,25.78,36.71,36.73,runs/158_final,runs/234_rerun_s0 runs/240_w8seeds_w4a4
+YOLO-World-S,yolov8s-world,W4A8,0,GPM,25.89,36.8,3.94,17.49,2.03,10.69,22.75,23.97,33.68,35.46,runs/154_protocol runs/158_final,runs/234_rerun_s0 runs/236_fill_s0
+YOLO-World-S,yolov8s-world,W4A5,0,GPM,25.89,36.8,27.04,62.27,3.77,16.2,11.29,22.94,19.3,33.84,runs/154_protocol runs/158_final,runs/229_budget_seeds_S runs/234_rerun_s0 runs/236_fill_s0
+YOLO-World-S,yolov8s-world,W4A4,0,GPM,25.89,36.8,68.53,97.21,9.74,32.2,0.45,18.6,0.33,28.35,runs/203_w4a4 runs/214_w4a4_s2,runs/234_rerun_s0 runs/246_w4a4_seeds
+YOLO-World-S v2,yolov8s-worldv2,W8A8,0,GPM,22.19,37.17,0.38,4.79,0.34,8.09,22.69,22.76,36.97,36.97,runs/160_gen6,runs/234_rerun_s0 runs/240_w8seeds_w4a4
+YOLO-World-S v2,yolov8s-worldv2,W4A8,0,GPM,22.19,37.17,4.12,45.64,1.83,27.15,15.98,19.44,31.89,34.65,runs/154_protocol runs/160_gen6,runs/234_rerun_s0 runs/235_v2_refill_check runs/236_fill_s0
+YOLO-World-S v2,yolov8s-worldv2,W4A5,0,GPM,22.19,37.17,9.76,55.46,3.11,38.79,13.3,17.19,26.48,32.92,runs/154_protocol runs/160_gen6,runs/234_rerun_s0 runs/236_fill_s0
+YOLO-World-S v2,yolov8s-worldv2,W4A4,0,GPM,22.19,37.17,67.93,99.35,9.85,67.19,0.21,10.86,0.2,24.74,runs/240_w8seeds_w4a4 runs/246_w4a4_seeds,runs/240_w8seeds_w4a4 runs/246_w4a4_seeds
+YOLO-World-M,yolov8m-world,W8A8,0,GP,29.8,41.49,0.56,11.51,0.51,10.11,28.91,28.88,39.94,40.36,runs/160_gen6,runs/234_rerun_s0 runs/240_w8seeds_w4a4
+YOLO-World-M,yolov8m-world,W4A8,0,GP,29.8,41.49,4.9,30.64,2.53,22.43,24.82,26.14,36.99,38.8,runs/154_protocol runs/160_gen6,runs/234_rerun_s0 runs/236_fill_s0
+YOLO-World-M,yolov8m-world,W4A5,0,GP,29.8,41.49,13.53,50.02,6.14,35.16,19.44,23.65,31.68,36.02,runs/154_protocol runs/160_gen6,runs/234_rerun_s0 runs/236_fill_s0
+YOLO-World-M,yolov8m-world,W4A4,0,GPM,29.8,41.49,94.99,97.6,47.3,64.9,0.54,15.59,0.13,23.74,runs/214_w4a4_s2 runs/219_floor_verify runs/223_floor_rerun,runs/234_rerun_s0 runs/246_w4a4_seeds
+YOLO-World-L,yolov8l-world,W8A8,0,GPM,33.43,45.11,0.54,3.61,0.52,4.02,33.37,32.77,45.01,44.88,runs/238_w8a8 runs/240_w8seeds_w4a4,runs/238_w8a8 runs/240_w8seeds_w4a4
+YOLO-World-L,yolov8l-world,W4A8,0,GPM,33.43,45.11,5.3,22.35,2.03,9.88,28.34,31.98,40.51,43.73,runs/211_L_main runs/219_floor_verify,runs/234_rerun_s0 runs/236_fill_s0
+YOLO-World-L,yolov8l-world,W4A5,0,GPM,33.43,45.11,17.4,53.9,4.39,17.19,15.37,29.37,25.82,41.3,runs/211_L_main runs/219_floor_verify,runs/234_rerun_s0 runs/236_fill_s0
+YOLO-World-L,yolov8l-world,W4A4,0,GPM,33.43,45.11,79.69,98.41,9.65,33.95,0.06,22.6,0.04,34.79,runs/240_w8seeds_w4a4 runs/246_w4a4_seeds,runs/240_w8seeds_w4a4 runs/246_w4a4_seeds
+YOLOE-v8s,yoloe-v8s-seg,W8A8,0,PM,25.94,31.29,0.4,2.3,0.33,1.81,25.79,25.86,31.13,31.25,runs/164_yoloe,runs/234_rerun_s0 runs/240_w8seeds_w4a4
+YOLOE-v8s,yoloe-v8s-seg,W4A8,0,P,25.94,31.29,3.39,14.16,2.24,10.43,23.71,24.57,28.85,29.58,runs/164_yoloe,runs/234_rerun_s0 runs/236_fill_s0
+YOLOE-v8s,yoloe-v8s-seg,W4A5,0,PM,25.94,31.29,15.94,33.8,3.88,16.36,17.18,23.19,18.54,28.27,runs/164_yoloe,runs/234_rerun_s0 runs/236_fill_s0
+YOLOE-v8s,yoloe-v8s-seg,W4A4,0,PM,25.94,31.29,48.03,79.2,7.6,25.75,4.64,20.39,5.31,25.21,runs/240_w8seeds_w4a4 runs/246_w4a4_seeds,runs/240_w8seeds_w4a4 runs/246_w4a4_seeds
+YOLOE-11s,yoloe-11s-seg,W8A8,0,PM,26.81,33.5,0.56,3.46,0.4,2.68,26.54,26.73,33.35,33.44,runs/171_yoloe11,runs/234_rerun_s0 runs/240_w8seeds_w4a4
+YOLOE-11s,yoloe-11s-seg,W4A8,0,P,26.81,33.5,4.32,20.07,3.58,18.02,22.57,22.85,29.87,30.46,runs/171_yoloe11,runs/234_rerun_s0 runs/236_fill_s0
+YOLOE-11s,yoloe-11s-seg,W4A5,0,PM,26.81,33.5,31.11,58.76,13.06,35.46,11.56,17.88,13.46,22.45,runs/171_yoloe11,runs/234_rerun_s0 runs/236_fill_s0
+YOLOE-11s,yoloe-11s-seg,W4A4,0,PM,26.81,33.5,71.52,94.63,30.27,58.76,0.34,10.92,0.07,14.22,runs/240_w8seeds_w4a4 runs/246_w4a4_seeds,runs/240_w8seeds_w4a4 runs/246_w4a4_seeds

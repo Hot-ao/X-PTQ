@@ -10,12 +10,15 @@ import os, sys
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "documents", "figure", "qual", "qual_grid.pptx")
-PICKS = "446651,153632,469174"          # 논문 그림과 같은 이미지(11-16 최종. 이전: 478393,381971 등)
+PICKS = "446651,153632,237071"          # 논문 그림과 같은 이미지(11-16 최종. 이전: 229997, 469174, 478393, 381971 등)
 BASES = "brecq,qdrop,pdquant"            # 블록별 기준 PTQ(11-15, 각 + Ours, 모두 seed 0)
 CROP = ""                               # 자르기 없음(이전 478393:0,130,480,530)
-CAPTION = ("비트별 정성 비교 (YOLO-World-S, LVIS 어휘, seed 0). 이미지마다 기준 PTQ가 다르다(위부터 BRECQ, QDrop, PD-Quant). "
+CAPTION = ("비트별 정성 비교 (YOLO-World-S, LVIS 어휘, seed 0). 위부터 BRECQ, QDrop, PD-Quant를 기준 PTQ로 쓴 예시다. "
            "왼쪽은 FP32, 오른쪽은 기준 PTQ(위 행)와 + Ours(아래 행)의 W4A8, W4A5, W4A4 결과다. "
-           "파랑은 FP와 같은 판정, 빨강은 바뀐 판정, 초록은 그 밖의 검출이다. 점선 + missed = 그 위치를 놓침.\n"
+           "파랑은 FP와 같은 판정, 빨강은 바뀐 판정, 빨간 점선(missed)은 그 위치를 놓친 것, 초록은 그 밖의 검출이다. "
+           "BRECQ는 W4A8에서 helmet을 cap으로 바꾸고 W4A5부터 놓친다. QDrop은 W4A8·W4A5에서 knife를 fork로 바꾸고 W4A4에서 놓친다. "
+           "PD-Quant는 W4A8에서는 맞히지만 W4A5와 W4A4에서 tennis ball을 apple과 lime으로 바꾼다. "
+           "Ours를 더하면 세 경우 모두 세 비트에서 FP 판정을 지킨다.\n"
            "생성: figures/src/make_qual_grid_pptx.py (qual_grid.py --pick " + PICKS + " --bases " + BASES + "과 같은 배치).")
 
 import matplotlib
@@ -35,7 +38,7 @@ EMU_IN = 914400
 CAP = {}
 
 
-def fake_savefig(self, *a, **k):        # qual_grid.py가 figures/qual_grid.*를 덮어쓰지 않게 하고 그림만 잡는다
+def fake_savefig(self, *a, **k):        # qual_grid.py가 figures/qual/qual_grid.*를 덮어쓰지 않게 하고 그림만 잡는다
     CAP["fig"] = self
 
 

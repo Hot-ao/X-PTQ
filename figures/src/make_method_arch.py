@@ -6,7 +6,7 @@ Text Contrastive Head, Box Head, Region-Text Matching)을 그대로 두고, 그 
     configs/protect_cache의 YOLO-World-S 층별 COCO flip 증가(calibration 쪽). 초록 = G가 다루는 cv2, 보라 = 새 규칙 P 선택.
   - 입력/출력 사진 = val2017 446651, 출력 박스 = Ours W4A4 seed 0 검출(qual_s_w4a4/ours.json, 위치마다 최고 점수, >= 0.25).
     같은 이미지에서 BRECQ W4A4는 검출이 0개다(qual_grid 첫 블록과 같은 사진).
-make_method_overview.py(기존 Fig. 2 초안, 세부 수치 포함)는 그대로 둔다. 출력: figures/method_arch.{pdf,png}"""
+make_method_overview.py(기존 Fig. 2 초안, 세부 수치 포함)는 그대로 둔다. 출력: figures/method/method_arch.{pdf,png}"""
 import json, os, sys
 import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -306,5 +306,5 @@ ax.text(116.5, 3.2, '$\\mathrm{conv}(x, W) = \\mathrm{conv}(x/s,\\, W\\mathrm{di
         fontsize=5.8, color=INK, ha='center', va='center')
 
 for ext in ('png', 'pdf'):
-    fig.savefig(os.path.join(FIG, f'method_arch.{ext}'), dpi=300, facecolor='white')
-print('저장:', os.path.join(FIG, 'method_arch.png'), '/ .pdf')
+    fig.savefig(os.path.join(FIG, 'method', f'method_arch.{ext}'), dpi=300, facecolor='white')
+print('저장:', os.path.join(FIG, 'method', 'method_arch.png'), '/ .pdf')

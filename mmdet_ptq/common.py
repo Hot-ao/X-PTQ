@@ -10,6 +10,10 @@ COCO = "/data/taeho/coco_datasets/"
 MODELS = {
     "retina_rx32": ("regnet/retinanet_regnetx-3.2GF_fpn_1x_coco.py",
                     "retinanet_regnetx-3.2GF_fpn_1x_coco_20200520_163141-cb1509e8.pth"),
+    # 11-16 Reg-PTQ(CVPR'24) 재현용: 논문 FP RetinaNet R50 37.4, Faster R-CNN R50 38.5(mmdet 2x 38.4가 가장 가까움)
+    "retina_r50_2x": ("retinanet/retinanet_r50_fpn_2x_coco.py", "retinanet_r50_fpn_2x_coco_20200131-fdb43119.pth"),
+    "frcnn_r50_2x": ("faster_rcnn/faster-rcnn_r50_fpn_2x_coco.py",
+                     "faster_rcnn_r50_fpn_2x_coco_bbox_mAP-0.384_20200504_210434-a5d8aa15.pth"),
     "frcnn_r50": ("faster_rcnn/faster-rcnn_r50_fpn_1x_coco.py", "faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth"),
     "frcnn_r50_iou": ("faster_rcnn/faster-rcnn_r50_fpn_iou_1x_coco.py",
                       "faster_rcnn_r50_fpn_iou_1x_coco_20200506_095954-938e81f0.pth"),

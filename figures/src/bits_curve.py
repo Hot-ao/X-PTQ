@@ -8,7 +8,7 @@ best, pick_ours)를 직접 불러 seed 0-2를 쓴다. 메인 표 초안 G와 같
   - 11-13: PD-Quant, Ours (on PD-Quant) 추가(seed 0만 있다)
   - SmoothQuant / AWQ는 seed 0만 있어서 이 그림에서 뺐다(11-03판에는 있었음, 표 1에 남는다)
   - 기준선 seed 중 하나라도 LVIS AP < 15면 속 빈 점(BRECQ·QDrop W4A5 seed 0 붕괴)
-그림: figures/bits_curve.{pdf,png}
+그림: figures/experiments/bits_curve.{pdf,png}
 사용(저장소 루트): .venv/bin/python figures/src/bits_curve.py   (로그 1,200여 개를 읽어 1-2분 걸린다)
 """
 from __future__ import annotations
@@ -94,7 +94,7 @@ def main():
     print("구성(BRECQ seed 0 선택):", {b: per[b]["_cfg"] for b in BITS})
     ax.set_xticks(range(len(BITS))); ax.set_xticklabels(BITS, fontsize=6.8)
     ax.set_xlim(-0.3, len(BITS) - 0.7); ax.set_ylim(0, 29)
-    ax.set_ylabel("LVIS AP (deployment vocabulary)")
+    ax.set_ylabel("LVIS AP (proxy for deployment vocabulary)")
     ax.yaxis.grid(True, color=GRID, linewidth=0.5); ax.set_axisbelow(True)
     seeds = f"{min(ns)} seeds" if len(ns) == 1 else f"{min(ns)}–{max(ns)} seeds"
     ax.set_title("YOLO-World-S (seed 0)" if len(SEEDS) == 1 else f"YOLO-World-S (mean of {seeds}, bars = seed range)", loc="left", fontsize=7.2, color=INK)
@@ -109,8 +109,8 @@ def main():
               handlelength=2.4, borderaxespad=0.3, labelspacing=0.3)
     fig.tight_layout()
     for ext in ("pdf", "png"):
-        fig.savefig(os.path.join(ROOT, "figures", f"bits_curve.{ext}"), dpi=300)
-    print("그림 -> figures/bits_curve.{pdf,png}")
+        fig.savefig(os.path.join(ROOT, "figures", "experiments", f"bits_curve.{ext}"), dpi=300, bbox_inches="tight", pad_inches=1 / 72)   # 11-16: 그래프 밖 공백을 1pt만 남기고 자른다
+    print("그림 -> figures/experiments/bits_curve.{pdf,png}")
 
 
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ val2017과 LVIS는 어디에서도 쓰지 않는다(평가 데이터·어휘 누
   emb  : cv4 입력(region 임베딩) 오차, FP 확신도 가중 평균
   coco : FP 확신도 > conf 인 anchor에서 top-1 COCO 클래스가 바뀐 비율(%). 보호 선택의 기준
   lvis : 같은 방식. 위 함수들은 LVIS 슬롯에도 COCO 임베딩을 넣어 부르므로 coco와 같은 값이다
-  cls  : COCO logit 상대 L2 오차 (HAWQ식 대조군 +H의 기준)
+  cls  : COCO logit 상대 L2 오차 (출력 오차 대조군 +H의 기준, 부록 표 J의 O; ZeroQ식 단일 층 출력 민감도)
   box  : cv2 출력(박스 분포 logit) 상대 L2 오차 ||q - fp||^2 / ||fp||^2
 
 파일 이름은 처음 만든 용도(W4 손상이 어느 블록에 몰려 있는지 보는 0단계 진단, 09-29)에서 왔다.
@@ -190,7 +190,8 @@ def measure(q, evals, refs, device, vm_lvis, vm_coco):
                 qc = sims(xn[cm], vm_coco, lvl).argmax(-1)
                 a["cf"] += int((qc != r["coco_c"].to(device)[cm]).sum()); a["cn"] += int(cm.sum())
             # 출력 MSE 기준(09-29): 검출기 최종 출력 중 COCO(=calibration vocabulary) 클래스 logit의 상대 오차.
-            # Hessian 기반 배분(HAWQ류)이 근사하려는 "출력 변화"를 직접 잰 값 -- 순위 비교 기준으로 쓴다.
+            # 층 하나만 저비트로 내렸을 때의 출력 변화(ZeroQ의 단일 층 출력 민감도와 같은 구조, 지표는 KL 대신 상대 L2)
+            # -- 판정 기준(coco flip)과 비교하는 대조군 순위 기준으로 쓴다.
             fc = r["cls"].to(device).float()
             a["cnum"] += float((sims(xn, vm_coco, lvl) - fc).pow(2).sum()); a["cden"] += float(fc.pow(2).sum())
             fb = r["box"].to(device)

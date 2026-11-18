@@ -48,7 +48,7 @@ print(f"\n_Holm family(표 2): {M2}개._")
 d = D[('W4A5','brecq')]; print("_W4A5 seed 0 COCO AP: " + ", ".join(f"{n} {D[('W4A5',c)][0]['coco']:.2f}" for c, n in abl) + "._")
 # ---------------- 표 3
 print("\n**표 3a — 보호 대상 선택 기준 (W4A8, 같은 예산 1.5%, M 없음, 6 seed)**\n")
-sel = [('brecq','BRECQ'),('brecq+R','+R (무작위)'),('brecq+H','+H (HAWQ식 출력 MSE)'),('brecq+P','+P (누수 없는 판정 진단)')]
+sel = [('brecq','BRECQ'),('brecq+R','+R (무작위)'),('brecq+H','+O (출력 오차)'),('brecq+P','+P (누수 없는 판정 진단)')]
 comps3 = [('W4A8', c, 'brecq', ()) for c, _ in sel[1:]] + [('W4A8','brecq+P','brecq+R',()), ('W4A8','brecq+P','brecq+H',())]
 for st_ in ('W8A8','W4A8','W4A6','W4A5'):
     ex = (0,) if st_ == 'W4A5' else ()

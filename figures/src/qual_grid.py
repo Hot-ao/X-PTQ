@@ -9,9 +9,9 @@ qual_dets.py가 만든 세 태그(s_w4a8, s_w4a5, s_w4a4; 각 fp, brecq, ours)�
   - 희귀(r) > 흔함(c) > 잦음(f), 그다음 FP 판정 수가 적은 순(그림이 덜 복잡한 것)
 배치: 왼쪽 열 = FP32(두 행에 걸쳐), 그 오른쪽 = 행 BRECQ / Ours, 열 W4A8 / W4A5 / W4A4.
 사용(저장소 루트):
-  .venv/bin/python figures/src/qual_grid.py                 # 후보 목록 figures/qual_grid_candidates.md + 1순위 그림
-  .venv/bin/python figures/src/qual_grid.py --pick 446651,153632,469174 --bases brecq,qdrop,pdquant   # 논문 그림(11-16 최종, 블록별 기준 PTQ)
-출력: figures/qual_grid.{pdf,png}
+  .venv/bin/python figures/src/qual_grid.py                 # 후보 목록 figures/qual/qual_grid_candidates.md + 1순위 그림
+  .venv/bin/python figures/src/qual_grid.py --pick 446651,153632,237071 --bases brecq,qdrop,pdquant   # 논문 그림(11-16 최종, 블록별 기준 PTQ)
+출력: figures/qual/qual_grid.{pdf,png}
 """
 from __future__ import annotations
 import argparse, json, os, sys
@@ -82,7 +82,7 @@ def main():
         desc = "; ".join(f"{names[f[5]]} [{freq[f[5]]}] (" + " · ".join("/".join(nm(lab[(t, k)]) for t, _ in BITS) for k in BASES)
                          + ")" for f, lab in wins)
         lines.append(f"| {iid} | {n} | {desc} |")
-    open(os.path.join(ROOT, "figures", "qual_grid_candidates.md"), "w").write("\n".join(lines) + "\n")
+    open(os.path.join(ROOT, "figures", "qual", "qual_grid_candidates.md"), "w").write("\n".join(lines) + "\n")
     print("\n".join(lines[4:20]))
     if not cand:
         return
@@ -145,8 +145,8 @@ def main():
                 if c == 0:
                     ax.set_ylabel(mname, fontsize=8, rotation=90, labelpad=3)
     for ext in ("pdf", "png"):
-        fig.savefig(os.path.join(ROOT, "figures", f"qual_grid.{ext}"), dpi=250)
-    print(f"그림({','.join(map(str, picks))}) -> figures/qual_grid.{{pdf,png}}")
+        fig.savefig(os.path.join(ROOT, "figures", "qual", f"qual_grid.{ext}"), dpi=250)
+    print(f"그림({','.join(map(str, picks))}) -> figures/qual/qual_grid.{{pdf,png}}")
 
 if __name__ == "__main__":
     main()

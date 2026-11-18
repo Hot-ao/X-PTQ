@@ -3,7 +3,7 @@ GP와 GPM을 둘 다 만든 실행(runs/234_rerun_s0, 236_fill_s0, 240, 247; 11-
   x = 검사 flip 차이 (calibration 밖 train2017 200장, COCO 어휘; flip_GPM - flip_GP, %p)   -> x <= 0 이면 GPM을 고른다(rho = 1.0)
   y = LVIS AP 차이 (GPM - GP, 점)                                                         -> 사후 확인용. 선택에는 쓰지 않는다
 를 읽어 점으로 찍는다. 검사가 AP가 더 높은 쪽을 고르면 맞음(파란 원), 아니면 틀림(빨간 x). 틀림 사분면은 옅게 칠한다.
-출력: figures/mcheck_scatter.{pdf,png}, 표준출력에 요약(맞힌 수, 고정 구성 대비 평균·최대 손해)."""
+출력: figures/analysis/mcheck_scatter.{pdf,png}, 표준출력에 요약(맞힌 수, 고정 구성 대비 평균·최대 손해)."""
 from __future__ import annotations
 import glob, os, re
 
@@ -84,10 +84,10 @@ def main():
     ax.fill_between([-XL, 0], -12, 0, color=SHADE, zorder=0, lw=0)
     ax.fill_between([0, X], 0, Y, color=SHADE, zorder=0, lw=0)
     ax.axhline(0, color=AXIS, lw=0.8, zorder=1); ax.axvline(0, color=AXIS, lw=0.8, zorder=1)
-    ax.text(-0.12, Y * 0.85, "← check picks GPM", fontsize=6.0, color=MUTED, ha="right", va="top")
-    ax.text(0.12, -12 * 0.85, "check picks GP →", fontsize=6.0, color=MUTED, ha="left", va="bottom")
-    ax.text(X * 0.93, Y * 0.82, "wrong pick\n(GPM was better)", fontsize=5.8, color=BADC, ha="right", va="top")
-    ax.text(-XL * 0.93, -12 * 0.85, "wrong pick\n(GP was better)", fontsize=5.8, color=BADC, ha="left", va="bottom")
+    ax.text(-0.12, Y * 0.85, "← check picks TSM on", fontsize=6.0, color=MUTED, ha="right", va="top")
+    ax.text(0.12, -12 * 0.85, "check picks TSM off →", fontsize=6.0, color=MUTED, ha="left", va="bottom")
+    ax.text(X * 0.93, Y * 0.82, "wrong pick\n(TSM on was better)", fontsize=5.8, color=BADC, ha="right", va="top")
+    ax.text(-XL * 0.93, -12 * 0.85, "wrong pick\n(TSM off was better)", fontsize=5.8, color=BADC, ha="left", va="bottom")
     for r in R:
         if r["ok"]:
             ax.scatter(r["dx"], r["dy"], s=22, color=OKC, edgecolor="white", linewidth=0.8, zorder=4)
@@ -112,13 +112,13 @@ def main():
                         fontsize=5.6, color=INK, ha="center" if ox == 0 else "left" if ox > 0 else "right", va="center")
     ax.set_xticks([-100, -10, -1, 0, 1, 10, 50]); ax.set_xticklabels(["−100", "−10", "−1", "0", "1", "10", "50"])
     ax.set_yticks([-10, -1, 0, 1, 10]); ax.set_yticklabels(["−10", "−1", "0", "1", "10"])
-    ax.set_xlabel("check flip, GPM − GP (pp)\n200 non-calibration train images, COCO vocab.", fontsize=6.6, linespacing=1.2)
-    ax.set_ylabel("LVIS AP, GPM − GP", fontsize=6.8)
+    ax.set_xlabel("check flip rate, TSM on − off (pp)\n200 train images disjoint from calibration, COCO vocab.", fontsize=6.6, linespacing=1.2)
+    ax.set_ylabel("LVIS AP, TSM on − off", fontsize=6.8)
     worst_e = max((abs(r["dy"]) for r in E if not r["ok"]), default=0)
     worst = max(o - p for o, p in zip(orc, pick))
-    ax.set_title((f"M check picks the better candidate in {ok + eok}/{n + len(E)} runs\n"
+    ax.set_title((f"TSM check picks the better candidate in {ok + eok}/{n + len(E)} runs\n"
                   f"(real-time {ok}/{n}, OWLv2·G-DINO {eok}/{len(E)}); worst miss {worst:.1f} / {worst_e:.1f} AP") if E else
-                 f"M check picks the better candidate in {ok}/{n} runs\nworst miss {worst:.2f} AP",
+                 f"TSM check picks the better candidate in {ok}/{n} runs\nworst miss {worst:.2f} AP",
                  loc="left", fontsize=6.9, color=INK, linespacing=1.25)
     from matplotlib.lines import Line2D
     h = [Line2D([], [], marker="o", color=OKC, linestyle="none", markersize=4.5, markeredgecolor="white", label="correct pick"),
@@ -128,8 +128,8 @@ def main():
     ax.legend(handles=h, loc="lower center", bbox_to_anchor=(0.5, -0.42), ncol=len(h), fontsize=5.8, frameon=False, columnspacing=0.8)
     fig.tight_layout()
     for ext in ("pdf", "png"):
-        fig.savefig(os.path.join(ROOT, "figures", f"mcheck_scatter.{ext}"), dpi=300, bbox_inches="tight")
-    print("그림 -> figures/mcheck_scatter.{pdf,png}")
+        fig.savefig(os.path.join(ROOT, "figures", "analysis", f"mcheck_scatter.{ext}"), dpi=300, bbox_inches="tight")
+    print("그림 -> figures/analysis/mcheck_scatter.{pdf,png}")
 
 
 if __name__ == "__main__":
